@@ -2,10 +2,6 @@
 
 """Console script for erepublik_script."""
 
-__author__ = """Eriks Karls"""
-__email__ = 'eriks@72.lv'
-__version__ = '0.1.0'
-
 import json
 import os
 import random
@@ -23,12 +19,37 @@ from erepublik_script.citizen import Citizen
 
 __all__ = ["Citizen"]
 
-INTERACTIVE = True
 CONFIG = defaultdict(bool)
 
 
 @click.command()
-def main(args=None):
+@click.option('--silent', help='Run silently', type=bool, is_flag=True)
+def main(silent):
+    global CONFIG
+    assert sys.version_info >= (3, 7, 1)
+    if silent:
+        write_log = utils.write_silent_log
+    else:
+        write_log = utils.write_interactive_log
+
+    try:
+        with open('config.json', 'r') as f:
+            CONFIG = json.load(f)
+
+        write_log('Config file found. Checking...')
+        CONFIG = utils.parse_config(CONFIG)
+    except:
+        CONFIG = utils.parse_config()
+
+    with open('config.json', 'w') as f:
+        json.dump(CONFIG, f, indent=True, sort_keys=True)
+    if CONFIG['interactive']:
+        write_log = utils.write_interactive_log
+    else:
+        write_log = utils.write_silent_log
+    write_log('\nTo quit press [ctrl] + [c]', False)
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    write_log('Version: ' + utils.VERSION)
     player = None
     try:  # If errors before player is initialized
         while True:
@@ -395,29 +416,7 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    assert sys.version_info >= (3, 7, 1)
-
-    write_log = utils.write_silent_log
-
-    try:
-        with open('config.json', 'r') as f:
-            CONFIG = json.load(f)
-
-        write_log('Config file found. Checking...')
-        CONFIG = utils.parse_config(CONFIG)
-    except:
-        CONFIG = utils.parse_config()
-
-    with open('config.json', 'w') as f:
-        json.dump(CONFIG, f, indent=True, sort_keys=True)
-    if CONFIG['interactive']:
-        write_log = utils.write_interactive_log
-    else:
-        write_log = utils.write_silent_log
-    write_log('\nTo quit press [ctrl] + [c]', False)
-    os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    write_log('Version: ' + utils.VERSION)
     while True:
         main()
-        write_log("Restarting after 1h")
+        utils.write_interactive_log("Restarting after 1h")
         utils.interactive_sleep(60 * 60)
