@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="/">
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/><script type="text/javascript">(window.NREUM||(NREUM={})).loader_config={xpid:"VgYDU1JADQMHU1JTAQ=="};window.NREUM||(NREUM={}),__nr_require=function(t,n,e){function r(e){if(!n[e]){var o=n[e]={exports:{}};t[e][0].call(o.exports,function(n){var o=t[e][1][n];return r(o||n)},o,o.exports)}return n[e].exports}if("function"==typeof __nr_require)return __nr_require;for(var o=0;o<e.length;o++)r(e[o]);return r}({1:[function(t,n,e){function r(t){try{s.console&&console.log(t)}catch(n){}}var o,i=t("ee"),a=t(18),s={};try{o=localStorage.getItem("__nr_flags").split(","),console&&"function"==typeof console.log&&(s.console=!0,o.indexOf("dev")!==-1&&(s.dev=!0),o.indexOf("nr_dev")!==-1&&(s.nrDev=!0))}catch(c){}s.nrDev&&i.on("internal-error",function(t){r(t.stack)}),s.dev&&i.on("fn-err",function(t,n,e){r(e.stack)}),s.dev&&(r("NR AGENT IN DEVELOPMENT MODE"),r("flags: "+a(s,function(t,n){return t}).join(", ")))},{}],2:[function(t,n,e){function r(t,n,e,r,s){try{p?p-=1:o(s||new UncaughtException(t,n,e),!0)}catch(f){try{i("ierr",[f,c.now(),!0])}catch(d){}}return"function"==typeof u&&u.apply(this,a(arguments))}function UncaughtException(t,n,e){this.message=t||"Uncaught error with no additional information",this.sourceURL=n,this.line=e}function o(t,n){var e=n?null:c.now();i("err",[t,e])}var i=t("handle"),a=t(19),s=t("ee"),c=t("loader"),f=t("gos"),u=window.onerror,d=!1,l="nr@seenError",p=0;c.features.err=!0,t(1),window.onerror=r;try{throw new Error}catch(h){"stack"in h&&(t(8),t(7),"addEventListener"in window&&t(5),c.xhrWrappable&&t(9),d=!0)}s.on("fn-start",function(t,n,e){d&&(p+=1)}),s.on("fn-err",function(t,n,e){d&&!e[l]&&(f(e,l,function(){return!0}),this.thrown=!0,o(e))}),s.on("fn-end",function(){d&&!this.thrown&&p>0&&(p-=1)}),s.on("internal-error",function(t){i("ierr",[t,c.now(),!0])})},{}],3:[function(t,n,e){t("loader").features.ins=!0},{}],4:[function(t,n,e){function r(t){}if(window.performance&&window.performance.timing&&window.performance.getEntriesByType){var o=t("ee"),i=t("handle"),a=t(8),s=t(7),c="learResourceTimings",f="addEventListener",u="resourcetimingbufferfull",d="bstResource",l="resource",p="-start",h="-end",m="fn"+p,w="fn"+h,v="bstTimer",y="pushState",g=t("loader");g.features.stn=!0,t(6);var x=NREUM.o.EV;o.on(m,function(t,n){var e=t[0];e instanceof x&&(this.bstStart=g.now())}),o.on(w,function(t,n){var e=t[0];e instanceof x&&i("bst",[e,n,this.bstStart,g.now()])}),a.on(m,function(t,n,e){this.bstStart=g.now(),this.bstType=e}),a.on(w,function(t,n){i(v,[n,this.bstStart,g.now(),this.bstType])}),s.on(m,function(){this.bstStart=g.now()}),s.on(w,function(t,n){i(v,[n,this.bstStart,g.now(),"requestAnimationFrame"])}),o.on(y+p,function(t){this.time=g.now(),this.startPath=location.pathname+location.hash}),o.on(y+h,function(t){i("bstHist",[location.pathname+location.hash,this.startPath,this.time])}),f in window.performance&&(window.performance["c"+c]?window.performance[f](u,function(t){i(d,[window.performance.getEntriesByType(l)]),window.performance["c"+c]()},!1):window.performance[f]("webkit"+u,function(t){i(d,[window.performance.getEntriesByType(l)]),window.performance["webkitC"+c]()},!1)),document[f]("scroll",r,{passive:!0}),document[f]("keypress",r,!1),document[f]("click",r,!1)}},{}],5:[function(t,n,e){function r(t){for(var n=t;n&&!n.hasOwnProperty(u);)n=Object.getPrototypeOf(n);n&&o(n)}function o(t){s.inPlace(t,[u,d],"-",i)}function i(t,n){return t[1]}var a=t("ee").get("events"),s=t(21)(a,!0),c=t("gos"),f=XMLHttpRequest,u="addEventListener",d="removeEventListener";n.exports=a,"getPrototypeOf"in Object?(r(document),r(window),r(f.prototype)):f.prototype.hasOwnProperty(u)&&(o(window),o(f.prototype)),a.on(u+"-start",function(t,n){var e=t[1],r=c(e,"nr@wrapped",function(){function t(){if("function"==typeof e.handleEvent)return e.handleEvent.apply(e,arguments)}var n={object:t,"function":e}[typeof e];return n?s(n,"fn-",null,n.name||"anonymous"):e});this.wrapped=t[1]=r}),a.on(d+"-start",function(t){t[1]=this.wrapped||t[1]})},{}],6:[function(t,n,e){var r=t("ee").get("history"),o=t(21)(r);n.exports=r,o.inPlace(window.history,["pushState","replaceState"],"-")},{}],7:[function(t,n,e){var r=t("ee").get("raf"),o=t(21)(r),i="equestAnimationFrame";n.exports=r,o.inPlace(window,["r"+i,"mozR"+i,"webkitR"+i,"msR"+i],"raf-"),r.on("raf-start",function(t){t[0]=o(t[0],"fn-")})},{}],8:[function(t,n,e){function r(t,n,e){t[0]=a(t[0],"fn-",null,e)}function o(t,n,e){this.method=e,this.timerDuration=isNaN(t[1])?0:+t[1],t[0]=a(t[0],"fn-",this,e)}var i=t("ee").get("timer"),a=t(21)(i),s="setTimeout",c="setInterval",f="clearTimeout",u="-start",d="-";n.exports=i,a.inPlace(window,[s,"setImmediate"],s+d),a.inPlace(window,[c],c+d),a.inPlace(window,[f,"clearImmediate"],f+d),i.on(c+u,r),i.on(s+u,o)},{}],9:[function(t,n,e){function r(t,n){d.inPlace(n,["onreadystatechange"],"fn-",s)}function o(){var t=this,n=u.context(t);t.readyState>3&&!n.resolved&&(n.resolved=!0,u.emit("xhr-resolved",[],t)),d.inPlace(t,y,"fn-",s)}function i(t){g.push(t),h&&(b?b.then(a):w?w(a):(E=-E,R.data=E))}function a(){for(var t=0;t<g.length;t++)r([],g[t]);g.length&&(g=[])}function s(t,n){return n}function c(t,n){for(var e in t)n[e]=t[e];return n}t(5);var f=t("ee"),u=f.get("xhr"),d=t(21)(u),l=NREUM.o,p=l.XHR,h=l.MO,m=l.PR,w=l.SI,v="readystatechange",y=["onload","onerror","onabort","onloadstart","onloadend","onprogress","ontimeout"],g=[];n.exports=u;var x=window.XMLHttpRequest=function(t){var n=new p(t);try{u.emit("new-xhr",[n],n),n.addEventListener(v,o,!1)}catch(e){try{u.emit("internal-error",[e])}catch(r){}}return n};if(c(p,x),x.prototype=p.prototype,d.inPlace(x.prototype,["open","send"],"-xhr-",s),u.on("send-xhr-start",function(t,n){r(t,n),i(n)}),u.on("open-xhr-start",r),h){var b=m&&m.resolve();if(!w&&!m){var E=1,R=document.createTextNode(E);new h(a).observe(R,{characterData:!0})}}else f.on("fn-end",function(t){t[0]&&t[0].type===v||a()})},{}],10:[function(t,n,e){function r(){var t=window.NREUM,n=t.info.accountID||null,e=t.info.agentID||null,r=t.info.trustKey||null,i="btoa"in window&&"function"==typeof window.btoa;if(!n||!e||!i)return null;var a={v:[0,1],d:{ty:"Browser",ac:n,ap:e,id:o.generateCatId(),tr:o.generateCatId(),ti:Date.now()}};return r&&n!==r&&(a.d.tk=r),btoa(JSON.stringify(a))}var o=t(16);n.exports={generateTraceHeader:r}},{}],11:[function(t,n,e){function r(t){var n=this.params,e=this.metrics;if(!this.ended){this.ended=!0;for(var r=0;r<p;r++)t.removeEventListener(l[r],this.listener,!1);n.aborted||(e.duration=s.now()-this.startTime,this.loadCaptureCalled||4!==t.readyState?null==n.status&&(n.status=0):a(this,t),e.cbTime=this.cbTime,d.emit("xhr-done",[t],t),c("xhr",[n,e,this.startTime]))}}function o(t,n){var e=t.responseType;if("json"===e&&null!==n)return n;var r="arraybuffer"===e||"blob"===e||"json"===e?t.response:t.responseText;return w(r)}function i(t,n){var e=f(n),r=t.params;r.host=e.hostname+":"+e.port,r.pathname=e.pathname,t.sameOrigin=e.sameOrigin}function a(t,n){t.params.status=n.status;var e=o(n,t.lastSize);if(e&&(t.metrics.rxSize=e),t.sameOrigin){var r=n.getResponseHeader("X-NewRelic-App-Data");r&&(t.params.cat=r.split(", ").pop())}t.loadCaptureCalled=!0}var s=t("loader");if(s.xhrWrappable){var c=t("handle"),f=t(12),u=t(10).generateTraceHeader,d=t("ee"),l=["load","error","abort","timeout"],p=l.length,h=t("id"),m=t(15),w=t(14),v=window.XMLHttpRequest;s.features.xhr=!0,t(9),d.on("new-xhr",function(t){var n=this;n.totalCbs=0,n.called=0,n.cbTime=0,n.end=r,n.ended=!1,n.xhrGuids={},n.lastSize=null,n.loadCaptureCalled=!1,t.addEventListener("load",function(e){a(n,t)},!1),m&&(m>34||m<10)||window.opera||t.addEventListener("progress",function(t){n.lastSize=t.loaded},!1)}),d.on("open-xhr-start",function(t){this.params={method:t[0]},i(this,t[1]),this.metrics={}}),d.on("open-xhr-end",function(t,n){"loader_config"in NREUM&&"xpid"in NREUM.loader_config&&this.sameOrigin&&n.setRequestHeader("X-NewRelic-ID",NREUM.loader_config.xpid);var e=!1;if("init"in NREUM&&"distributed_tracing"in NREUM.init&&(e=!!NREUM.init.distributed_tracing.enabled),e&&this.sameOrigin){var r=u();r&&n.setRequestHeader("newrelic",r)}}),d.on("send-xhr-start",function(t,n){var e=this.metrics,r=t[0],o=this;if(e&&r){var i=w(r);i&&(e.txSize=i)}this.startTime=s.now(),this.listener=function(t){try{"abort"!==t.type||o.loadCaptureCalled||(o.params.aborted=!0),("load"!==t.type||o.called===o.totalCbs&&(o.onloadCalled||"function"!=typeof n.onload))&&o.end(n)}catch(e){try{d.emit("internal-error",[e])}catch(r){}}};for(var a=0;a<p;a++)n.addEventListener(l[a],this.listener,!1)}),d.on("xhr-cb-time",function(t,n,e){this.cbTime+=t,n?this.onloadCalled=!0:this.called+=1,this.called!==this.totalCbs||!this.onloadCalled&&"function"==typeof e.onload||this.end(e)}),d.on("xhr-load-added",function(t,n){var e=""+h(t)+!!n;this.xhrGuids&&!this.xhrGuids[e]&&(this.xhrGuids[e]=!0,this.totalCbs+=1)}),d.on("xhr-load-removed",function(t,n){var e=""+h(t)+!!n;this.xhrGuids&&this.xhrGuids[e]&&(delete this.xhrGuids[e],this.totalCbs-=1)}),d.on("addEventListener-end",function(t,n){n instanceof v&&"load"===t[0]&&d.emit("xhr-load-added",[t[1],t[2]],n)}),d.on("removeEventListener-end",function(t,n){n instanceof v&&"load"===t[0]&&d.emit("xhr-load-removed",[t[1],t[2]],n)}),d.on("fn-start",function(t,n,e){n instanceof v&&("onload"===e&&(this.onload=!0),("load"===(t[0]&&t[0].type)||this.onload)&&(this.xhrCbStart=s.now()))}),d.on("fn-end",function(t,n){this.xhrCbStart&&d.emit("xhr-cb-time",[s.now()-this.xhrCbStart,this.onload,n],n)})}},{}],12:[function(t,n,e){n.exports=function(t){var n=document.createElement("a"),e=window.location,r={};n.href=t,r.port=n.port;var o=n.href.split("://");!r.port&&o[1]&&(r.port=o[1].split("/")[0].split("@").pop().split(":")[1]),r.port&&"0"!==r.port||(r.port="https"===o[0]?"443":"80"),r.hostname=n.hostname||e.hostname,r.pathname=n.pathname,r.protocol=o[0],"/"!==r.pathname.charAt(0)&&(r.pathname="/"+r.pathname);var i=!n.protocol||":"===n.protocol||n.protocol===e.protocol,a=n.hostname===document.domain&&n.port===e.port;return r.sameOrigin=i&&(!n.hostname||a),r}},{}],13:[function(t,n,e){function r(){}function o(t,n,e){return function(){return i(t,[f.now()].concat(s(arguments)),n?null:this,e),n?void 0:this}}var i=t("handle"),a=t(18),s=t(19),c=t("ee").get("tracer"),f=t("loader"),u=NREUM;"undefined"==typeof window.newrelic&&(newrelic=u);var d=["setPageViewName","setCustomAttribute","setErrorHandler","finished","addToTrace","inlineHit","addRelease"],l="api-",p=l+"ixn-";a(d,function(t,n){u[n]=o(l+n,!0,"api")}),u.addPageAction=o(l+"addPageAction",!0),u.setCurrentRouteName=o(l+"routeName",!0),n.exports=newrelic,u.interaction=function(){return(new r).get()};var h=r.prototype={createTracer:function(t,n){var e={},r=this,o="function"==typeof n;return i(p+"tracer",[f.now(),t,e],r),function(){if(c.emit((o?"":"no-")+"fn-start",[f.now(),r,o],e),o)try{return n.apply(this,arguments)}catch(t){throw c.emit("fn-err",[arguments,this,t],e),t}finally{c.emit("fn-end",[f.now()],e)}}}};a("actionText,setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","),function(t,n){h[n]=o(p+n)}),newrelic.noticeError=function(t,n){"string"==typeof t&&(t=new Error(t)),i("err",[t,f.now(),!1,n])}},{}],14:[function(t,n,e){n.exports=function(t){if("string"==typeof t&&t.length)return t.length;if("object"==typeof t){if("undefined"!=typeof ArrayBuffer&&t instanceof ArrayBuffer&&t.byteLength)return t.byteLength;if("undefined"!=typeof Blob&&t instanceof Blob&&t.size)return t.size;if(!("undefined"!=typeof FormData&&t instanceof FormData))try{return JSON.stringify(t).length}catch(n){return}}}},{}],15:[function(t,n,e){var r=0,o=navigator.userAgent.match(/Firefox[\/\s](\d+\.\d+)/);o&&(r=+o[1]),n.exports=r},{}],16:[function(t,n,e){function r(){function t(){return n?15&n[e++]:16*Math.random()|0}var n=null,e=0,r=window.crypto||window.msCrypto;r&&r.getRandomValues&&(n=r.getRandomValues(new Uint8Array(31)));for(var o,i="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx",a="",s=0;s<i.length;s++)o=i[s],"x"===o?a+=t().toString(16):"y"===o?(o=3&t()|8,a+=o.toString(16)):a+=o;return a}function o(){function t(){return n?15&n[e++]:16*Math.random()|0}var n=null,e=0,r=window.crypto||window.msCrypto;r&&r.getRandomValues&&Uint8Array&&(n=r.getRandomValues(new Uint8Array(31)));for(var o=[],i=0;i<16;i++)o.push(t().toString(16));return o.join("")}n.exports={generateUuid:r,generateCatId:o}},{}],17:[function(t,n,e){function r(t,n){if(!o)return!1;if(t!==o)return!1;if(!n)return!0;if(!i)return!1;for(var e=i.split("."),r=n.split("."),a=0;a<r.length;a++)if(r[a]!==e[a])return!1;return!0}var o=null,i=null,a=/Version\/(\S+)\s+Safari/;if(navigator.userAgent){var s=navigator.userAgent,c=s.match(a);c&&s.indexOf("Chrome")===-1&&s.indexOf("Chromium")===-1&&(o="Safari",i=c[1])}n.exports={agent:o,version:i,match:r}},{}],18:[function(t,n,e){function r(t,n){var e=[],r="",i=0;for(r in t)o.call(t,r)&&(e[i]=n(r,t[r]),i+=1);return e}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],19:[function(t,n,e){function r(t,n,e){n||(n=0),"undefined"==typeof e&&(e=t?t.length:0);for(var r=-1,o=e-n||0,i=Array(o<0?0:o);++r<o;)i[r]=t[n+r];return i}n.exports=r},{}],20:[function(t,n,e){n.exports={exists:"undefined"!=typeof window.performance&&window.performance.timing&&"undefined"!=typeof window.performance.timing.navigationStart}},{}],21:[function(t,n,e){function r(t){return!(t&&t instanceof Function&&t.apply&&!t[a])}var o=t("ee"),i=t(19),a="nr@original",s=Object.prototype.hasOwnProperty,c=!1;n.exports=function(t,n){function e(t,n,e,o){function nrWrapper(){var r,a,s,c;try{a=this,r=i(arguments),s="function"==typeof e?e(r,a):e||{}}catch(f){l([f,"",[r,a,o],s])}u(n+"start",[r,a,o],s);try{return c=t.apply(a,r)}catch(d){throw u(n+"err",[r,a,d],s),d}finally{u(n+"end",[r,a,c],s)}}return r(t)?t:(n||(n=""),nrWrapper[a]=t,d(t,nrWrapper),nrWrapper)}function f(t,n,o,i){o||(o="");var a,s,c,f="-"===o.charAt(0);for(c=0;c<n.length;c++)s=n[c],a=t[s],r(a)||(t[s]=e(a,f?s+o:o,i,s))}function u(e,r,o){if(!c||n){var i=c;c=!0;try{t.emit(e,r,o,n)}catch(a){l([a,e,r,o])}c=i}}function d(t,n){if(Object.defineProperty&&Object.keys)try{var e=Object.keys(t);return e.forEach(function(e){Object.defineProperty(n,e,{get:function(){return t[e]},set:function(n){return t[e]=n,n}})}),n}catch(r){l([r])}for(var o in t)s.call(t,o)&&(n[o]=t[o]);return n}function l(n){try{t.emit("internal-error",n)}catch(e){}}return t||(t=o),e.inPlace=f,e.flag=a,e}},{}],ee:[function(t,n,e){function r(){}function o(t){function n(t){return t&&t instanceof r?t:t?c(t,s,i):i()}function e(e,r,o,i){if(!l.aborted||i){t&&t(e,r,o);for(var a=n(o),s=m(e),c=s.length,f=0;f<c;f++)s[f].apply(a,r);var d=u[g[e]];return d&&d.push([x,e,r,a]),a}}function p(t,n){y[t]=m(t).concat(n)}function h(t,n){var e=y[t];if(e)for(var r=0;r<e.length;r++)e[r]===n&&e.splice(r,1)}function m(t){return y[t]||[]}function w(t){return d[t]=d[t]||o(e)}function v(t,n){f(t,function(t,e){n=n||"feature",g[e]=n,n in u||(u[n]=[])})}var y={},g={},x={on:p,addEventListener:p,removeEventListener:h,emit:e,get:w,listeners:m,context:n,buffer:v,abort:a,aborted:!1};return x}function i(){return new r}function a(){(u.api||u.feature)&&(l.aborted=!0,u=l.backlog={})}var s="nr@context",c=t("gos"),f=t(18),u={},d={},l=n.exports=o();l.backlog=u},{}],gos:[function(t,n,e){function r(t,n,e){if(o.call(t,n))return t[n];var r=e();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(t,n,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return t[n]=r,r}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],handle:[function(t,n,e){function r(t,n,e,r){o.buffer([t],r),o.emit(t,n,e)}var o=t("ee").get("handle");n.exports=r,r.ee=o},{}],id:[function(t,n,e){function r(t){var n=typeof t;return!t||"object"!==n&&"function"!==n?-1:t===window?0:a(t,i,function(){return o++})}var o=1,i="nr@id",a=t("gos");n.exports=r},{}],loader:[function(t,n,e){function r(){if(!E++){var t=b.info=NREUM.info,n=p.getElementsByTagName("script")[0];if(setTimeout(u.abort,3e4),!(t&&t.licenseKey&&t.applicationID&&n))return u.abort();f(g,function(n,e){t[n]||(t[n]=e)}),c("mark",["onload",a()+b.offset],null,"api");var e=p.createElement("script");e.src="https://"+t.agent,n.parentNode.insertBefore(e,n)}}function o(){"complete"===p.readyState&&i()}function i(){c("mark",["domContent",a()+b.offset],null,"api")}function a(){return R.exists&&performance.now?Math.round(performance.now()):(s=Math.max((new Date).getTime(),s))-b.offset}var s=(new Date).getTime(),c=t("handle"),f=t(18),u=t("ee"),d=t(17),l=window,p=l.document,h="addEventListener",m="attachEvent",w=l.XMLHttpRequest,v=w&&w.prototype;NREUM.o={ST:setTimeout,SI:l.setImmediate,CT:clearTimeout,XHR:w,REQ:l.Request,EV:l.Event,PR:l.Promise,MO:l.MutationObserver};var y=""+location,g={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",agent:"js-agent.newrelic.com/nr-1123.min.js"},x=w&&v&&v[h]&&!/CriOS/.test(navigator.userAgent),b=n.exports={offset:s,now:a,origin:y,features:{},xhrWrappable:x,userAgent:d};t(13),p[h]?(p[h]("DOMContentLoaded",i,!1),l[h]("load",r,!1)):(p[m]("onreadystatechange",o),l[m]("onload",r)),c("mark",["firstbyte",s],null,"api");var E=0,R=t(20)},{}]},{},["loader",2,11,4,3]);</script>
+    <meta name="title" content="Free Online Multiplayer Strategy Game | eRepublik"/>
+    <meta name="robots" content="index, follow"/>
+    <meta name="description"
+          content="Multiplayer strategy game that allows users to rule a country, be an entrepreneur or gather your fellow citizens to start a resistance war. eRepublik the online strategy game."/>
+    <meta name="keywords"
+          content="strategy games, multiplayer games, online strategy games, free online multiplayer strategy game, erepublik"/>
+    <meta name="language" content="en"/>
+    <meta name="author" content="eRepublik"/>
+    <meta name="publisher" content="eRepublik"/>
+    <meta name="copyright" content="eRepublik"/>
+    <meta name="page-type" content="browser game, browsergame"/>
+    <meta name="page-topic" content="browser game, strategy game, online game"/>
+    <meta name="audience" content="all"/>
+    <meta name="expires" content="never"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <meta property="og:image" content="//www.erepublik.net/images/modules/homepage/logo.png"/>
+        <meta itemprop="name" content="eRepublik - The New World | Online Social Strategy Game"/>
+    <meta itemprop="description"
+          content="Create your Citizen and you will have the opportunity to develop your military, economy or political career."/>
+            <meta itemprop="image" content="//www.erepublik.net/images/modules/homepage/logo.png"/>
+    
+    <title>Free Online Multiplayer Strategy Game | eRepublik</title>
+
+    <link rel="shortcut icon" href="/images/favicon.ico"/>
+    <link rel="stylesheet"
+          href="//www.erepublik.net/css/cmp/homepage_out.1563443679.css"
+          type="text/css" media="screen"/>
+    <link href='//fonts.googleapis.com/css?family=PT+Sans+Narrow:400,700&subset=latin-ext,cyrillic,latin'
+          rel='stylesheet' type='text/css'>
+    <link
+        href='//fonts.googleapis.com/css?family=Open+Sans+Condensed:700,300&subset=latin,greek-ext,cyrillic-ext,greek,latin-ext,cyrillic'
+        rel='stylesheet' type='text/css'>
+    
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="//www.erepublik.net/css/cmp/ie.css" type="text/css" media="screen"/>
+    <![endif]-->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script>window.jQuery || document.write("<script src='js/jquery.min.js'>\x3C/script>")</script>
+    <script type="text/javascript">var $j = jQuery.noConflict();</script>
+    <script type="text/javascript" src="/js/cookie/jquery.cookie.min.js"></script>
+
+    <script>
+        var erepublik = {
+            settings: {
+                notifications: 0,
+                hostname: 'www.erepublik.com',
+                domainname: 'erepublik.com',
+                culture: 'en',
+                economyhostname: 'economy.erepublik.com',
+                cookielessHost: 'www.erepublik.net'
+            }
+        };
+
+        var Environment = {
+            isOnFacebook: (0 == true && window.self != window.top) ? true : false
+        }
+
+
+
+        var domainname = 'erepublik.com';
+        var culture = 'en';
+        var _tutorial_enabled = false;
+        var $j = jQuery.noConflict();
+        var WRInitTime = (new Date()).getTime(); // ClickTale
+
+        if (top != self && Environment && Environment.isOnFacebook == false) {
+            top.location = self.location;
+        }
+        var ambient_img = "home_bg.jpg";
+        var show_ambient_ab = false;
+        var rand = 0;
+    </script>
+
+    <script type="text/javascript">
+
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-2001550-1']);
+        _gaq.push(['_trackPageview']);
+                _gaq.push(['_trackPageview', '/homeLoggedOut']);
+        _gaq.push(['_trackPageLoadTime']);
+
+        var windowSize = [0, 0];
+        if (typeof( window.innerWidth ) == 'number') {
+            windowSize = [window.innerWidth, window.innerHeight];
+        } else if (document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight )) {
+            windowSize = [document.documentElement.clientWidth, document.documentElement.clientHeight];
+        }
+        _gaq.push(['_trackEvent', 'Resolution', 'Window size VS Screen size', windowSize[0] + ' x ' + windowSize[1] + ' vs ' + screen.width + ' x ' + screen.height]);
+        
+        (function () {
+            var ga = document.createElement('script');
+            ga.type = 'text/javascript';
+            ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : '//www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(ga, s);
+        })();
+    </script>
+
+
+</head>
+
+<body id="homepage_out">
+<div id="fb-root"></div>
+<div class="wrapper">
+            <img src="//www.erepublik.net/images/modules/homepage/logo.png" alt="eRepublik" width="203"
+             height="124" title="eRepublik" class="logo"/>
+    
+    <div class="login_lang">
+        <ul id="flags">
+                            <li>
+                    <a href="/ar" title="العربية"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Arab-League.png" alt=""
+                                width="16" height="16"/>
+						</span>AR</a>
+                </li>
+                            <li>
+                    <a href="/be" title="беларуская"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Belarus.png" alt=""
+                                width="16" height="16"/>
+						</span>BE</a>
+                </li>
+                            <li>
+                    <a href="/bg" title="български език"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Bulgaria.png" alt=""
+                                width="16" height="16"/>
+						</span>BG</a>
+                </li>
+                            <li>
+                    <a href="/br" title="Português brasileiro"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Brazil.png" alt=""
+                                width="16" height="16"/>
+						</span>BR</a>
+                </li>
+                            <li>
+                    <a href="/cn" title="简体字"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/China.png" alt=""
+                                width="16" height="16"/>
+						</span>CN</a>
+                </li>
+                            <li>
+                    <a href="/de" title="Deutsch"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Germany.png" alt=""
+                                width="16" height="16"/>
+						</span>DE</a>
+                </li>
+                            <li>
+                    <a href="/es" title="Español"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Spain.png" alt=""
+                                width="16" height="16"/>
+						</span>ES</a>
+                </li>
+                            <li>
+                    <a href="/fa" title="فارسی"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Iran.png" alt=""
+                                width="16" height="16"/>
+						</span>FA</a>
+                </li>
+                            <li>
+                    <a href="/fr" title="Français"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/France.png" alt=""
+                                width="16" height="16"/>
+						</span>FR</a>
+                </li>
+                            <li>
+                    <a href="/gr" title="ελληνικά"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Greece.png" alt=""
+                                width="16" height="16"/>
+						</span>GR</a>
+                </li>
+                            <li>
+                    <a href="/he" title="עִבְרִית"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Israel.png" alt=""
+                                width="16" height="16"/>
+						</span>HE</a>
+                </li>
+                            <li>
+                    <a href="/hr" title="Hrvatski"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Croatia.png" alt=""
+                                width="16" height="16"/>
+						</span>HR</a>
+                </li>
+                            <li>
+                    <a href="/hu" title="Magyar"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Hungary.png" alt=""
+                                width="16" height="16"/>
+						</span>HU</a>
+                </li>
+                            <li>
+                    <a href="/id" title="Bahasa Indonesia"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Indonesia.png" alt=""
+                                width="16" height="16"/>
+						</span>ID</a>
+                </li>
+                            <li>
+                    <a href="/it" title="Italiano"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Italy.png" alt=""
+                                width="16" height="16"/>
+						</span>IT</a>
+                </li>
+                            <li>
+                    <a href="/ka" title="საქართველო"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Georgia.png" alt=""
+                                width="16" height="16"/>
+						</span>KA</a>
+                </li>
+                            <li>
+                    <a href="/ko" title="한국어/조선말"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/South-Korea.png" alt=""
+                                width="16" height="16"/>
+						</span>KO</a>
+                </li>
+                            <li>
+                    <a href="/mk" title="Македонски"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Republic-of-Macedonia-FYROM.png" alt=""
+                                width="16" height="16"/>
+						</span>MK</a>
+                </li>
+                            <li>
+                    <a href="/ms" title="Bahasa Melayu"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Malaysia.png" alt=""
+                                width="16" height="16"/>
+						</span>MS</a>
+                </li>
+                            <li>
+                    <a href="/pl" title="Polski"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Poland.png" alt=""
+                                width="16" height="16"/>
+						</span>PL</a>
+                </li>
+                            <li>
+                    <a href="/pt" title="Português"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Portugal.png" alt=""
+                                width="16" height="16"/>
+						</span>PT</a>
+                </li>
+                            <li>
+                    <a href="/ro" title="Română"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Romania.png" alt=""
+                                width="16" height="16"/>
+						</span>RO</a>
+                </li>
+                            <li>
+                    <a href="/ru" title="Ру́сский"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Russia.png" alt=""
+                                width="16" height="16"/>
+						</span>RU</a>
+                </li>
+                            <li>
+                    <a href="/sl" title="Slovenski"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Slovenia.png" alt=""
+                                width="16" height="16"/>
+						</span>SL</a>
+                </li>
+                            <li>
+                    <a href="/sq" title="Shqip"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Albania.png" alt=""
+                                width="16" height="16"/>
+						</span>SQ</a>
+                </li>
+                            <li>
+                    <a href="/sr" title="Српски"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Serbia.png" alt=""
+                                width="16" height="16"/>
+						</span>SR</a>
+                </li>
+                            <li>
+                    <a href="/tr" title="Türkçe"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Turkey.png" alt=""
+                                width="16" height="16"/>
+						</span>TR</a>
+                </li>
+                            <li>
+                    <a href="/tw" title="繁體字"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Republic-of-China-Taiwan.png" alt=""
+                                width="16" height="16"/>
+						</span>TW</a>
+                </li>
+                            <li>
+                    <a href="/uk" title="Украї́нськ"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Ukraine.png" alt=""
+                                width="16" height="16"/>
+						</span>UK</a>
+                </li>
+                            <li>
+                    <a href="/ur" title="اردو"><span><img
+                                src="//www.erepublik.net/images/flags_png/S/Pakistan.png" alt=""
+                                width="16" height="16"/>
+						</span>UR</a>
+                </li>
+                    </ul>
+
+
+        <div id="signin">
+            <form method="post" action="/en/login" id="login_form">
+                <input type="hidden" id="_token" name="_token" value="328c65bb7bc275d26fe13ca90ce13c01">
+                <div class="visible_form">
+                    <p>
+                        <input type="text" id="citizen_email" name="citizen_email" value="" placeholder="Email" />
+                    </p>
+                    <p>
+                        <input type="password" id="citizen_password" name="citizen_password" placeholder="Password" />
+                    </p>
+                    <p>
+                        <button type="submit">
+                            Sign In                        </button>
+                    </p>
+                    <img src="//www.erepublik.net/images/modules/homepage/separator.png" alt="" width="2"
+                         height="22" class="separator"/>
+                    <a href="javascript:;" class="facebook_signin button" title="Sign in with Facebook">
+                        <img src="//www.erepublik.net/images/modules/homepage/fb_small.png" alt=""/>
+                        Sign in with Facebook                    </a>
+
+                    <img src="//www.erepublik.net/images/modules/homepage/separator.png" alt="" width="2"
+                         height="22" class="separator"/>
+
+                    <a id="change_lang" href="#" class="closed"
+                       title="English">
+                        <span><img
+                                src="//www.erepublik.net/images/flags_png/S/United-Kingdom.png"
+                                alt="" width="16" height="16"/></span>
+                        <q>EN</q>
+                    </a>
+
+
+                </div>
+                <div class="hidden_opts">
+                    <p>
+                        <input type="checkbox" id="remember" name="remember" checked />
+                        <label for="remember">Remember me</label>
+                    </p>
+                    <p>
+                        <a href="//www.erepublik.com/en/forgot-password"
+                           title="Forgot password">Forgot password</a>
+                    </p>
+                </div>
+            </form>
+
+
+        </div>
+    </div>
+
+
+    
+        <h2 title="A new world is emerging. Your country needs YOU!">A new world is emerging. Your country needs YOU!</h2>
+        <div class="auth_container">
+        <a href="javascript:;" title="Sign up" class="sign_up register_button">
+            Sign up        </a>
+        <a href="javascript:;" title="Sign up with Facebook" class="fb_sign facebook_login" id="fb_sign">
+            Sign up with            <span>Facebook</span>
+        </a>
+    </div>
+    <div id="front_content">
+        <div class="game_features" id="second_page">
+            <h3>Features</h3>
+            <ul>
+                <li>
+                    <q><img src="//www.erepublik.net/images/modules/homepage/feat1.png" width="60" height="35"
+                            alt=""/></q>
+                    <strong>Conquer your country's neighbours and extend its territories</strong>
+                </li>
+                <li>
+                    <q><img src="//www.erepublik.net/images/modules/homepage/feat2.png" width="60" height="35"
+                            alt=""/></q>
+                    <strong>Build a company and develop your economic empire</strong>
+                </li>
+                <li>
+                    <q><img src="//www.erepublik.net/images/modules/homepage/feat3.png" width="60" height="35"
+                            alt=""/></q>
+                    <strong>Fight against real people on the battlefield</strong>
+                </li>
+            </ul>
+        </div>
+        <div class="top_countries">
+            <h3>Top countries</h3>
+            <ul>
+                                    <li title="Indonesia">
+                        <img src="//static.erepublik.net/images/flags_png/L/Indonesia.png"
+                             alt="Indonesia"/>
+                        <strong>Indonesia</strong>
+                        <small>4554</small>
+                    </li>
+                                    <li title="Serbia">
+                        <img src="//static.erepublik.net/images/flags_png/L/Serbia.png"
+                             alt="Serbia"/>
+                        <strong>Serbia</strong>
+                        <small>2973</small>
+                    </li>
+                                    <li title="Brazil">
+                        <img src="//static.erepublik.net/images/flags_png/L/Brazil.png"
+                             alt="Brazil"/>
+                        <strong>Brazil</strong>
+                        <small>2819</small>
+                    </li>
+                                    <li title="Hungary">
+                        <img src="//static.erepublik.net/images/flags_png/L/Hungary.png"
+                             alt="Hungary"/>
+                        <strong>Hungary</strong>
+                        <small>2450</small>
+                    </li>
+                                    <li title="Argentina">
+                        <img src="//static.erepublik.net/images/flags_png/L/Argentina.png"
+                             alt="Argentina"/>
+                        <strong>Argentina</strong>
+                        <small>2183</small>
+                    </li>
+                            </ul>
+        </div>
+        <div class="press">
+            <h3>What others are saying</h3>
+            <ul>
+                <li>
+					<span>
+					<q cite="//www.nytimes.com/">&#8220;eRepublik creates multiplayer global strategy game&#8221;</q>
+					<img src="//www.erepublik.net/images/modules/homepage/nytimes_logo.png" width="116"
+                         height="16" alt=""/>
+					</span>
+                </li>
+                <li>
+					<span>
+					<q cite="//www.guardian.co.uk/">&#8220;eRepublik offers a real second life&#8221;</q>
+					<img src="//www.erepublik.net/images/modules/homepage/guardiancouk_logo.png" width="104"
+                         height="16" alt=""/>
+					</span>
+                </li>
+                <li>
+					<span>
+					<q cite="//techcrunch.com/">&#8220;eRepublik takes strategy games to the Web&#8221;</q>
+					<img src="//www.erepublik.net/images/modules/homepage/techcrunch_logo.png" width="77"
+                         height="16" alt=""/>
+				</span>
+                </li>
+            </ul>
+
+        </div>
+    </div>
+
+    <div id="footer">
+        <div class="left_part">
+            <small>&COPY; 2019 eRepublik</small>
+            <a href="//www.facebook.com/pages/Erepublik/26897053321?ref=ts" target="_blank" rel="nofollow"
+               title="eRepublik on Facebook">
+                <img src="//www.erepublik.net/images/parts/facebook_small_icon.png" width="16" height="16"
+                     alt="Facebook"/>
+            </a>
+            <a href="//www.twitter.com/erepublik" target="_blank" rel="nofollow"
+               title="eRepublik on Twitter">
+                <img src="//www.erepublik.net/images/parts/twitter_small_icon" width="16" height="16"
+                     alt="Twitter"/>
+            </a>
+            <a href="//www.youtube.com/officialerepublik" target="_blank" rel="nofollow"
+               title="eRepublik on Youtube">
+                <img src="//www.erepublik.net/images/parts/youtube_icon" width="16" height="16"
+                     alt="Youtube"/>
+            </a>
+            <a href="//www.erepublik.com/en/main/news/rated/all/all/1/rss"> <img
+                    src="//www.erepublik.net/images/rss_16.png"> </a>
+                    </div>
+        <ul>
+            <li>
+                <a href="/en/main/latest-updates" target="_blank">Latest Updates</a>
+                <a target="_blank" rel="nofollow" href="//forum.erepublik.com/"
+                   title="Forum">Forum</a>
+                <a target="_blank" rel="nofollow" href="//blog.erepublik.com"
+                   title="Blog">Blog</a>
+                <a target="_blank" rel="nofollow" href="//www.erepubliklabs.com/careers"
+                   title="Jobs">Jobs</a>
+                <a href="//www.erepublik.com/en/main/news/rated/all/all/1"
+                   title="Articles of Erepublik Media">Erepublik media</a>
+                <a target="_blank" rel="nofollow"
+                   href="//www.erepublik.com/en/main/terms-and-conditions"
+                   title="Terms of Service">Terms of Service</a>
+                <a target="_blank" rel="nofollow" href="//www.erepublik.com/en/privacy-policy"
+                   title="Privacy">Privacy</a>
+                <!--<a target="_blank" rel="nofollow" href="//affiliates.erepublik.com/"
+                   title=""></a>-->
+                <a target="_blank" rel="nofollow" href="//www.erepublik.com/en/tickets"
+                   title="Contact">Contact</a>
+                            </li>
+        </ul>
+    </div>
+    <script>
+
+        function switchToMobileVersion() {
+            $j.cookie('prefer_full_site', 'false', {
+                expires: 14, path: '/', domain: domainname
+            });
+            window.location = "//m.erepublik.com/en";
+        }
+
+        var switchMobileVersion = function () {
+            if ($j.cookie('prefer_full_site') == 'true') {
+                $j.cookie('prefer_full_site', 'false', {
+                    expires: 1, path: '/', domain: domainname
+                });
+                window.location.reload();
+            }
+        };
+        window.onload = function () {
+            $j.getJSON('//' + erepublik.settings.hostname + '/' + culture + '/main/geoLocation/countryCode', function (data) {
+                if (data.countryCode == "US") {
+                    countryCode = data.countryCode
+                    show_ambient_ab = true;
+                    ambient_img = 'home_bg_US_1.jpg';
+                } else if (data.countryCode == "GR") {
+                    countryCode = data.countryCode
+                    show_ambient_ab = true;
+                    ambient_img = 'home_bg_GR_1.jpg';
+                }
+            });
+                        setTimeout(function () {
+                var cssDef = {
+                    'background-image': 'url(//' + erepublik.settings.hostname + '/images/modules/ambients/external/' + ambient_img + ')',
+                    'background-repeat': 'no-repeat',
+                    'background-position': 'center top'
+                }
+                $j("body").css(cssDef);
+            }, 30);
+                    }
+
+        $j(document).ready(function () {
+            $j("#change_lang").click(function () {
+                $j(".login_lang").toggleClass('show_language_button');
+                return false;
+            });
+
+
+            document.getElementsByTagName('html')[0].style.display = 'block';
+            $j('.new_citizen select').chosen();
+            $j('#citizen_email, #citizen_password').focus(function () {
+                $j('.hidden_opts').slideDown('fast');
+            });
+        });
+    </script>
+    <script type="text/javascript">
+    var SERVER_DATA = {
+        csrfToken: '328c65bb7bc275d26fe13ca90ce13c01',
+        fbAppId: '300511377223',
+        fbApiVersion: 'v2.8',
+    };
+    var signedRequest = '';
+</script>
+<script src="//www.erepublik.net/js/chosen.jquery.min.1412241139.js"></script>
+<script src="//www.erepublik.net/js/jquery.tools.validator.min.1412241140.js"></script>
+<script src="//www.erepublik.net/js/jquery.lightbox_me.1437724166.js"></script>
+<script src="//www.erepublik.net/js/homepage/register.1519308900.js"></script>
+<script src="//www.erepublik.net/js/facebook/facebook_init.1509098858.js"></script>
+<script src="//www.erepublik.net/js/facebook/facebook_canvas.1552561314.js"></script>
+<script src="//www.erepublik.net/js/parsley.1470649317.js"></script>
+
+<div class="register_box" id="registration_options">
+    <h1>Join the new world</h1>
+    <a href="javascript:;" title="Close window" class="close_registration">&nbsp;</a>
+    <img src="//www.erepublik.net/images/modules/register/reg_loader.gif" class="reg_loader" id="reg_loader"
+         alt=""/>
+    <div id="placer">
+        
+    </div>
+</div>
+
+
+
+
+    <!-- Google Code for signup display Conversion Page -->
+    <script type="text/javascript">
+        /* <![CDATA[ */
+        var google_conversion_id = 984558611;
+        var google_conversion_language = "en";
+        var google_conversion_format = "2";
+        var google_conversion_color = "33cc00";
+        var google_conversion_label = "uE1NCI2N7wQQk9i81QM";
+        var google_conversion_value = 0;
+        /* ]]> */
+    </script>
+    <script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js">
+    </script>
+    <noscript>
+        <div style="display:inline;">
+            <img height="1" width="1" style="border-style:none;" alt=""
+                 src="//www.googleadservices.com/pagead/conversion/984558611/?value=0&amp;label=uE1NCI2N7wQQk9i81QM&amp;guid=ON&amp;script=0"/>
+        </div>
+    </noscript>
+
+                <script>
+            var pkyk = 0;
+        </script>
+    </div>
+
+<script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"c4d8d93179","applicationID":"5077316","transactionName":"NV0DNUFTVkQEAUZdDgwXIhRARldaSgpdWQRNUQ8FVko=","queueTime":0,"applicationTime":13,"atts":"GRoAQwlJRUo=","errorBeacon":"bam.nr-data.net","agent":""}</script></body>
+</html>

@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html ng-app="ErpkApp" lang="en">
+<head>
+<base href="/">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><script type="text/javascript">(window.NREUM||(NREUM={})).loader_config={xpid:"VgYDU1JADQMHU1JTAQ=="};window.NREUM||(NREUM={}),__nr_require=function(t,n,e){function r(e){if(!n[e]){var o=n[e]={exports:{}};t[e][0].call(o.exports,function(n){var o=t[e][1][n];return r(o||n)},o,o.exports)}return n[e].exports}if("function"==typeof __nr_require)return __nr_require;for(var o=0;o<e.length;o++)r(e[o]);return r}({1:[function(t,n,e){function r(t){try{s.console&&console.log(t)}catch(n){}}var o,i=t("ee"),a=t(18),s={};try{o=localStorage.getItem("__nr_flags").split(","),console&&"function"==typeof console.log&&(s.console=!0,o.indexOf("dev")!==-1&&(s.dev=!0),o.indexOf("nr_dev")!==-1&&(s.nrDev=!0))}catch(c){}s.nrDev&&i.on("internal-error",function(t){r(t.stack)}),s.dev&&i.on("fn-err",function(t,n,e){r(e.stack)}),s.dev&&(r("NR AGENT IN DEVELOPMENT MODE"),r("flags: "+a(s,function(t,n){return t}).join(", ")))},{}],2:[function(t,n,e){function r(t,n,e,r,s){try{p?p-=1:o(s||new UncaughtException(t,n,e),!0)}catch(f){try{i("ierr",[f,c.now(),!0])}catch(d){}}return"function"==typeof u&&u.apply(this,a(arguments))}function UncaughtException(t,n,e){this.message=t||"Uncaught error with no additional information",this.sourceURL=n,this.line=e}function o(t,n){var e=n?null:c.now();i("err",[t,e])}var i=t("handle"),a=t(19),s=t("ee"),c=t("loader"),f=t("gos"),u=window.onerror,d=!1,l="nr@seenError",p=0;c.features.err=!0,t(1),window.onerror=r;try{throw new Error}catch(h){"stack"in h&&(t(8),t(7),"addEventListener"in window&&t(5),c.xhrWrappable&&t(9),d=!0)}s.on("fn-start",function(t,n,e){d&&(p+=1)}),s.on("fn-err",function(t,n,e){d&&!e[l]&&(f(e,l,function(){return!0}),this.thrown=!0,o(e))}),s.on("fn-end",function(){d&&!this.thrown&&p>0&&(p-=1)}),s.on("internal-error",function(t){i("ierr",[t,c.now(),!0])})},{}],3:[function(t,n,e){t("loader").features.ins=!0},{}],4:[function(t,n,e){function r(t){}if(window.performance&&window.performance.timing&&window.performance.getEntriesByType){var o=t("ee"),i=t("handle"),a=t(8),s=t(7),c="learResourceTimings",f="addEventListener",u="resourcetimingbufferfull",d="bstResource",l="resource",p="-start",h="-end",m="fn"+p,w="fn"+h,v="bstTimer",y="pushState",g=t("loader");g.features.stn=!0,t(6);var x=NREUM.o.EV;o.on(m,function(t,n){var e=t[0];e instanceof x&&(this.bstStart=g.now())}),o.on(w,function(t,n){var e=t[0];e instanceof x&&i("bst",[e,n,this.bstStart,g.now()])}),a.on(m,function(t,n,e){this.bstStart=g.now(),this.bstType=e}),a.on(w,function(t,n){i(v,[n,this.bstStart,g.now(),this.bstType])}),s.on(m,function(){this.bstStart=g.now()}),s.on(w,function(t,n){i(v,[n,this.bstStart,g.now(),"requestAnimationFrame"])}),o.on(y+p,function(t){this.time=g.now(),this.startPath=location.pathname+location.hash}),o.on(y+h,function(t){i("bstHist",[location.pathname+location.hash,this.startPath,this.time])}),f in window.performance&&(window.performance["c"+c]?window.performance[f](u,function(t){i(d,[window.performance.getEntriesByType(l)]),window.performance["c"+c]()},!1):window.performance[f]("webkit"+u,function(t){i(d,[window.performance.getEntriesByType(l)]),window.performance["webkitC"+c]()},!1)),document[f]("scroll",r,{passive:!0}),document[f]("keypress",r,!1),document[f]("click",r,!1)}},{}],5:[function(t,n,e){function r(t){for(var n=t;n&&!n.hasOwnProperty(u);)n=Object.getPrototypeOf(n);n&&o(n)}function o(t){s.inPlace(t,[u,d],"-",i)}function i(t,n){return t[1]}var a=t("ee").get("events"),s=t(21)(a,!0),c=t("gos"),f=XMLHttpRequest,u="addEventListener",d="removeEventListener";n.exports=a,"getPrototypeOf"in Object?(r(document),r(window),r(f.prototype)):f.prototype.hasOwnProperty(u)&&(o(window),o(f.prototype)),a.on(u+"-start",function(t,n){var e=t[1],r=c(e,"nr@wrapped",function(){function t(){if("function"==typeof e.handleEvent)return e.handleEvent.apply(e,arguments)}var n={object:t,"function":e}[typeof e];return n?s(n,"fn-",null,n.name||"anonymous"):e});this.wrapped=t[1]=r}),a.on(d+"-start",function(t){t[1]=this.wrapped||t[1]})},{}],6:[function(t,n,e){var r=t("ee").get("history"),o=t(21)(r);n.exports=r,o.inPlace(window.history,["pushState","replaceState"],"-")},{}],7:[function(t,n,e){var r=t("ee").get("raf"),o=t(21)(r),i="equestAnimationFrame";n.exports=r,o.inPlace(window,["r"+i,"mozR"+i,"webkitR"+i,"msR"+i],"raf-"),r.on("raf-start",function(t){t[0]=o(t[0],"fn-")})},{}],8:[function(t,n,e){function r(t,n,e){t[0]=a(t[0],"fn-",null,e)}function o(t,n,e){this.method=e,this.timerDuration=isNaN(t[1])?0:+t[1],t[0]=a(t[0],"fn-",this,e)}var i=t("ee").get("timer"),a=t(21)(i),s="setTimeout",c="setInterval",f="clearTimeout",u="-start",d="-";n.exports=i,a.inPlace(window,[s,"setImmediate"],s+d),a.inPlace(window,[c],c+d),a.inPlace(window,[f,"clearImmediate"],f+d),i.on(c+u,r),i.on(s+u,o)},{}],9:[function(t,n,e){function r(t,n){d.inPlace(n,["onreadystatechange"],"fn-",s)}function o(){var t=this,n=u.context(t);t.readyState>3&&!n.resolved&&(n.resolved=!0,u.emit("xhr-resolved",[],t)),d.inPlace(t,y,"fn-",s)}function i(t){g.push(t),h&&(b?b.then(a):w?w(a):(E=-E,R.data=E))}function a(){for(var t=0;t<g.length;t++)r([],g[t]);g.length&&(g=[])}function s(t,n){return n}function c(t,n){for(var e in t)n[e]=t[e];return n}t(5);var f=t("ee"),u=f.get("xhr"),d=t(21)(u),l=NREUM.o,p=l.XHR,h=l.MO,m=l.PR,w=l.SI,v="readystatechange",y=["onload","onerror","onabort","onloadstart","onloadend","onprogress","ontimeout"],g=[];n.exports=u;var x=window.XMLHttpRequest=function(t){var n=new p(t);try{u.emit("new-xhr",[n],n),n.addEventListener(v,o,!1)}catch(e){try{u.emit("internal-error",[e])}catch(r){}}return n};if(c(p,x),x.prototype=p.prototype,d.inPlace(x.prototype,["open","send"],"-xhr-",s),u.on("send-xhr-start",function(t,n){r(t,n),i(n)}),u.on("open-xhr-start",r),h){var b=m&&m.resolve();if(!w&&!m){var E=1,R=document.createTextNode(E);new h(a).observe(R,{characterData:!0})}}else f.on("fn-end",function(t){t[0]&&t[0].type===v||a()})},{}],10:[function(t,n,e){function r(){var t=window.NREUM,n=t.info.accountID||null,e=t.info.agentID||null,r=t.info.trustKey||null,i="btoa"in window&&"function"==typeof window.btoa;if(!n||!e||!i)return null;var a={v:[0,1],d:{ty:"Browser",ac:n,ap:e,id:o.generateCatId(),tr:o.generateCatId(),ti:Date.now()}};return r&&n!==r&&(a.d.tk=r),btoa(JSON.stringify(a))}var o=t(16);n.exports={generateTraceHeader:r}},{}],11:[function(t,n,e){function r(t){var n=this.params,e=this.metrics;if(!this.ended){this.ended=!0;for(var r=0;r<p;r++)t.removeEventListener(l[r],this.listener,!1);n.aborted||(e.duration=s.now()-this.startTime,this.loadCaptureCalled||4!==t.readyState?null==n.status&&(n.status=0):a(this,t),e.cbTime=this.cbTime,d.emit("xhr-done",[t],t),c("xhr",[n,e,this.startTime]))}}function o(t,n){var e=t.responseType;if("json"===e&&null!==n)return n;var r="arraybuffer"===e||"blob"===e||"json"===e?t.response:t.responseText;return w(r)}function i(t,n){var e=f(n),r=t.params;r.host=e.hostname+":"+e.port,r.pathname=e.pathname,t.sameOrigin=e.sameOrigin}function a(t,n){t.params.status=n.status;var e=o(n,t.lastSize);if(e&&(t.metrics.rxSize=e),t.sameOrigin){var r=n.getResponseHeader("X-NewRelic-App-Data");r&&(t.params.cat=r.split(", ").pop())}t.loadCaptureCalled=!0}var s=t("loader");if(s.xhrWrappable){var c=t("handle"),f=t(12),u=t(10).generateTraceHeader,d=t("ee"),l=["load","error","abort","timeout"],p=l.length,h=t("id"),m=t(15),w=t(14),v=window.XMLHttpRequest;s.features.xhr=!0,t(9),d.on("new-xhr",function(t){var n=this;n.totalCbs=0,n.called=0,n.cbTime=0,n.end=r,n.ended=!1,n.xhrGuids={},n.lastSize=null,n.loadCaptureCalled=!1,t.addEventListener("load",function(e){a(n,t)},!1),m&&(m>34||m<10)||window.opera||t.addEventListener("progress",function(t){n.lastSize=t.loaded},!1)}),d.on("open-xhr-start",function(t){this.params={method:t[0]},i(this,t[1]),this.metrics={}}),d.on("open-xhr-end",function(t,n){"loader_config"in NREUM&&"xpid"in NREUM.loader_config&&this.sameOrigin&&n.setRequestHeader("X-NewRelic-ID",NREUM.loader_config.xpid);var e=!1;if("init"in NREUM&&"distributed_tracing"in NREUM.init&&(e=!!NREUM.init.distributed_tracing.enabled),e&&this.sameOrigin){var r=u();r&&n.setRequestHeader("newrelic",r)}}),d.on("send-xhr-start",function(t,n){var e=this.metrics,r=t[0],o=this;if(e&&r){var i=w(r);i&&(e.txSize=i)}this.startTime=s.now(),this.listener=function(t){try{"abort"!==t.type||o.loadCaptureCalled||(o.params.aborted=!0),("load"!==t.type||o.called===o.totalCbs&&(o.onloadCalled||"function"!=typeof n.onload))&&o.end(n)}catch(e){try{d.emit("internal-error",[e])}catch(r){}}};for(var a=0;a<p;a++)n.addEventListener(l[a],this.listener,!1)}),d.on("xhr-cb-time",function(t,n,e){this.cbTime+=t,n?this.onloadCalled=!0:this.called+=1,this.called!==this.totalCbs||!this.onloadCalled&&"function"==typeof e.onload||this.end(e)}),d.on("xhr-load-added",function(t,n){var e=""+h(t)+!!n;this.xhrGuids&&!this.xhrGuids[e]&&(this.xhrGuids[e]=!0,this.totalCbs+=1)}),d.on("xhr-load-removed",function(t,n){var e=""+h(t)+!!n;this.xhrGuids&&this.xhrGuids[e]&&(delete this.xhrGuids[e],this.totalCbs-=1)}),d.on("addEventListener-end",function(t,n){n instanceof v&&"load"===t[0]&&d.emit("xhr-load-added",[t[1],t[2]],n)}),d.on("removeEventListener-end",function(t,n){n instanceof v&&"load"===t[0]&&d.emit("xhr-load-removed",[t[1],t[2]],n)}),d.on("fn-start",function(t,n,e){n instanceof v&&("onload"===e&&(this.onload=!0),("load"===(t[0]&&t[0].type)||this.onload)&&(this.xhrCbStart=s.now()))}),d.on("fn-end",function(t,n){this.xhrCbStart&&d.emit("xhr-cb-time",[s.now()-this.xhrCbStart,this.onload,n],n)})}},{}],12:[function(t,n,e){n.exports=function(t){var n=document.createElement("a"),e=window.location,r={};n.href=t,r.port=n.port;var o=n.href.split("://");!r.port&&o[1]&&(r.port=o[1].split("/")[0].split("@").pop().split(":")[1]),r.port&&"0"!==r.port||(r.port="https"===o[0]?"443":"80"),r.hostname=n.hostname||e.hostname,r.pathname=n.pathname,r.protocol=o[0],"/"!==r.pathname.charAt(0)&&(r.pathname="/"+r.pathname);var i=!n.protocol||":"===n.protocol||n.protocol===e.protocol,a=n.hostname===document.domain&&n.port===e.port;return r.sameOrigin=i&&(!n.hostname||a),r}},{}],13:[function(t,n,e){function r(){}function o(t,n,e){return function(){return i(t,[f.now()].concat(s(arguments)),n?null:this,e),n?void 0:this}}var i=t("handle"),a=t(18),s=t(19),c=t("ee").get("tracer"),f=t("loader"),u=NREUM;"undefined"==typeof window.newrelic&&(newrelic=u);var d=["setPageViewName","setCustomAttribute","setErrorHandler","finished","addToTrace","inlineHit","addRelease"],l="api-",p=l+"ixn-";a(d,function(t,n){u[n]=o(l+n,!0,"api")}),u.addPageAction=o(l+"addPageAction",!0),u.setCurrentRouteName=o(l+"routeName",!0),n.exports=newrelic,u.interaction=function(){return(new r).get()};var h=r.prototype={createTracer:function(t,n){var e={},r=this,o="function"==typeof n;return i(p+"tracer",[f.now(),t,e],r),function(){if(c.emit((o?"":"no-")+"fn-start",[f.now(),r,o],e),o)try{return n.apply(this,arguments)}catch(t){throw c.emit("fn-err",[arguments,this,t],e),t}finally{c.emit("fn-end",[f.now()],e)}}}};a("actionText,setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","),function(t,n){h[n]=o(p+n)}),newrelic.noticeError=function(t,n){"string"==typeof t&&(t=new Error(t)),i("err",[t,f.now(),!1,n])}},{}],14:[function(t,n,e){n.exports=function(t){if("string"==typeof t&&t.length)return t.length;if("object"==typeof t){if("undefined"!=typeof ArrayBuffer&&t instanceof ArrayBuffer&&t.byteLength)return t.byteLength;if("undefined"!=typeof Blob&&t instanceof Blob&&t.size)return t.size;if(!("undefined"!=typeof FormData&&t instanceof FormData))try{return JSON.stringify(t).length}catch(n){return}}}},{}],15:[function(t,n,e){var r=0,o=navigator.userAgent.match(/Firefox[\/\s](\d+\.\d+)/);o&&(r=+o[1]),n.exports=r},{}],16:[function(t,n,e){function r(){function t(){return n?15&n[e++]:16*Math.random()|0}var n=null,e=0,r=window.crypto||window.msCrypto;r&&r.getRandomValues&&(n=r.getRandomValues(new Uint8Array(31)));for(var o,i="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx",a="",s=0;s<i.length;s++)o=i[s],"x"===o?a+=t().toString(16):"y"===o?(o=3&t()|8,a+=o.toString(16)):a+=o;return a}function o(){function t(){return n?15&n[e++]:16*Math.random()|0}var n=null,e=0,r=window.crypto||window.msCrypto;r&&r.getRandomValues&&Uint8Array&&(n=r.getRandomValues(new Uint8Array(31)));for(var o=[],i=0;i<16;i++)o.push(t().toString(16));return o.join("")}n.exports={generateUuid:r,generateCatId:o}},{}],17:[function(t,n,e){function r(t,n){if(!o)return!1;if(t!==o)return!1;if(!n)return!0;if(!i)return!1;for(var e=i.split("."),r=n.split("."),a=0;a<r.length;a++)if(r[a]!==e[a])return!1;return!0}var o=null,i=null,a=/Version\/(\S+)\s+Safari/;if(navigator.userAgent){var s=navigator.userAgent,c=s.match(a);c&&s.indexOf("Chrome")===-1&&s.indexOf("Chromium")===-1&&(o="Safari",i=c[1])}n.exports={agent:o,version:i,match:r}},{}],18:[function(t,n,e){function r(t,n){var e=[],r="",i=0;for(r in t)o.call(t,r)&&(e[i]=n(r,t[r]),i+=1);return e}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],19:[function(t,n,e){function r(t,n,e){n||(n=0),"undefined"==typeof e&&(e=t?t.length:0);for(var r=-1,o=e-n||0,i=Array(o<0?0:o);++r<o;)i[r]=t[n+r];return i}n.exports=r},{}],20:[function(t,n,e){n.exports={exists:"undefined"!=typeof window.performance&&window.performance.timing&&"undefined"!=typeof window.performance.timing.navigationStart}},{}],21:[function(t,n,e){function r(t){return!(t&&t instanceof Function&&t.apply&&!t[a])}var o=t("ee"),i=t(19),a="nr@original",s=Object.prototype.hasOwnProperty,c=!1;n.exports=function(t,n){function e(t,n,e,o){function nrWrapper(){var r,a,s,c;try{a=this,r=i(arguments),s="function"==typeof e?e(r,a):e||{}}catch(f){l([f,"",[r,a,o],s])}u(n+"start",[r,a,o],s);try{return c=t.apply(a,r)}catch(d){throw u(n+"err",[r,a,d],s),d}finally{u(n+"end",[r,a,c],s)}}return r(t)?t:(n||(n=""),nrWrapper[a]=t,d(t,nrWrapper),nrWrapper)}function f(t,n,o,i){o||(o="");var a,s,c,f="-"===o.charAt(0);for(c=0;c<n.length;c++)s=n[c],a=t[s],r(a)||(t[s]=e(a,f?s+o:o,i,s))}function u(e,r,o){if(!c||n){var i=c;c=!0;try{t.emit(e,r,o,n)}catch(a){l([a,e,r,o])}c=i}}function d(t,n){if(Object.defineProperty&&Object.keys)try{var e=Object.keys(t);return e.forEach(function(e){Object.defineProperty(n,e,{get:function(){return t[e]},set:function(n){return t[e]=n,n}})}),n}catch(r){l([r])}for(var o in t)s.call(t,o)&&(n[o]=t[o]);return n}function l(n){try{t.emit("internal-error",n)}catch(e){}}return t||(t=o),e.inPlace=f,e.flag=a,e}},{}],ee:[function(t,n,e){function r(){}function o(t){function n(t){return t&&t instanceof r?t:t?c(t,s,i):i()}function e(e,r,o,i){if(!l.aborted||i){t&&t(e,r,o);for(var a=n(o),s=m(e),c=s.length,f=0;f<c;f++)s[f].apply(a,r);var d=u[g[e]];return d&&d.push([x,e,r,a]),a}}function p(t,n){y[t]=m(t).concat(n)}function h(t,n){var e=y[t];if(e)for(var r=0;r<e.length;r++)e[r]===n&&e.splice(r,1)}function m(t){return y[t]||[]}function w(t){return d[t]=d[t]||o(e)}function v(t,n){f(t,function(t,e){n=n||"feature",g[e]=n,n in u||(u[n]=[])})}var y={},g={},x={on:p,addEventListener:p,removeEventListener:h,emit:e,get:w,listeners:m,context:n,buffer:v,abort:a,aborted:!1};return x}function i(){return new r}function a(){(u.api||u.feature)&&(l.aborted=!0,u=l.backlog={})}var s="nr@context",c=t("gos"),f=t(18),u={},d={},l=n.exports=o();l.backlog=u},{}],gos:[function(t,n,e){function r(t,n,e){if(o.call(t,n))return t[n];var r=e();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(t,n,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return t[n]=r,r}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],handle:[function(t,n,e){function r(t,n,e,r){o.buffer([t],r),o.emit(t,n,e)}var o=t("ee").get("handle");n.exports=r,r.ee=o},{}],id:[function(t,n,e){function r(t){var n=typeof t;return!t||"object"!==n&&"function"!==n?-1:t===window?0:a(t,i,function(){return o++})}var o=1,i="nr@id",a=t("gos");n.exports=r},{}],loader:[function(t,n,e){function r(){if(!E++){var t=b.info=NREUM.info,n=p.getElementsByTagName("script")[0];if(setTimeout(u.abort,3e4),!(t&&t.licenseKey&&t.applicationID&&n))return u.abort();f(g,function(n,e){t[n]||(t[n]=e)}),c("mark",["onload",a()+b.offset],null,"api");var e=p.createElement("script");e.src="https://"+t.agent,n.parentNode.insertBefore(e,n)}}function o(){"complete"===p.readyState&&i()}function i(){c("mark",["domContent",a()+b.offset],null,"api")}function a(){return R.exists&&performance.now?Math.round(performance.now()):(s=Math.max((new Date).getTime(),s))-b.offset}var s=(new Date).getTime(),c=t("handle"),f=t(18),u=t("ee"),d=t(17),l=window,p=l.document,h="addEventListener",m="attachEvent",w=l.XMLHttpRequest,v=w&&w.prototype;NREUM.o={ST:setTimeout,SI:l.setImmediate,CT:clearTimeout,XHR:w,REQ:l.Request,EV:l.Event,PR:l.Promise,MO:l.MutationObserver};var y=""+location,g={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",agent:"js-agent.newrelic.com/nr-1123.min.js"},x=w&&v&&v[h]&&!/CriOS/.test(navigator.userAgent),b=n.exports={offset:s,now:a,origin:y,features:{},xhrWrappable:x,userAgent:d};t(13),p[h]?(p[h]("DOMContentLoaded",i,!1),l[h]("load",r,!1)):(p[m]("onreadystatechange",o),l[m]("onload",r)),c("mark",["firstbyte",s],null,"api");var E=0,R=t(20)},{}]},{},["loader",2,11,4,3]);</script>
+<meta name="title" content="eRepublik" />
+<meta name="robots" content="index, follow" />
+<meta name="description" content="Check your Citizen status, read the latest news in Erepublik, shout something to your friends and go to work." />
+<meta name="keywords" content="" />
+<meta name="language" content="en" />
+<meta property="og:image" content="//www.erepublik.net/images/modules/homepage/logo.png" />
+<meta itemprop="name" name="name" content="eRepublik - The New World | Online Social Strategy Game" />
+<meta itemprop="description" name="description" content="Create your Citizen and you will have the opportunity to develop your military, economy or political career." />
+<meta itemprop="image" name="image" content="//www.erepublik.net/images/modules/homepage/logo.png" />
+<title>eRepublik</title>
+<link rel="shortcut icon" href="/images/favicon.ico" />
+<style>[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak{display:none !important}</style>
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.com/css/fonts/Franchise/font.1438697194.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.com/css/fonts/DsDigital/font.1412241135.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.com/css/fonts/Icons/font.1523431605.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/jquery.pagewalkthrough.1412241135.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/select2.1563443695.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/jquery.mCustomScrollbar.1563443643.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/layout.1563443683.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/app.1563443672.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/my_land.1563443690.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/sales.1563443695.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/blue_border_popup.1563443673.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/cmp/homepage.1563443678.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/wall.1537966277.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/emoji/emoji.1563175886.css" />
+<link rel="preload stylesheet" as="style" type="text/css" href="//www.erepublik.net/css/emoji/emojione_color.1562936235.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="//fonts.googleapis.com/css?family=Open+Sans+Condensed:300,400,600,700,800|Open+Sans:400,400i,600,600i,700,700i|Roboto:400,400i,700,700i&amp;subset=cyrillic,cyrillic-ext,greek,greek-ext,latin-ext" />
+<link rel="stylesheet" type="text/css" media="screen" href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+<script type="text/javascript" charset="utf-8">
+    var culture = 'en';
+    var csrfToken = 'a26d8352c3709a10a5acff1c6882e81f';
+    var erepublik = {"settings":{"domainname":"erepublik.com","hostname":"www.erepublik.com","economyhostname":"economy.erepublik.com","cookielessHost":"www.erepublik.net","isLive":true,"culture":"en","eDay":4258,"isOnHomepage":true,"notifications":0},"citizen":{"citizenId":1620414,"isOrganization":0,"avatar":"//cdnt.erepublik.net/7efiav4XZ4SMvXAtgEk1NciUmAg=/55x55/smart/avatars/Citizens/2009/07/08/4b57b9ebb0232f0d6c3f6f2c21b8ab95.jpg?c022b6df6f643263dba839cb35b7a9ab","isAdult":true,"country":71,"citizenshipCountryId":71,"currency":"LVL","citizenshipCurrencyName":"LVL","isEmpire":false,"isDictatorship":0,"countryLocationId":71,"regionLocationId":662,"countryLocationName":"Latvia","countryLocationPermalink":"Latvia","residence":{"hasResidence":1,"cityId":709,"regionId":662,"countryId":71,"bonuses":{"has_residence":1,"is_in_residence":1,"valid_until":0,"num_houses":3,"energy_bonus":230,"recovery_bonus":6,"time_remaining":0,"description":"Residence bonuses available"}},"division":4,"muId":662,"regiment_id":1138,"party":{"id":3482,"party_id":3482,"is_party_president":1,"name":"Launie Geniji","economical_orientation":"Far-left","stripped_title":"launie-geniji","has_avatar":1,"created_at":1292875124},"energy":35,"energyToRecover":3840,"energyFromFoodRemaining":0,"energyPerInterval":76,"gold":3745,"currencyAmount":551051,"userLevel":656,"hasCoreLoopAccess":false,"canWorkTrainAgainIn":1169,"currentExperiencePoints":3157028,"hasReward":true,"dailyTasksDone":true,"hasDailyOrderReward":true,"dailyOrderDone":true,"hasRecruitOrderReward":true,"recruitOrderDone":true,"dailyOrders":[{"battleId":200327,"sideCountryId":71,"regionId":657,"title":"Fight for Latvia in Laane-Eesti","battleLink":"//www.erepublik.com/en/military/battlefield-choose-side/200327/71","setBy":{"name":"priorities","id":0,"role":"Military Unit's priorities","description":"Set by Military Unit's priorities"},"required":25,"progress":true,"completed":true,"isCivilWar":false}],"canChangeMPPPriorities":true,"canChangeTerrainPriorities":false,"mySkills":{"1":{"citizen_id":1620414,"skill_type":"strength","terrain_id":1,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"2":{"citizen_id":1620414,"skill_type":"strength","terrain_id":2,"skill_points":40000,"updated_at":"2017-10-21 00:33:33"},"3":{"citizen_id":1620414,"skill_type":"strength","terrain_id":3,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"4":{"citizen_id":1620414,"skill_type":"strength","terrain_id":4,"skill_points":40000,"updated_at":"2017-10-21 00:33:33"},"5":{"citizen_id":1620414,"skill_type":"strength","terrain_id":5,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"6":{"citizen_id":1620414,"skill_type":"strength","terrain_id":6,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"7":{"citizen_id":1620414,"skill_type":"strength","terrain_id":7,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"8":{"citizen_id":1620414,"skill_type":"strength","terrain_id":8,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"9":{"citizen_id":1620414,"skill_type":"strength","terrain_id":9,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"10":{"citizen_id":1620414,"skill_type":"strength","terrain_id":10,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"11":{"citizen_id":1620414,"skill_type":"strength","terrain_id":11,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"12":{"citizen_id":1620414,"skill_type":"strength","terrain_id":12,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"13":{"citizen_id":1620414,"skill_type":"strength","terrain_id":13,"skill_points":0,"updated_at":"2017-10-21 00:33:33"},"14":{"citizen_id":1620414,"skill_type":"strength","terrain_id":14,"skill_points":0,"updated_at":"2017-10-21 00:33:33"}}},"misc":{"runningOnKongregate":false},"promos":{"consumption_boost":false,"winter_events":false,"week_of_heroes":false,"raffle_top_5":false,"winner_takes_it_all":false,"soldiers_of_fortune":false,"regiment_rumble":false},"shortcuts":{"links":{"inventory":"//www.erepublik.com/en/economy/inventory","myland":"//www.erepublik.com/en/economy/myCompanies","campaigns":"//www.erepublik.com/en/military/campaigns","top_news":"//www.erepublik.com/en/news/international","new_message":"//www.erepublik.com/en/main/messages-compose/0","world_map":"//www.erepublik.com/en/map","military_unit":"//www.erepublik.com/en/main/group-home/military","alerts":"//www.erepublik.com/en/main/notifications","residence":"//www.erepublik.com/en/main/myResidence"},"names":{"inventory":"Storage","myland":"My places","campaigns":"Military campaigns","top_news":"Top news","new_message":"New Message","world_map":"World map","military_unit":"Military unit","alerts":"Notifications","residence":"Residence"}},"i18n":{"shortcut":"Shortcut:","waiting":"waiting","missions":{"status1Title":"New mission","status2Title":"Ongoing mission","status3Title":"Click to complete","status4Title":"Rewarded","triviaInputText":"Type in the answer...","triviaSubmitText":"Submit answer"},"countdownLang":{"daysLabel":"Days","dayLabel":"Day","hoursLabel":"Hrs","minutesLabel":"Min","secondsLabel":"Sec"},"boosterActivation":{"baConfirm":"Are you sure you want to use this Booster?","baActivate":"Activate Booster","baYour":"Your ","baAvailability":"Booster availability","baDisabled":"A better Booster is already active","disabledCatchupBooster":"Conditions for activating this booster not met!"},"citizen":{"regionSelect":"Please select a region","friends":"Friends","birthday":"eRepublik birthday"},"residence":{"nomad":"You don’t have a residence city","home":"Residence bonuses available","neutral":"Residence bonuses partially available. Energy Pool bonus expires in:","away":"Residence bonuses expired. Travel back to your residence to reactivate them."}}},
+        Environment = {
+            facebookSession: 0,
+            facebookAppId: 300511377223,
+            facebookApiVersion: 'v2.8',
+            isInIframe: (window.self !== window.top),
+            isWebView: false,
+            isOnFacebook: false
+        },
+        SERVER_DATA = {"csrfToken":"a26d8352c3709a10a5acff1c6882e81f","isLoggedIn":true,"facebookAppId":300511377223,"fbApiVersion":"v2.8","extras":"Ice Creams","serverTime":{"rfc":"Thu, 18 Jul 2019 23:40:31 -0700","timezone":-700,"hour":23}},
+        ErpkShop = {
+            promotions: [],
+            battlePromotions: [],
+            numberOfPurchasablePacks: 0,
+            specialSalesEvent: false        };
+    if (top !== self && Environment && !Environment.isOnFacebook && !Environment.isWebView) {
+        top.location = self.location
+    }
+</script>
+
+<script type="text/javascript">
+	var scriptFeeds_countryAccounts_choose = "Choose",
+        scriptFeeds_proposedCongressman_search = "Search",
+        scriptFeeds_proposedCongressman_close = "Close",
+        scriptFeeds_proposedCongressman_replace = "Replace",
+        scriptFeeds_proposedCongressman_presentation = "Presentation",
+        scriptFeeds_proposedCongressman_no_presentation = "No presentation",
+        scriptFeeds_regionList_select = "Please select a region",
+        citizenship_application_accepted = "Accepted!",
+        citizenship_application_canceled = "You have canceled your citizenship application",
+        citizenship_application_cancel_confirm = "Are you sure you want to cancel your citizenship application?",
+        citizen_move_countryList_select = "Please select a country.",
+        citizen_move_regionList_select = "Please select a region",
+        missions_unlock_confirm = "Are you sure you want to unlock for %%1%% Gold?",
+        eat_food_confirm = "One unit of quality %%1%% food will be consumed but you will recover only %%2%% Energy. Would you like to use it anyway?",
+        energy_confirm = "You are about to consume an Energy Bar. This will restore your Energy with %%1%% without affecting your daily food consumption limit. Continue?",
+        energy_confirm_winter_treat = "You are about to consume a Ice Cream. This will restore your Energy with 50 without affecting your daily food consumption limit. Continue?";
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-2001550-1']);
+	_gaq.push(['_setDomainName', 'erepublik.com']);
+	_gaq.push(['_trackPageview']);
+		(function() {
+	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	ga.src = ('https:' === document.location.protocol ? 'https://ssl' : '//www') + '.google-analytics.com/ga.js';
+	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
+		var csrfToken = 'a26d8352c3709a10a5acff1c6882e81f',
+        missionsJSON = [],
+        numberOfMissions = 0,
+        assistantNotifications = [];
+</script>
+<script type="text/javascript" src="//www.erepublik.net/js/jquery.min.1412241140.js"></script>
+<script>var $j = jQuery.noConflict();</script>
+<script type="text/javascript" src="//www.erepublik.net/js/Sortable.min.1505220672.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/angular/162/angular.min.1488804924.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/angular/162/angular-sanitize.min.1488804924.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/angular/162/ui-bootstrap-tpls.min.1488804924.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erepublik.1563443672.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_init.1563443678.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_directives.1563443678.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_filters.1563443678.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/cmp/erpk_angular_controllers.1563443677.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/global.1519655903.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/citizen/energy.1548079404.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/facebook/facebook_init.1509098858.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/facebook/facebook_canvas.1552561314.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/select2.1422024043.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/strophe.1412241140.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/strophe.flxhr.1412241140.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/pvp/bind.1412241140.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/awards/awards.1537966277.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/jquery.textarea-expander.1412241140.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/jquery.limitMaxlength.1412241140.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/homepage/rw.1544019274.js"></script>
+<script type="text/javascript" src="//www.erepublik.net/js/homepage/wall.1562915440.js"></script>
+<script type="text/javascript">
+    var ErpkPvp = (ErpkPvp || {});
+    ErpkPvp.bosh_service = 'unassigned2';
+    ErpkPvp.muc_host = 'unassigned1';
+    ErpkPvp.citizenId = 1620414;
+        (function(){
+        var dictatorships = {"14":1,"28":1,"73":1,"76":1,"82":1,"165":1},
+            empires = [],
+            countryId;
+        if (typeof(dictatorships) === 'object') {
+            for (countryId in dictatorships) {
+                if (dictatorships.hasOwnProperty(countryId)) {
+                    erepublik.info.countries[countryId].isDictatorship = true;
+                }
+            }
+        }
+        if (typeof(empires) === 'object') {
+            for (countryId in empires) {
+                if (empires.hasOwnProperty(countryId)) {
+                    erepublik.info.countries[countryId].isEmpire = true;
+                }
+            }
+        }
+    })();
+</script>
+</head>
+<body id="homepage_feed" class="emoji_theme_emojione_color">
+	<side-notification></side-notification>
+	<div id="mapsHolder" style="display:none;">
+		<a href="javascript:;" title="Close window" class="close">Close</a>
+		<div class="mapContainer"></div>
+	</div>
+    <a id="scrollToTop" class="scrollToTop" href="javascript:"><i class="fa fa-chevron-circle-down scrollToBottom"></i></a>
+	<div id="fb-root"></div>
+	<div class="at">
+		<div class="ath"><a href="javascript:;" class="ambient_toggler"><span>Ambient on/off</span></a></div>
+	</div>
+	<div id="container">
+		<!-- header -->
+		<div id="header">
+			
+			<div id="logoNew" class="" title="eRepublik - Online Strategy Game">
+				<a href="//www.erepublik.com/en" title="eRepublik - Online Strategy Game"><span>eRepublik – Online Strategy Game</span></a>
+			</div>
+
+			<!-- start header_top -->
+			<div class="header_top">
+				
+
+								<div class="fb_like ">
+					<iframe src="//www.facebook.com/plugins/like.php?app_id=210611115655687&amp;href=https://www.facebook.com/eRepublik&amp;send=false&amp;layout=button_count&amp;width=100&amp;show_faces=false&amp;action=like&amp;colorscheme=light&amp;font&amp;height=21" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:118px; height:21px;float:left;clear:both;" allowTransparency="true"></iframe>
+					<a href="https://www.facebook.com/eRepublik">eRepublik Fan Page</a>
+				</div>
+				<div class="erpk_time">
+					<span class="eday">
+						Day <strong>4,258</strong>					</span>
+					<span class="date">Jul 18</span>
+					<span id="live_time" class="time"></span>
+				</div>
+				<div id="searchholder">
+					<form id="search" method="get" action="//www.erepublik.com/en/main/search/">
+						<input type="text" name="q" id="search_field" value="" class="field" placeholder="Search citizen">
+						<input type="submit" name="commit" value="" class="submit" disabled="disabled">
+					</form>
+				</div>
+				
+									                                            <a href="/en/logout" class="logout">Logout</a>
+									
+			</div>
+			<!-- end header_top -->
+
+
+			<!-- start new menu -->
+			
+			
+			<div id="newMenu" class="loggedIn">
+				<ul id="nav">
+					<li id="menu1">
+						<a data-fblog="menu_home" href="/en" data-notify="home">
+							<span>Home</span>
+						</a>
+					</li>
+					<li id="menu2">
+						<a href="javascript:;" data-fblog="menu_my_places" data-notify="my_places"><span>My places</span></a>
+						<ul>
+							<li><a data-fblog="menu_residence" data-notify="residence" href="//www.erepublik.com/en/main/myResidence">Residence</a></li>
+							<li><a data-fblog="menu_companies" data-notify="companies" href="//www.erepublik.com/en/economy/myCompanies">Companies</a></li>
+							<li><a data-fblog="menu_training" data-notify="training" href="//www.erepublik.com/en/economy/training-grounds">Training grounds</a></li>
+							<li><a data-fblog="menu_storage" data-notify="storage" href="//www.erepublik.com/en/economy/inventory">Storage</a></li>
+                                                        <li><a data-fblog="menu_employees" data-notify="employees" href="//www.erepublik.com/en/economy/manage-employees/1">Manage employees</a></li>
+                            							<li><a data-fblog="menu_adv_buildings" data-notify="adv_buildings" href="//www.erepublik.com/en/economy/advanced-buildings">Advanced buildings</a></li>
+							<li><a data-fblog="menu_change_location" data-notify="travel" href="javascript:" class="erpkLaunchTravelPopButton">Travel</a></li>
+						</ul>
+					</li>
+					<li id="menu3">
+						<a data-fblog="menu_wars" data-notify="wars" href="/en/military/campaigns"><span>Wars</span></a>
+					</li>
+										<li id="menu4">
+						<p></p>
+						<a data-fblog="menu_market" data-notify="market" href="javascript:;"><span>Market</span></a>
+						<ul>
+							<li><a data-fblog="menu_marketplace" data-notify="marketplace" href="/en/economy/marketplace">Marketplace</a></li>
+							<li><a data-fblog="menu_job_market" data-notify="job_market" href="/en/economy/job-market/71">Job market</a></li>
+							<li><a data-fblog="menu_monetary_market" data-notify="monetary_market" href="/en/economy/exchange-market/">Monetary market</a></li>
+							<li><a data-fblog="menu_companies_sale" data-notify="companies_market" href="//www.erepublik.com/en/economy/buy-company/71">Companies for sale</a></li>
+						</ul>
+					</li>
+					<li id="menu5">
+						<a data-fblog="menu_community" data-notify="community" href="javascript:;"><span>
+							Community</span>
+													</a>
+						<ul>
+														<li><a data-fblog="menu_mycountry" data-notify="country" href="/en/country/economy/Latvia" rel="nofollow">My Country</a></li>
+														<li><a data-fblog="menu_MU" data-notify="military_unit" href="/en/main/group-home/military">My Military Unit</a></li>
+							<li><a data-fblog="menu_party" data-notify="party" href="/en/main/my-party" rel="nofollow">My Party</a></li>
+														<li><a data-fblog="menu_newspaper" data-notify="newspaper" href="/en/main/my-newspaper" rel="nofollow">My Newspaper</a></li>
+							<li><a data-fblog="menu_forum" data-notify="forum" href="//forum.erepublik.com"  rel="nofollow">Forum</a></li>
+							<li><a data-fblog="menu_alliances" data-notify="alliances" href="/en/main/alliances" rel="nofollow">Alliances</a></li>
+							<li><a data-fblog="menu_elections" data-notify="elections" href="/en/main/elections">Elections</a></li>
+							<li><a data-fblog="menu_rankings" data-notify="rankings" href="/en/main/rankings-countries" rel="nofollow">Rankings</a></li>
+							<li><a data-fblog="menu_latest_updates" data-notify="latest_updates" href="/en/main/latest-updates" rel="nofollow">Latest Updates								 </a></li>
+							                                                        <li><a href="javascript:" data-fblog="menu_worldmap" data-notify="world_map" class="erpkLaunchMapPopButton">World map</a></li>
+						</ul>
+					</li>
+
+					<li id="menu6" ng-class="{'show_promo' : settings.promotionsLength > 0}" ng-controller="ErpkMenuPromosController">
+                        <a data-fblog="menu_gold_extras" href="/en/main/special-items" class="{{settings.genericClass}}" ng-if="settings.promotionsLength > 0" ng-cloak>
+                            <span ng-repeat="promo in promos.promotions track by $index" class="promo_wrapper {{promo.id}}" title="{{promo.title}} - {{promo.timeLeft}}" ng-class="{'isShown' : promo.isShown, 'lastDay' : promo.lastDay, 'noTimer' : !promo.timeLeft}">
+                                <img ng-src="//www.erepublik.net/images/modules/homepage/promo_{{promo.typeId || promo.id}}.png" alt="{{promo.title}}" />
+                                <i ng-bind-html="promo.title"></i>
+                                <b ng-if="promo.timeLeft" ng-bind-html="promo.timeLeft"></b>
+                            </span>
+                        </a>
+
+                        <a data-fblog="menu_gold_extras" href="/en/main/special-items" ng-if="!settings.promotionsLength">
+                            <span>Gold & Extras</span>
+                        </a>
+					</li>
+
+				</ul>
+			</div>
+						<!-- end new menu -->
+		</div><!-- end header -->
+
+	<!--Sidebar partial-->
+	    <div class="sidebar_wrapper ">
+        <div id="large_sidebar">
+    <div class="sidebar">
+        <div class="sidebar_container">
+            <a id="financier" href="/en/citizen/profile/1620414"></a>
+<div class="user_section" style="position: relative;">
+    <a data-fblog="profile_avatar" href="/en/citizen/profile/1620414" class="user_avatar" title="inpoc1">
+        <img src="//cdnt.erepublik.net/7efiav4XZ4SMvXAtgEk1NciUmAg=/55x55/smart/avatars/Citizens/2009/07/08/4b57b9ebb0232f0d6c3f6f2c21b8ab95.jpg?c022b6df6f643263dba839cb35b7a9ab" alt="inpoc1" width="55" height="55"/>
+                    <span><b>View Profile</b></span>
+            </a>
+    <div class="user_info">
+        <div class="user_notify">
+            <a data-fblog="new_messages" href="/en/main/messages-inbox" title="New messages: 0" class="notify nmail">
+                            </a>
+            <a data-fblog="alerts" href="/en/main/notifications" title="New alerts: 0" class="notify nalert">
+                            </a>
+                        <a data-fblog="weekly_leaderboards" href="/en/main/leaderboards-damage" title="Weekly Leaderboards" class="newleaderboard notify">
+                            </a>
+                    </div><!-- user_notify -->
+        <div class="user_level">
+            <b>656</b>
+            <div class="user_progress">
+                                    <div class="progress_bar" style="width:41%"></div>
+                            </div>
+        </div>
+        <div id="experienceTooltip" class="simple_yellow" style="display:none; width: 120px; position: absolute; top: 60px;">
+            <img src="//www.erepublik.net/images/modules/sidebar/yellow_arrow_tip.png" class="tip" alt=""/>
+            Experience level: <strong>656</strong><br/>
+            Experience points: <strong>3157028</strong><br/>
+            Next level at: <strong>3160000</strong>
+        </div><!--user_level and experienceTooltip-->
+    </div>
+    <div class="user_identity">
+        <a class="user_country" href="/en/country/society/Latvia">
+                            <img src="//www.erepublik.net/images/flags_png/S/Latvia.png" alt=""/>
+                        </a>
+        <a class="user_name" href="/en/citizen/profile/1620414">inpoc1</a>
+    </div><!--user_identity-->
+            <div class="user_health">
+            <script type="text/javascript">
+                var reset_health_to_recover = 3840;
+                var reset_has_food = 4;
+                var show_reset = true;
+                var new_date = '84';
+                globalNS.userInfo.wellness = 35;
+                globalNS.userInfo.specialFoodAmount = 130;
+                globalNS.userInfo.specialFoodValue = 100;
+                globalNS.userInfo.energyPerInterval = 76;
+                globalNS.userInfo.specialFood = {"quality":10,"amount":130,"refillValue":100};
+            </script>
+            <input type="hidden" value="a26d8352c3709a10a5acff1c6882e81f" id="a69925ed4a6ac8d4b191ead1ab58e853">
+            <input type="hidden" id="eat_energy_text" value="Energy Bar"/>
+            <input type="hidden" id="eat_food_text" value="Recover Energy"/>
+            <input type="hidden" id="buy_food_text" value="Buy food"/>
+            <div class="health_bg">
+                <div class="health_bar full_width">
+                    <img src="//www.erepublik.net/images/modules/sidebar/energy_bar_icon2.png" alt="" class="health_icon"/>
+                    <strong id="current_health">35 / 3840</strong>
+                    <div class="progress" id="health_bar_progress" style="width:0%">
+                        <q></q></div>
+                    <div class="back_progress" id="health_back_progress" style="width: 0.91145833333333%"></div>
+                </div><!--health_bar-->
+                
+<script>
+    window.twttr = (function (d, s, id) {
+        var t, js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s);
+        js.id = id;
+        js.src = 'https://platform.twitter.com/widgets.js';
+        fjs.parentNode.insertBefore(js, fjs);
+        return window.twttr || (t = {
+            _e: [], ready: function (f) {
+                t._e.push(f)
+            }
+        });
+    }(document, 'script', 'twitter-wjs'));
+
+    $j(document).ready(function () {
+        $j('a.invite_friends, #gold_bonus_invite_friends, a.militaty_empire, .invite_anniversary_bonus, #inviteFriendsGoldBonus, .invite_friends_promo_20')
+            .on('click', function (e) {
+            e.preventDefault();
+            $j('#invite_step1').lightbox_me({
+                centered: true,
+                overlayCSS: {background: 'black', opacity: .7, zIndex: 9000}
+            });
+            return false;
+        });
+        
+        $j(document).on(
+            'click',
+            '#mission_status.mission_pop_9 li.condition0 > div.details > a.hint',
+            function (e) {
+                e.preventDefault();
+                $j('#mission_status.mission_pop_9 > a.close').trigger('click');
+                $j('#invite_step1').lightbox_me({
+                    centered: true,
+                    overlayCSS: {background: 'black', opacity: .7, zIndex: 9000}
+                });
+                return false;
+            }
+        );
+        
+        $j('#personal_link').on('click', function () {
+            $j(this).select();
+            try {
+                if (document.execCommand('copy')) {
+                    humanMsg.displayMsg('Personal link copied to clipboard');
+                }
+            } catch (e) {
+            }
+        });
+
+        $j('#share').click(function () {
+            $j('#invite_step1').css('display', 'none');
+
+            var obj = {
+                method: 'feed',
+                link: 'https://www.erepublik.com/en/referrer/inpoc1',
+                picture: 'https://www.erepublik.com/images/erepublik_logo.jpg',
+                name: 'eRepublik',
+                caption: 'Free Online Multiplayer Strategy Game',
+                description: 'Join me in eRepublik and I will guide your steps into discovering your calling in the New World! Being a cunning politician, a fierce military commander or a media mogul!',
+                display: 'popup'
+            };
+
+            var shareSuccess = function (jsonParam) {
+                var token = SERVER_DATA && SERVER_DATA.csrfToken ? SERVER_DATA.csrfToken : $j('#_token').val();
+                $j.post('/en/main/invite-reward', {_token: token},
+                    function (data) {
+                        if (data.success) {
+                            $j('#invite_step1').css('display', 'none');
+                            $j('.invite_friends_reward_pop').lightbox_me({'centered': true});
+                        }
+                    },
+                    'json'
+                );
+            };
+
+            var shareCallback = function (response) {
+                $j('#invite_step1').css('display', 'block');
+                if (response && response['post_id']) {
+                    shareSuccess();
+                }
+            };
+
+            FB.ui(obj, shareCallback);
+        });
+    });
+</script>
+    <a href="javascript:" style="display:none;" title="Invite friends" class="invite_friends" id="invite_friends"><span>Invite friends</span></a>
+<div class="facebook_friends" id="invite_step1">
+    <a href="javascript:" class="close" title="Close window"><span>Close</span></a>
+    <h2><span>Invite friends to eRepublik and get 10% of all the Gold they earn or purchase!</span></h2>
+    <div class="listing">
+        <span>Share your personal link</span>
+        <input type="text" value="https://www.erepublik.com/en/referrer/inpoc1" id="personal_link" name="personal_link" readonly="readonly"/>
+        <ul class="social_btn">
+            <li><a href="javascript:" id="share">Share</a></li>
+            <li><a href="https://twitter.com/share" class="twitter-share-button" data-url="https://www.erepublik.com/en/referrer/inpoc1" data-count="none">Tweet</a></li>
+        </ul>
+    </div>
+    <a href="//www.erepublik.com/en/badges" class="std_global_btn tinySize floatRight"><span>Badges</span></a>
+</div>
+
+            </div><!--health_bg-->
+            <a href="javascript:;" title="" class="eat_food_wide    energy  reset" id="DailyConsumtionTrigger">
+                <img src="//www.erepublik.net/images/modules/sidebar/eating.gif" id="eatload" alt="" width="152" height="36"/>
+                <q>
+                    <div>
+                        <span><img class="warn" src="//www.erepublik.net/images/modules/_icons/swarning.png"/></span>
+                        <strong id="foodText">Energy Bar</strong>
+                    </div>
+                </q>
+            </a>
+                        <p title="Recover 76 Energy every 6 minutes until Day 4,263 00:00:01" class="recover_health boosted" id="foodResetHoursContainer" style="display: none;">Recover                <strong>76</strong> more in                <em id="foodResetHours">00:05:59</em></p>
+            <div id="eatFoodTooltip" class="simple_yellow" style="display:none; width: 250px; position: absolute; top: 80px;">
+                <input type="hidden" id="valid_for_energy_text" value="You will consume one Energy Bar to recover Energy. This does not affect the amount of Energy you can recover by eating food.">
+                <input type="hidden" id="valid_for_winter_treat_text" value="You will consume a Ice Cream to recover Energy. This does not affect the amount of Energy you can recover by eating food.">
+                <input type="hidden" id="valid_for_food_text" value="This action recovers as much Energy as possible by consuming Food from your Storage.">
+                <input type="hidden" id="valid_for_buy_text" value="You have consumed all the food in your Storage. Buy more from the Marketplace to recover your Energy.">
+                <img src="//www.erepublik.net/images/modules/sidebar/yellow_arrow_tip.png" class="tip" alt=""/>
+                <p>
+                You will consume one Energy Bar to recover Energy. This does not affect the amount of Energy you can recover by eating food.                </p>
+                <p style="margin:0">
+                    You can recover <big class="tooltip_health_limit">0</big> more Energy                    <img class="mini_health" src="//www.erepublik.net/images/modules/_icons/mini_energy.png" alt=""/>
+                </p>
+            </div><!--eatFoodTooltip-->
+            <div id="wellnessTooltip" class="simple_yellow" style="display:none;width:250px; position: absolute; top: 35px;">
+                <img src="//www.erepublik.net/images/modules/sidebar/yellow_arrow_tip.png" class="tip" alt=""/>
+                &bull;&nbsp;Working, training and fighting decreases your Energy<br/>
+                &bull;&nbsp;Food, Energy Bars and First Aid Kits restore energy            </div><!--wellnessTooltip-->
+        </div><!--user_health-->
+    </div><!--user_section-->
+<div class="user_location">
+    <a class="icon" id="residenceStatusIcon" href="/en/main/myResidence">&#xe811;</a>
+    <div class="residenceIconTooltip">
+    	<p class="tooltipText"></p>
+    	<span class="tooltipCountdown">00:00</span>
+    </div>
+    <a href="javascript:;" class="travelToResidence erpkLaunchTravelPopButton" title="Kurzeme, Latvia">
+		<span class="flag">
+			<img src="//www.erepublik.net/images/flags_png/S/Latvia.png" alt="" />
+		</span>
+        <span class="name">Kurzeme, Latvia</span>
+    </a>
+</div><!--user_location-->
+<div class="user_finances">
+    <div class="gold_amount">
+        <p>
+            <img src="//www.erepublik.net/images/modules/_icons/gold_icon.png" alt="Gold"/>
+            <strong id="side_bar_gold_account_value">3,745</strong>&nbsp;<span>Gold</span>
+        </p>
+    </div>
+    <div class="currency_amount">
+        <p>
+            <img src="//www.erepublik.net/images/flags_png/S/Latvia.png" alt="LVL" title="LVL"/>
+            <strong id="side_bar_currency_account_value">551,051</strong>&nbsp;<span>LVL</span>
+        </p>
+    </div>
+</div><!--user_finances-->
+
+
+<div class="award_pop_up">
+			<input type="hidden" name="_token" value="a26d8352c3709a10a5acff1c6882e81f" id="award_token" />
+</div>
+<script type="text/javascript">
+$j(document).ready(function() {
+	$j('.reward_pop_box div, .popup_reward_image').tipsy({
+		gravity: 's',
+		html: true
+	});
+	$j('.reward_pop_box .custom_reward_tooltip').tipsy({
+		gravity: 's',
+		html: true,
+		title: function() {
+			return $j(this).find('.reward_tooltip').html();
+		}
+	});
+});
+</script>
+            <input type="hidden" id="has_bonus_buildings" name="has_bonus_buildings" value="5">
+                                            <div id="award_pop_up_ajax"></div>
+            <div class="user_notify"></div>
+                                    <div id="limit_health_pop" class="health_limit energ_limit">
+                <h2>Get more energy!</h2>
+                <p>
+                    You have reached your food consumption limit.<br />
+                    You can recover 10 energy every 6 minutes.                </p>
+                <div class="time_left">
+                    <small>Recover <strong>10</strong> more in</small>
+                    <em id="pop_timer">00:00:00</em>
+                </div>
+                <a href="/en/main/special-items" class="get_health_text energy_bar" title="Buy Energy Bars"><span>Buy Energy Bars</span></a>
+                <a href="javascript:;" class="green_go" id="close_limit_health">Close</a>
+            </div>
+                        <script type="text/javascript">
+                function sidebar_tooltip(trigger, tooltip){
+                    $j(trigger).hover(
+                        function() { $j(tooltip).css({ display: "block" }); },
+                        function() { $j(tooltip).css({ display: "none" }); }
+                    );
+                }
+                $j(document).ready(function() {
+                    sidebar_tooltip("#current_health", "#wellnessTooltip");
+                    sidebar_tooltip(".user_progress", "#experienceTooltip");
+                    sidebar_tooltip("#DailyConsumtionTrigger", "#eatFoodTooltip");
+                });
+                var food_remaining = 0;
+                                    food_remaining = parseInt("0", 10);
+                    var linkForBuy = '/en/economy/marketplace#71/1',
+                        textForBuy = "Buy food",
+                        smallestFood = {"q":1,"use":2};
+                            </script>
+        </div><!-- sidebar_container -->
+        
+<div class="sidebar_banners_area">
+                    <a class="invite_anniversary_bonus" href="javascript:;" title="Invite friends and earn a 10% bonus from all the Gold they get in eRepublik."></a>
+            
+</div><!-- sidebar_banners_area -->
+    </div><!-- sidebar -->
+</div><!-- large_sidebar -->    </div>
+	<!--End of sidebar partial-->
+
+
+<div id="promoPopupHolder" style="display:none;">
+    <a href="javascript:;" class="close_action close" title="Close window">
+        <img src="//www.erepublik.net/images/modules/pvp/close_button.png" alt=""/>
+    </a>
+</div>
+
+
+
+<script type="text/javascript">
+    var erepublik = erepublik || {};
+    $j.extend(erepublik.i18n, obj = {
+        donateToFriend: {
+            close: "Close",
+            write_message: "Add a message",
+            hide_save: "Hide&Save",
+            gift_amount_unavailable: "Amount unavailable!",
+            receiver_must_not_be_sender: "You cannot donate to yourself!",
+            receiver_over_limit: "Amount unavailable!",
+            warning_transaction_in_progress: "<em>Important notice!</em> Our records show that another purchase attempt was started for this product. Have you (or your friend) already paid for this product? If yes, please be patient and wait for the payment to process, in order to avoid paying twice. If you purchase the same pack twice, the 2nd purchase will be converted into Gold.<br /><br />If you are sure that you haven\\’t already completed the payment for this product, feel free to press \\\"Continue\\\" and proceed to complete the payment."        }
+    });
+
+
+    $j(document).ready(function () {     });
+</script>
+<div id="content" class="">
+
+
+
+<div class="confirmationAlert animated fadeInRight" id="confirmationAlert">
+	<a href="javascript:" class="close">&#xe803;</a>
+	<div class="content">
+		<div class="textWrapper">
+			<div class="text">
+				<span class="icon">&#xe808;</span>
+				<p class="message">Are your sure you want to do this?</p>
+			</div>
+            <label id="confirmationPromptLabel" for="confirmationPrompt" style="display:none">
+                <input type="text" id="confirmationPrompt">
+            </label>
+		</div>
+	</div>
+	<div class="footer">
+		<a id="confirmAlert" href="javascript:" class="std_global_btn smallSize greenColor ctaBtn">Confirm</a>
+		<a id="cancelAlert" href="javascript:" class="std_global_btn smallSize redColor ctaBtn">Cancel</a>
+	</div>
+</div>
+<style>
+    #confirmationAlert #confirmationPromptLabel {display: block;width:100%;padding:10px 10px 0 10px;box-sizing: border-box}
+    #confirmationAlert #confirmationPrompt {width:100%;border:0;border-radius:3px;padding:5px 8px;box-sizing:border-box;margin:0}
+    #confirmationAlert #confirmationPrompt::placeholder {color:#ccc;font-size:11px;font-style:italic}
+</style>
+	<div id="report_popup" class="global_pack report_popup fadeInRight">
+		<a href="javascript:;" title="Close window" class="close">Close</a>
+		<div class="pack_header">
+			<h2>Report content</h2>
+		</div>
+		<div class="tab_wrapper">
+			<div class="tab_content">
+				<div class="report_content"></div>
+			</div>
+		</div>
+	</div><!-- report_popup -->
+	<script type="text/javascript">
+		$j('.invite_anniversary_bonus, .tactical_heroes_notification, .invite_friends_promo_20').tipsy({gravity: 'n'});
+		$j('.mission_new_path_sidebar').click(function(){$j('.mission_path_pop').lightbox_me({centered: true});});
+	</script>
+
+<script charset="utf-8" about="U+1F609">
+    var erpkChat = {
+        citizenId: 1620414,
+        isMentor: 0,
+        chatEnabled: 1,
+        chatStatus: 1,
+        isNewCitizen:0,
+        chatDataFeedStatus: 1,
+        chatRoomTimer: null,
+        hideChatrooms: function () {
+            if ($j('#cometchat_trayicon_chatrooms').length > 0) {
+                $j('#cometchat_trayicon_chatrooms').remove();
+                clearInterval(erpkChat.chatRoomTimer);
+            }
+        },
+        onlineUsersTimer: null,
+        hideUserList: function () {
+            if ($j('#cometchat_userstab').length > 0) {
+                $j('#cometchat_userstab').remove();
+                clearInterval(erpkChat.onlineUsersTimer);
+            }
+        },
+        isLoaded: false,
+        isLoading: false,
+        initChat: function () {
+            if (!erpkChat.chatEnabled || erpkChat.isLoading || erpkChat.isLoaded) {
+                return;
+            }
+
+            erpkChat.isLoading = true;
+
+            var d = document,
+                content = d.getElementById('content'),
+                div = d.createElement('div'),
+                script = d.createElement('script'),
+                style = d.createElement('link');
+
+            div.id = 'pubnub';
+            div.setAttribute('pub-key', 'pub-c-b8690376-f0ef-4228-9e0c-8a1ca6ed7bba');
+            div.setAttribute('sub-key', 'sub-c-ee53c2ae-84a1-11e1-941d-0da3ff7904e6');
+            div.setAttribute('uuid', '1620414');
+            content.appendChild(div);
+
+            style.rel = 'stylesheet';
+            style.type = 'text/css';
+            style.href = '/cometchat/cometchatcss.php';
+            content.appendChild(style);
+
+            script.async = true;
+            script.defer = true;
+            script.src = '/cometchat/cometchatjs.php';
+            content.appendChild(script);
+
+            window.addEventListener('load', function () {
+                erpkChat.isLoading = false;
+                erpkChat.isLoaded = true;
+                                
+                erpkChat.onlineUsersTimer = setInterval(erpkChat.hideUserList, 500);
+            });
+        }
+    };
+    
+    erpkChat.roomId = 711;
+    erpkChat.roomName = 'QWZ0ZXJmYWxsIFVuaXQ=';
+    erpkChat.inviteId = ' ';
+        
+    var erpkChatEventListener = function (e) {
+        if (e && e.hasOwnProperty('isTrusted') && e.isTrusted) {
+            localStorage.setItem(ltueKey, currentTime.toString());
+            erpkChat.chatEnabled = 1;
+            erpkChat.initChat();
+            document.removeEventListener('click', erpkChatEventListener);
+        }
+    };
+
+    if (!erpkChat.isNewCitizen && 'localStorage' in window) {
+        var ltueKey = 'l_ltue',
+            ltue,
+            currentTime = Date.now(),
+            timeBuffer = 60 * 30 * 1000;
+        document.addEventListener('click', erpkChatEventListener);
+        ltue = localStorage.getItem(ltueKey);
+        if (ltue) {
+            ltue = parseInt(ltue, 10);
+            if (isNaN(ltue) || !ltue) {
+                localStorage.removeItem(ltueKey);
+            } else if (ltue + timeBuffer < currentTime) {
+                erpkChat.chatEnabled = 0;
+            }
+        }
+    }
+
+    setTimeout(erpkChat.initChat, 500);
+</script>
+<div id="erpk_activities_rewards" ng-controller="ErpkDailyActivitiesController" ng-cloak>
+<div id="mission_reward" class="wresults grass daily ">
+	<a href="javascript:" title="" class="close_button close">Close</a>
+	<div class="wtop"></div>
+	<div class="wrepeat">
+		<div class="wcontent">
+			<div class="wheader" ng-if="settings.error">
+				<h3>Error!</h3>
+				<p>{{settings.msgs}}</p>
+			</div>
+			<div class="wheader" ng-if="!settings.error">
+				<h3>Daily Order completed</h3>
+				<div class="wdetails salary">
+					<div class="wdetails_top"></div>
+					<div class="wdetails_repeat">
+						<div class="wdetails_content">
+							<img alt="" class="good" src="//www.erepublik.net/images/modules/_icons/big_energy.png" />
+																					<img alt="" class="cash result_salary" src="//www.erepublik.net/images/modules/_icons/bazooka_parts.png" style="display: block;" />
+
+							<div class="wtexts">
+								<div id="result_salary" class="item result_salary">
+									<strong>+{{daily_order.bparts}}</strong>
+									<small>Different Bazooka parts</small>
+								</div>
+								<div id="result_products" class="item">
+									<strong>+{{daily_order.ebs}}</strong>
+									<small>Energy Bar</small>
+								</div>
+								                                								<img alt="" class="building" src="//www.erepublik.net/images/modules/homepage/daily_order.png" style="top:-15px;right:-85px;" />
+							</div>
+						</div>
+					</div>
+					<div class="wdetails_bottom"></div>
+				</div>
+			</div>
+			<div class="clear"></div>
+			<a data-fblog="daily_order_completed" ng-if="!settings.error" title="Get Reward" class="std_global_btn mediumSize greenColor averageWidth close" href="javascript:" ng-click="getDailyOrderReward()">
+				<span>Get Reward</span>
+			</a>
+			<a ng-if="settings.error" title="Close" class="std_global_btn mediumSize greenColor averageWidth close" href="javascript:">
+				<span>Close</span>
+			</a>
+		</div>
+	</div>
+	<div class="wbottom"></div>
+</div>
+</div>
+<hovercard-details></hovercard-details>
+
+<script type="text/javascript">
+	$j.extend(SERVER_DATA, {csrfToken:'a26d8352c3709a10a5acff1c6882e81f'});
+</script>
+<input type="hidden" name="_token" id="_token" value="a26d8352c3709a10a5acff1c6882e81f" />
+<script type="text/javascript" src="/js/jquery.tools.custom.min.js"></script>
+
+
+<script type="text/javascript" src="/js/jquery.ba-hashchange.js"></script>
+<script type="text/javascript">
+
+
+
+	$j(document).ready(function() {
+
+		$j('#spring_promo_banner span, #summer_promo_banner span, #autumn_promo_banner span').countdown({until: 0, format: 'DHMS', compact: true, description: ''});
+
+		var showUpdate = function($var) {
+			$j('.update').removeClass('active');
+			$j($var).addClass('active');
+		};
+
+		var removeActives = function() {
+			for (var i=0, len = $j(".update").length; i<len; i++){
+				$j(".update").eq(i).removeClass('active');
+			}
+		};
+
+	    $j('.update h2').click(function () {
+	    	removeActives();
+	    	$j(this).parent().addClass('active');
+	    });
+
+		$j(function(){
+			$j(window).hashchange( function(){
+				showUpdate(location.hash);
+			});
+			$j(window).hashchange();
+		});
+
+	});
+
+</script>
+
+<!-- .new_banners_wrapper -->
+<div class="new_banners_wrapper">
+			
+<script type="text/javascript">
+    $j(document).ready(function() {
+
+    	$j('.threshold_reward, .progress_bar q, .icon_energy_bars, .tour_desc small img, .weekly_challenge_title').tipsy({
+            gravity: 'n',
+            live: true,
+            html: true
+        });
+
+        $j('.next_reward strong').tipsy({
+            gravity: 's',
+            live: true,
+            html: true
+        });
+    });
+
+</script>
+
+<div ng-controller="WeeklyChallengeController" ng-cloak>
+    <div class="weekly_challenge"  ng-if="data.enabled" ng-class="{anniversary: data.type.anniversary,flavor_packs: (data.type.flavorPacks || data.type.springChallenge), halloween: data.type.halloweenChallenge, summerChallenge: data.type.summerChallenge}" id="weeklyChallenge">
+        <h2 class="weekly_challenge_title">{{data.type.anniversary ? "Anniversary Challenge" : (data.type.summerChallenge ? "Summer Challenge" : (data.type.springChallenge ? "Spring Challenge" : (data.type.halloweenChallenge ? "Halloween Challenge" : "Weekly Challenge")))}}</h2>
+        <div class="next_reward">
+            <span ng-if="data.nextReward.maxReward" class="icon_max_level_reached tipsyElement" title="The Prestige Hunter achievement was awarded for completing the Weekly Challenge."></span>
+            <div ng-if="data.nextReward.maxReward">
+                <p>
+                    <strong title="The Prestige Hunter achievement was awarded for completing the Weekly Challenge.">
+                        Weekly Challenge completed                    </strong>
+                </p>
+            </div>
+            <span ng-if="!data.nextReward.maxReward" ng-class="data.nextReward.type " class="tipsyElement" title="{{data.nextReward.text}}"></span>
+            <div ng-if="!data.nextReward.maxReward">
+                <p>
+                    Next reward<br/>
+                    <strong title="{{data.nextReward.text}}">{{data.nextReward.text}}</strong></p>
+            </div>
+        </div> <!-- end next_reward -->
+
+        <span class="weekly_challenge_timer reformated">
+            <q id="weekly_challenge_timer_new">00:00:00</q>
+        </span>
+
+        <div class="player_layer">
+            <img ng-src="{{data.player.avatar}}" alt="{{data.player.name}}" width="27" height="27" class="avatar" />
+                            <div ng-click="getAllReward()" ng-class="{'show':activeRewardsCount > 3}" class="std_global_btn collectAll blueColor floatRight " >
+                <span>Get all rewards</span>
+              
+            </div>
+
+            <span class="tour_desc">
+                <b>{{data.player.name}}</b>
+                <small>
+                    <strong>{{data.player.prestigePoints | number : fractionSize}} Prestige Points</strong>
+                    <img class="pulseHarder" src="//www.erepublik.net/images/modules/_icons/small_info_icon.png" title="Win 1 Prestige Point for every hit done in battles. Keep in mind that defeating one opponent can take several hits so you will also receive several Prestige Points." alt="" border="0" />
+                </small>
+            </span>
+
+            <div class="progress_bar">
+
+                <div class="level_threshold" ng-attr-style=" width:{{progressBar.totalSize}}px; background-position:-{{progressBar.width}}px 0px;">
+
+                    <div ng-repeat="reward in data.rewards.normal track by $index" class="threshold {{reward.status}}" ng-class="{'collectedBefore' : reward.collectedBefore}" ng-attr-style="width:{{(Math.round(reward.percent * (progressBar.totalSize - progressBar.rightMargin)) * 100) /100}}px"> 
+
+                        <q ng-attr-title="{{reward.label}}"></q>
+                        <div ng-if="reward.status == 'completed'" ng-attr-title="{{reward.tooltip}}" class="threshold_reward icon_{{reward.icon}} pulseHarder"></div>
+                        <a ng-if="reward.status == 'completed'" id="citizenReward_{{reward.id}}" ng-click="getReward(reward.id, reward.icon)" href="javascript:;" title="Get reward" class="get_milestone_reward">
+                            <em></em>
+                            Get reward                        </a>
+                        <div ng-if="reward.status != 'rewarded' && reward.status != 'completed'" ng-attr-title="{{reward.tooltip}}" class="threshold_reward icon_{{reward.icon}} "></div>
+
+                    </div>
+
+
+                    <div ng-repeat="reward in data.rewards.extra track by $index" class="threshold {{reward.status}}" style="position: absolute; width: 1px;"  ng-attr-style="left:{{reward.percent * (progressBar.totalSize - progressBar.rightMargin)}}px; ">
+
+                        <q ng-attr-title="{{reward.label}}"></q>
+                        <div ng-if="reward.status == 'completed'" ng-attr-title="{{reward.tooltip}}" class="threshold_reward icon_{{reward.icon}} pulseHarder"></div>
+                        <a ng-if="reward.status == 'completed'" id="citizenReward_{{reward.id}}" ng-click="getReward(reward.id, reward.icon)" href="javascript:;" title="Get reward" class="get_milestone_reward">
+                            <em></em>
+                            Get reward                        </a>
+                        <div ng-if="reward.status != 'rewarded' && reward.status != 'completed'" ng-attr-title="{{reward.tooltip}}" class="threshold_reward icon_{{reward.icon}}"></div>
+
+                    </div>
+
+                </div> <!-- end level_threshold -->
+            </div> <!-- end progress_bar -->
+
+            
+        </div> <!-- end player_layer -->
+    </div>
+
+    <div class="weekly_challenge_reward pulse" id="weekly_challenge_reward">
+        <div id="reward_image" class="icon_{{popup.icon}}"></div>
+        <p>{{popup.message}}</p>
+        <a class="std_global_btn smallSize blueColor close get_reward" href="javascript:;" title="Close">
+            <span><b>Close</b></span>
+        </a>
+    </div> <!-- end weekly_challenge_reward-->
+</div>
+
+
+
+</div>
+<!-- END OF .new_banners_wrapper -->
+
+
+<script type="text/javascript">
+	$j(function() {
+		$j('.ds_content').mCustomScrollbar({
+			scrollInertia: 0,
+			theme: "dark"
+		});
+		$j('.open_ds_supporters').click(function() {
+			$j('.mail_rewards_pop').lightbox_me({
+				centered: true,
+				onLoad: function() {
+					if($j('.ds_content').height() > 250) {
+						$j('.ds_content').mCustomScrollbar('update');
+						$j('.mail_rewards_pop').css('max-width','525px');
+					}
+				}
+			});
+		})
+
+	});
+</script>
+
+<div class="column">
+			
+		<div id="hpTopNews" ng-controller="ErpkHpTopNewsController" ng-cloak>
+		    
+<script type="text/javascript">
+	var ARTICLES = {
+		culture: 'en',
+        tabs: [{"type":"country","countryId":71,"name":"Latvia","permalink":"Latvia"}],
+        categories: {
+            country: [{"id":100,"name":"All categories","permalink":"all","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":1,"name":"First steps in eRepublik","permalink":"first-steps-in-erepublik","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":2,"name":"Battle orders","permalink":"battle-orders","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":3,"name":"Warfare analysis","permalink":"warfare-analysis","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":4,"name":"Political debates and analysis","permalink":"political-debates-and-analysis","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":5,"name":"Financial business","permalink":"financial-business","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":6,"name":"Social interactions and entertainment","permalink":"social-interactions-and-entertainment","moreUrl":"/en/main/news/_SORT_/_PERMALINK_"},{"id":99,"name":"Newspaper subscriptions","permalink":"subscriptions","moreUrl":"/en/main/news/_PERMALINK_"}],
+            international: [{"id":100,"name":"All categories","permalink":"international","moreUrl":"/en/main/news/_PERMALINK_"}],
+        },
+        defaultCategory: 100,
+        sortMethods: {"rated":"Top Rated Articles","latest":"Latest Articles"},
+	};
+</script>
+
+<div class="media_widget">
+
+    <h2>
+        <span ng-bind-html="settings.citizen.selectedSort.name"></span>
+        in        <span>
+            <img class="flags" ng-src="//www.erepublik.net//images/flags_png/S/{{settings.citizen.selectedCountry.permalink}}.png" />
+            {{settings.citizen.selectedCountry.name}}
+        </span>
+    </h2>
+
+	<div class="mini_news_categories">
+		<ul>
+			<li ng-repeat="categ in settings.citizen.currentNewsCategories track by categ.id" ng-class="{'international' : settings.citizen.selectedCountry.id == 0}">
+
+				<a ng-click="switchNewsCategories(categ)" href="javascript:;" class="switchers" title="{{categ.name}}" ng-class="{'active' : categ.isActive}">
+					<img ng-src="//www.erepublik.net/images/modules/news/icons/cat_{{$index}}.png" alt="{{categ.name}}" title="{{categ.name}}" />
+				</a>
+			</li>
+		</ul>
+
+		<ul class="settings">
+		    <li class="settings">
+                <a href="javascript:;" class="switchers" title="Set defaults" ng-class="{'active' : settings.citizen.showCategoriesSettings}" ng-click="showSettingsBox()">
+                    <img ng-src="//www.erepublik.net/images/modules/news/icons/set_defaults.png" />
+                </a>
+
+                <div class="articles_set_defaults" ng-show="settings.citizen.showCategoriesSettings">
+                    <h3>Settings</h3>
+
+                    <h4>Read articles published in:</h4>
+
+                    <div class="articlesSelector getArticlesFromCountry">
+                        <div class="setArticles" ng-class="{'open' : settings.citizen.showCountriesList}">
+                            <q></q>
+                            <img class="flags" ng-src="//www.erepublik.net//images/flags_png/M/{{settings.citizen.selectedCountry.permalink}}.png" />
+                            <span ng-click="showCountriesList()" ng-bind-html="settings.citizen.selectedCountry.name"></span>
+                        </div>
+
+                        <ul ng-if="settings.citizen.showCountriesList" class="articlesSettingsLister">
+                            <li class="search">
+                                <input press-enter="articlesChangeCountryOnEnterPress({{filtered}})" type="text" ng-model-options="{ debounce: 10 }" ng-model="settings.citizen.filterCountryString" focus-input="{{settings.citizen.filterCountryFocus}}" placeholder="Search ..."  />
+                            </li>
+                            <li ng-repeat="country in settings.citizen.allCountries | orderBy:'name' | filter:settings.citizen.filterCountryString as filtered track by $index" ng-click="articlesChangeCountry(country)" ng-class="{'bolded' : settings.citizen.selectedCountry.name == country.name, 'highlighted' : country.isHighlighted}">
+                                <img class="flags" ng-src="//www.erepublik.net//images/flags_png/S/{{country.permalink}}.png" />
+                                <span>
+                                    {{country.name}}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <h4>Show:</h4>
+
+                    <div class="articlesSelector articlesType">
+                        <div class="setArticles" ng-class="{'open' : settings.citizen.showArticlesOptions}">
+                            <q></q>
+                            <span ng-click="showArticlesOptions()" ng-bind-html="settings.citizen.selectedSort.name"></span>
+                        </div>
+
+                        <ul ng-if="settings.citizen.showArticlesOptions" class="articlesSettingsLister">
+                            <li ng-repeat="sortMethods in settings.citizen.sortMethodsArray | orderBy:'name' track by $index" ng-class="{'bolded' : settings.citizen.selectedSort.id == sortMethods.id}" ng-click="articlesChangeSortingMethod(sortMethods)">
+                                <span ng-bind-html="sortMethods.name"></span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    
+                </div>
+            </li>
+		</ul>
+	</div>
+
+	<div class="news_mask">
+	    <div class="loading" ng-if="settings.isLoading"></div>
+
+		<div class="news_holder">
+
+            <ul>
+                <li ng-repeat="article in newsFeed track by $index">
+                                        <a class="newspaper_avatar" ng-href="/en/article/{{article.url}}/1/20" title="{{article.text}}" href="javascript:;">
+                        <q></q>
+                        <img ng-src="{{article.newspaperAvatar}}" title="{{article.newspaper}}" />
+                    </a>
+
+                    <div class="article_entry">
+                        <div>
+                            <a class="article_title" ng-href="/en/article/{{article.url}}/1/20" title="{{article.text}}">
+                                {{article.text}}
+                            </a>
+                            <span>
+                                <em hovercard ng-href="//www.erepublik.com/en/citizen/profile/{{article.citizenId}}" href="//www.erepublik.com/en/citizen/profile/{{article.citizenId}}" class="author_name author">
+                                    {{article.citizenName}}
+                                </em>
+                                <span>&bull;</span>
+                                <em class="comments_posted" ng-bind-html="article.comments" title="Comments"></em>
+                                <span>&bull;</span>
+                                <em class="votes_number" ng-bind-html="article.votes" title="Votes"></em>
+                                <span>&bull;</span>
+                                <em class="time_posted" ng-bind-html="article.date" title="Date"></em>
+                            </span>
+                        </div>
+                    </div>
+                </li>
+
+                <li class="no_articles" ng-if="newsFeed.length < 1">
+                    <h4>No articles for <br /> the moment</h4>
+                    <img src="//www.erepublik.net/images/modules/homepage/sad_face.png" alt="" />
+                    <a class="std_global_btn smallSize greenColor bigWidth" href="/en/create-newspaper" title="Write article"><span>Write an article</span></a>
+                </li>
+
+                <li class="few_articles" ng-if="newsFeed.length <= 3 && newsFeed.length >= 1">
+                    <a class="std_global_btn smallSize greenColor bigWidth" href="/en/create-newspaper" title="Write article"><span>Write an article</span></a>
+                </li>
+
+            </ul>
+
+		</div>
+
+	</div>
+	<a ng-if="settings.citizen.canLoadMore" ng-click="getMoreArticles()" href="javascript:;" class="more_news" title="more news">more news</a>
+	<a ng-href="{{settings.moreNewsUrl}}" class="more_news category_news_url" title="See all">See all</a>
+</div>
+		</div>
+
+		
+<div class="manage_objectives_pop global_pack fadeInRight" id="manage_objectives_pop" ng-controller="ObjectivesController" ng-cloak>
+	<a href="javascript:;" ng-click="closeManagePop()" title="Close window" class="close">Close</a>
+	
+	<div class="pack_header">
+        <h2>Manage objectives</h2>
+    </div>
+
+    <div class="tab_wrapper">
+        <div class="tab_content">
+			
+			<div class="obj_container" ng-if="settings.showManagePopup">
+				
+				<div class="infos" tinyscrollbar="">
+					<div class="scrollbar"><div class="track"><div class="thumb"><div class="end"></div></div></div></div>
+
+		            <div class="viewport">
+		                <div class="overview">
+							<p class="errors" ng-if="settings.error" ng-bind-html="settings.errorMsg"></p>
+		                	
+		                	<ul ng-show="!settings.error">
+		                		<li ng-repeat="objective in objectives" ng-class="" class="{{objective.cls}}">
+		                			<span class="obj_status"></span>
+		                			<span class="obj_icon type_{{objective.type}}">
+		                				<b countdown="{{objective.countdownTime || 0}}">00:00:00</b>
+		                			</span>
+		                			<span class="info">
+		                				<h4>Regiment {{objective.number}}</h4>
+		                				<p>{{objective.friendlyName}}</p>
+		                			</span>
+									<span class="action_area">
+										<p ng-if="objective.waiting">Waiting</p>
+										<p ng-if="objective.deployed">Deployed</p>
+										<a ng-if="objective.ready" ng-href="{{objective.battleUrl}}" title="Ready to deploy" class="std_global_btn smallSize greenColor noPadding">
+											<span><b>Ready to deploy</b></span>
+										</a>
+										<a ng-if="objective.isMyRegiment && objective.deployed" ng-href="{{objective.battleUrl}}" title="Join" class="std_global_btn smallSize redColor noPadding">
+											<span><b>Join</b></span>
+										</a>
+									</span>	
+
+		                		</li>
+		                	</ul>
+
+		                </div>
+		            </div>
+					
+				</div>
+
+			</div>
+
+			<div class="clear"></div>
+        </div>
+    </div>
+	
+
+	<div class="clear"></div>
+</div>
+
+
+
+
+		<div ng-controller="ListCampaignsController" ng-cloak id="battle_listing">
+
+			    
+	<!-- start template -->
+	
+	<div ng-repeat="section in campaigns.battles" class="battlesList">
+
+		<!-- toggler template -->
+        <h4 ng-if="section == campaigns.battles.contributions && campaigns.battles.contributions.length">My contributions</h4>
+		<h4 ng-if="section == campaigns.battles.cotd && campaigns.battles.cotd.length">Campaign of the day</h4>
+		<h4 ng-if="section == campaigns.battles.myCountry && campaigns.battles.myCountry.length">Latvia's Campaigns</h4>
+		<h4 ng-if="section == campaigns.battles.allies && campaigns.battles.allies.length">Allies' campaigns</h4>
+		<h4 ng-if="section == campaigns.battles.allBattles && campaigns.battles.allBattles.length">All campaigns</h4>
+
+		<!-- info messages -->
+		<table class="info_message" ng-if="section == campaigns.battles.myCountry && !campaigns.battles.myCountry.length && campaigns.settings.hideMyCoWarn">
+			<tr>
+				<td>Latvia is not involved in any active battles.</td>
+			</tr>
+		</table>
+
+		<table class="info_message" ng-if="section == campaigns.battles.allies && !campaigns.battles.allies.length && campaigns.settings.showAlliesWarnMessage">
+			<tr>
+				<td>Your allies are currently not involved in any military campaigns.</td>
+	</tr>
+		</table>
+		<ul ng-class="{bod_listing: sectionName == 'cotd'}" class="list_section{{$index+1}}">
+			<li ng-repeat="campaign in section | limitTo:2" class="is_homepage " ng-class="{' liberation' : campaign.is_lib, ' dictatorship' : campaign.is_dict, ' epic_battle_entry' : campaign.div[campaign.activeDivision].epic == 2, 'cotd' : campaign.id == campaigns.misc.cotd}" class="type_{{campaign.type}}">
+
+				<span ng-if="campaign.inv.isEmpire" class="empire_flag_deco medium"><span class="inner_deco_star"></span></span>
+								<span class="country_flags {{campaign.inv.permalink}}"></span> <!-- home page -->
+
+				<img ng-if="campaign.inv.isMyAlly && !campaign.is_rw &&  !campaign.is_dict && !campaign.is_lib" class="mpp_sign one" src="//www.erepublik.net/images/modules/_icons/small_mpp.png" title="{{campaign.inv.cname}}" alt="" />
+				<img ng-if="campaign.is_rw" class="resistance_sign one" src="//www.erepublik.net/images/modules/_icons/small_resistance.png" title="{{campaign.inv.cname}}" alt="">
+
+				<small>vs</small>
+
+				<span ng-if="campaign.def.isEmpire" class="empire_flag_deco medium second"><span class="inner_deco_star"></span></span>
+								<span class="country_flags {{campaign.def.permalink}}"></span> <!-- home page -->
+
+				<img ng-if="campaign.def.isMyAlly && !campaign.is_rw &&  !campaign.is_dict && !campaign.is_lib" class="mpp_sign two" src="//www.erepublik.net/images/modules/_icons/small_mpp.png" title="{{campaign.def.cname}}" alt="" />
+
+				<strong>{{campaign.region.name}}</strong>
+
+				<span class="fight_button">
+					<a ng-if="!campaign.is_rw" href="/en/military/battlefield/{{campaign.id}}" title="" class="std_global_btn smallSize blueColor"><span>Fight</span></a>
+					<a ng-if="campaign.is_rw" href="/en/wars/show/{{campaign.war_id}}" title="" class="std_global_btn smallSize blueColor"><span>Fight</span></a>
+				</span>
+			</li>
+		</ul>
+
+
+	</div>
+
+		<!-- end template -->
+
+		<div class="rest">
+		<a href="/en/military/campaigns" title="">Military campaigns</a>
+		<a href="/en/main/news/military" title="">Latest events</a>
+	</div>
+    
+</div>
+
+	
+
+</div>
+
+<div class="column alignRight">
+	
+    
+	
+    
+	
+				<div id="wall_master">
+			
+			<link rel="stylesheet" href="//www.erepublik.net/css/cmp/emoji_picker.1563443676.css">
+<script src="//www.erepublik.net/js/emoji/emoji.1562915440.js"></script>
+<script src="//www.erepublik.net/js/emoji/emojiPicker.1562936235.js"></script>
+<script>$j.extend(erepublik.i18n, {reactions: {"1f44d":"Like","1f60d":"Love","1f606":"Haha","1f632":"Wow","1f614":"Sad","1f621":"Angry","1f44e":"Dislike"}});</script>
+<script type="text/javascript">
+    $j.extend(SERVER_DATA, {
+        wallData: {
+            citizenFeeds: {"country":{"name":"Latvia","showName":false,"avatar":"//www.erepublik.net/images/flags_png/S/Latvia.png","showAvatar":true,"feedRoute":"country-post","commentRoute":"country-comment","viewPostParameter":"countryPost","unreadCount":0,"isDefault":true,"firstPostId":null,"canPost":true,"postAs":null,"placeholder":"Say something to your countrymen"},"friends":{"name":"Friends","showName":true,"avatar":"","showAvatar":false,"feedRoute":"wall-post","commentRoute":"wall-comment","viewPostParameter":"viewPost","unreadCount":0,"isDefault":false,"firstPostId":null,"canPost":true,"postAs":null,"placeholder":"Say something to your friends"},"militaryUnit":{"name":"Afterfall Unit","showName":true,"avatar":"//cdnt.erepublik.net/P6dClSESQPpkXIO-zX2djxbicAA=/55x55/smart/avatars/Groups/2011/06/30/be3159ad04564bfb90db9e32851ebf9c.jpg","showAvatar":true,"feedRoute":"military-unit-post","commentRoute":"military-unit-comment","viewPostParameter":"unitPost","unreadCount":0,"isDefault":false,"firstPostId":null,"canPost":true,"postAs":{"0":"inpoc1","2":"Afterfall Unit"},"placeholder":"Say something"},"party":{"name":"Launie Geniji","showName":true,"avatar":"//cdnt.erepublik.net/RrcORXhczBEVQMsFIJoXkudA3mk=/55x55/smart/avatars/Parties/2010/12/20/b7fede84c2be02ccb9c77107956560eb.png?2e14653fefdff1200b9f6faaab76b8f1","showAvatar":true,"feedRoute":"party-post","commentRoute":"party-comment","viewPostParameter":"viewPartyPost","unreadCount":0,"isDefault":false,"firstPostId":null,"canPost":true,"postAs":null,"placeholder":"Say something to your party colleagues"},"community":{"name":"Community","showName":false,"avatar":"//cdnt.erepublik.net/NSxnrMbVN1fBB_ujsq2xmNat3m8=/55x55/smart/avatars/Citizens/2007/06/04/c81e728d9d4c2f636f067f89cc14862c.jpg","showAvatar":true,"feedRoute":"community-post","commentRoute":"community-comment","viewPostParameter":"communityPost","unreadCount":0,"isDefault":false,"firstPostId":null,"canPost":false,"postAs":null,"placeholder":"Only eRepublik officials may post to community feed"}},
+            citizenInfo: {"id":1620414,"name":"inpoc1","sex":"M","created_at":"2009-07-08 13:35:40","is_organization":0,"is_alive":1,"is_validated":1,"has_avatar":1,"parent_id":0,"is_payer":1,"has_jid":1,"avatar_version":"c022b6df6f643263dba839cb35b7a9ab","avatar_file":"jpg","level":649,"avatar":"//cdnt.erepublik.net/7efiav4XZ4SMvXAtgEk1NciUmAg=/55x55/smart/avatars/Citizens/2009/07/08/4b57b9ebb0232f0d6c3f6f2c21b8ab95.jpg?c022b6df6f643263dba839cb35b7a9ab","profile_url":"//www.erepublik.com/en/citizen/profile/1620414"},
+            defaultFeed: "country",
+            firstPostId: false,
+            isContentBlocked: false,
+            postsPerPage: 20,
+            postCharactersLimit: 280,
+            commentsPerPage: 5,
+            commentCharactersLimit: 480,
+            dailyOrder: {"showOnAllFeeds":true,"progress":{"isCompleted":true,"current":25,"required":25},"battle":{"id":200327,"sideId":71,"url":"//www.erepublik.com/en/military/battlefield-choose-side/200327/71","text":"Fight for <img src=\"/images/flags_png/S/Latvia.png\"> <b>Latvia</b> in <br><em>Laane-Eesti</em>"},"hasMore":false}        }
+    });
+
+    $j.extend(erepublik.i18n, {
+        wallTexts: {"vote":"Vote","unvote":"Unvote","comment":"Comment","report":"Report","wrote":"wrote ","remove_post":"Remove post","link_to_post":"Link to post","write_comment":"Write a comment","not_friends":"You are not friends with this citizen","say_something":"Say something","say_something_friends":"Say something to your friends","say_something_party":"Say something to your party colleagues","say_something_country":"Say something to your countrymen","say_something_community":"Say something to the community","delete_comment_confirm":"Are you sure you want to delete this comment?","delete_post_confirm":"Are you sure you want to remove this post?","previous_comments":"Previous comments","you_voted_this":"You</b> voted this.","you_and_":"You and </b>","you_":"You, </b>","characters_left":"characters left","160_characters_left":"160 characters left","latest_events":"Latest events","see_more":"See more","cannot_post_to_country":"Only country officials may post to country feed","cannot_post_to_community":"Only eRepublik officials may post to community feed","post_not_available":"This post is not available anymore","older_posts":"Older posts","friends":"Friends","new_messages":"new messages","unread_messages":"You have unread messages","show_details":"Show details","hide_details":"Hide details","international":"International"},
+        feed:{
+            country: "Country",
+            friends: "Friends",
+            military: "Military",
+            party: "Party",
+            post: "Post",
+            postAs: "Post as",
+            battlefield: "Battlefield",
+            like: "Like",
+            unlike: "Unlike",
+            deletePostMsg:"Are you sure you want to delete this post?",
+            deleteCommentMsg:"Are you sure you want to delete this comment?",
+        }
+    });
+
+    document.addEventListener("click", function(evt)  {
+        var feedElement = $j("#citizenFeed");
+        var targetElement = evt.target;
+        if(targetElement.className.split(" ").indexOf('emoji') >= 0)
+            return;
+        do {
+            if (targetElement === feedElement)
+                return;
+            targetElement = targetElement.parentNode;
+        } while (targetElement);
+
+        feedElement.scope().closeFocused();
+
+    });
+</script>
+<!--<link rel="stylesheet" href="--><!--">-->
+<link rel="stylesheet" href="//www.erepublik.net/css/cmp/citizenFeed.1563443674.css">
+
+<div id="citizenFeed" ng-controller="ErpkFeedController" ng-cloak>
+    <img ng-if="settings.loading" class="loadingImg"
+         ng-src="//{{settings.cookielessHost}}/images/modules/loading_templates/citizen_feed.jpg?v=2.0" alt="">
+    <div ng-if="!settings.loading">
+        <div class="tabsWrapper">
+            <ul>
+                <li ng-repeat="(feedTab, feedData) in settings.citizenFeeds track by $index" class="tab tipsyElement" title="{{feedData.name + (feedData.unreadCount > 0 ? ': ' +  _getTranslation('wallTexts','unread_messages') : '')}}" ng-class="{active: settings.activeTab == feedTab}" ng-click="settings.activeTab == feedTab ? null : onTabChange(feedTab)">
+                    <q ng-if="feedData.unreadCount" class="unreadCounter">{{feedData.unreadCount}}</q>
+                    <img ng-src="{{feedData.avatar}}">
+                    <strong ng-if="feedData.showName">{{feedData.name}}</strong>
+                </li>
+            </ul>
+        </div>
+        <div ng-if="settings.wallData.dailyOrder && (settings.wallData.dailyOrder.showOnAllFeeds || settings.activeTab === 'militaryUnit')" class="wall_post mu dailyOrderWrapper " style="animation:none">
+            <div class="bannerContent">
+                <p>
+                    <a ng-href="{{settings.wallData.dailyOrder.battle.url}}" class="std_global_btn blueColor smallSize noPadding floatRight campaignOfTheDay_onFeed" style="color: #fff;">
+                        <span>
+                            {{ _getTranslation('feed','battlefield')}}
+                            <img class="daily_order_arrow" style="position: initial;margin-left: 5px;" ng-src="//{{settings.cookielessHost}}/images/modules/misc/new_button/right_small_arrow.png">
+                        </span>
+                    </a>
+                        <em ng-if="!settings.wallData.dailyOrder.progress.isCompleted" class="daily_order_progress">{{settings.wallData.dailyOrder.progress.current}}/{{settings.wallData.dailyOrder.progress.required}}</em>
+                    <a ng-href="{{settings.dailyOrder.battle.url}}" class="daily_order_link" ng-bind-html="settings.wallData.dailyOrder.battle.text">
+                    </a>
+                </p>
+            </div>
+            <a ng-if="settings.wallData.dailyOrder.hasMore" class="more_daily_orders" ng-href="/{{settings.culture}}/main/group-home/military" title="{{_getTranslation('wallTexts','see_more')}}">{{_getTranslation('wallTexts','see_more')}}</a>
+        </div>
+        <div class="newPostWrapper">
+            <div ng-class="{'disabled': !settings.activeTabData.canPost}" class="inputWrapper">
+                <img ng-src="{{settings.myAvatar}}" width="45" height="45" class="own_pic">
+                <textarea ng-disabled="!settings.activeTabData.canPost" id="postInput" ng-focus="mainFocus()" ng-keyup="autoExpand($event,26)"
+                          data-charLeft="{{settings.wallData.postCharactersLimit - settings.newPost.length}}"
+                          maxlength="{{settings.wallData.postCharactersLimit}}" ng-model="settings.newPost"
+                          placeholder="{{settings.activeTabData.placeholder}}…"></textarea>
+            </div>
+            <div ng-class="{'show': settings.mainFocus}" class="subInputWrapper">
+                <div class="postingWrapper">
+                    <small>{{settings.wallData.postCharactersLimit - settings.newPost.length}} {{_getTranslation('wallTexts','characters_left')}}</small>
+                    <button ng-click="postPost($event)" class="std_global_btn_new">{{_getTranslation('feed','post')}}</button>
+                </div>
+                <div ng-if="settings.activeTabData.postAs" class="selectingWrapper">
+                    <small>{{_getTranslation('feed','postAs')}}</small>
+                    <select ng-change="showId()" ng-model="settings.postAsId" >
+                        <option ng-repeat="(id, text) in settings.activeTabData.postAs track by id" value="{{id}}">{{text}}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="postsWrapper">
+            <ul>
+                <li ng-class="{'firstPost': post.id == settings.wallData.firstPostId, 'latestEvents ' : post.meta.isLatestEvent, 'autoPost': !post.showMsg, 'mu': post.meta.isMuCommanderPost}" class="postContainer" ng-repeat="post in data.wallPosts">
+                    <a ng-attr-hovercard="{{!(post.meta.isMuCommanderPost || post.meta.isLatestEvent || post.meta.isInternationalEvent || post.meta.isNewCitizensPost) || undefined}}" ng-href="/{{settings.culture}}/citizen/profile/{{post.authorId}}" class="userAvatar"
+                       target="_blank">
+                        <span class="imgBg"></span>
+                        <img ng-src="{{data.citizenData[post.authorId].avatar}}" alt="data.citizenData[post.authorId].name">
+                    </a>
+
+                    <div class="postContent">
+                        <div class="postActions">
+                            <a ng-if="post.canReport" ng-href="{{post.meta.reportURL}}" target="_self" class="feedAction reportPost report-trigger " title="{{_getTranslation('wallTexts','report')}}"><i class="fa fa-exclamation-triangle"></i> {{_getTranslation('wallTexts','report')}}</a>
+                            <a ng-if="post.showLinkToPost" ng-href="/{{settings.culture}}?{{settings.activeTabData.viewPostParameter}}={{post.id}}" title="{{_getTranslation('wallTexts','link_to_post')}}" class="feedAction linkToPost tipsyElement"><i
+                                        class="fa fa-link"></i></a>
+                            <a ng-if="post.canRemove" href="javascript:" ng-click="postDelete(post)" title="{{_getTranslation('wallTexts','remove_post')}}" class="feedAction removePost tipsyElement"><i
+                                        class="fa fa-times"></i></a>
+                        </div>
+                        <h6>
+                            <span ng-if="data.citizenData[post.authorId].politicalTitle">{{data.citizenData[post.authorId].politicalTitle}}</span>
+                            <a ng-attr-hovercard="{{!(post.meta.isMuCommanderPost || post.meta.isLatestEvent || post.meta.isInternationalEvent || post.meta.isNewCitizensPost) || undefined}}" ng-href="{{data.citizenData[post.authorId].profileUrl}}"
+                               title="{{data.citizenData[post.authorId].name}}">{{data.citizenData[post.authorId].name}}</a>
+                            <span compile-html="post.showMsg? null: post.title"></span>
+                            <em>{{post.createdAtTimeAgo}}</em>
+                        </h6>
+                        <p class="contentMessage" compile-html="post.showMsg? post.message: null"></p>
+
+                        <div ng-if="post.showCommentsAndVotes" class="postInfo">
+                            <span ng-if="post.numComments > 0" class="postStats">
+                                <em ng-click="commentsToggle(post, $event)" ng-if="post.numComments > 0" class="commentCounter">
+                                    {{post.numComments}}
+                                    <img ng-src="//{{settings.cookielessHost}}/images/modules/homepage/comment_icon.png"
+                                         alt="">
+                                </em>
+                            </span>
+                            <span ng-if="post.canComment" class="postBtn" ng-click="commentsToggle(post, $event)">{{_getTranslation('wallTexts','comment')}}</span>
+                            <span class="separatorDot" ng-if="post.canVote && post.canComment">·</span>
+                            <span ng-if="post.numVotes > 0" class="postStats">
+                                <em ng-if="post.numVotes > 0" class="voteCounter">
+                                    {{post.numVotes}}
+                                </em>
+                                <q ng-repeat="(id, count) in post.reactions" ng-if="count" title="<span style='font-size:14px; font-weight:bold'>{{count}}</span> <q class='emoji emoji_{{id}}'></q>" class="emoji emoji_{{id}} tipsyElement" draggable="false">{{toUnicode(id)}}</q>
+                            </span>
+                            <div reactionsmenu ng-click="postReact" data-postId="{{post.id}}" class="postBtn">
+                                <span ng-class="{'reacted': post.reactionId}" class="reactionBtn reaction{{post.reactionId}}" ng-click="post.reactionId ? null :  postReact('1f44d', post.id)" ng-if="post.canVote"  >{{post.reactionId ? settings.reactions[post.reactionId]:_getTranslation('feed','like')}} </span>
+                            </div>
+                            <span class="separatorDot " ng-if="!post.showMsg">·</span>
+                            <span ng-if="!post.showMsg" ng-click="showPostDetails(post)" class="postBtn showMore">{{_getTranslation('wallTexts','show_details')}}</span>
+                            <a ng-if="post.meta.seeMoreURL" class="seeMore" ng-href="{{post.meta.seeMoreURL}}" title="See more">{{_getTranslation('wallTexts','see_more')}}</a>
+                        </div>
+                        <div ng-if="post.canComment && post.isCommentsOpened" class="commentsWrapper">
+                            <ul>
+                                <li ng-repeat="comment in post.commentsData.postComments" class="postContainer">
+                                    <a hovercard ng-href="/{{settings.culture}}/citizen/profile/{{comment.authorId}}"
+                                       class="userAvatar" target="_blank">
+                                        <span class="imgBg"></span>
+                                        <img ng-src="{{post.commentsData.citizenData[comment.authorId].avatar}}"
+                                             alt="post.commentsData.citizenData[comment.authorId].name">
+                                    </a>
+                                    <div class="postContent">
+                                        <div ng-if="comment.canRemove || comment.canReport" class="postActions">
+                                            <a ng-if="comment.canReport" ng-href="{{comment.meta.reportURL}}" target="_self" class="feedAction reportPost report-trigger " title="{{_getTranslation('wallTexts','report')}}"><i class="fa fa-exclamation-triangle"></i> {{_getTranslation('wallTexts','report')}}</a>
+                                            <a ng-if="comment.canRemove" href="javascript:" title="{{_getTranslation('wallTexts','remove_post')}}" ng-click="commentDelete(post, comment)"
+                                               class="feedAction removePost tipsyElement"><i class="fa fa-times"></i></a>
+                                        </div>
+                                        <h6>
+
+                                            <a hovercard ng-href="/{{settings.culture}}/citizen/profile/{{comment.authorId}}"
+                                               title="{{post.commentsData.citizenData[comment.authorId].name}}">{{post.commentsData.citizenData[comment.authorId].name}}</a>
+
+                                        </h6>
+                                        <p class="contentMessage" compile-html="comment.message"></p>
+
+                                        <div class="postInfo">
+                                        <span ng-if=" comment.numVotes > 0" class="postStats" >
+                                            <em ng-if="comment.numVotes > 0" class="voteCounter">
+                                                {{comment.numVotes}}
+                                            </em>
+                                            <q ng-repeat="(id, count) in comment.reactions" ng-if="count" title="<span style='font-size:14px; font-weight:bold'>{{count}}</span> <q class='emoji emoji_{{id}}'></q>" class="emoji emoji_{{id}} tipsyElement" draggable="false">{{toUnicode(id)}}</q>
+                                        </span>
+                                            <span class="separatorDot" ng-if="comment.numVotes > 0"></span>
+                                            <div reactionsmenu ng-click="commentReact" data-postId="{{post.id}}" data-commentId="{{comment.id}}" class="postBtn">
+                                                <span ng-class="{'reacted': comment.reactionId}" class="reactionBtn reaction{{comment.reactionId}}" ng-click="comment.reactionId ? null :  commentReact('1f44d', post.id, comment.id)" ng-if="comment.canVote">{{comment.reactionId ? settings.reactions[comment.reactionId]:_getTranslation('feed','like')}} </span>
+                                            </div>
+                                            <em class="dateAgo">{{comment.createdAtTimeAgo}}</em>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                            <div class="newPostWrapper">
+                                <div class="inputWrapper">
+                                    <img ng-src="{{settings.myAvatar}}"
+                                         alt="ALX S." width="45" height="45" class="own_pic">
+                                    <textarea ng-keyup="autoExpand($event, 12)" maxlength="480" title="Say something to your friends"
+                                              data-charLeft="{{settings.wallData.commentCharactersLimit - post.newComment.length}}"
+                                              ng-focus="postFocus(post)" ng-model="post.newComment"
+                                              placeholder="{{_getTranslation('wallTexts','write_comment')}}…"></textarea>
+                                </div>
+                                <div ng-class="{'show': post.inputFocus}" class="subInputWrapper">
+                                    <small>{{settings.wallData.commentCharactersLimit - post.newComment.length}} {{_getTranslation('wallTexts','characters_left')}}</small>
+                                    <button ng-click="postComment(post, $event)" class="std_global_btn_new">{{_getTranslation('wallTexts','comment')}}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <button ng-click="loadMore()" ng-if="data.pages > data.currentPage" class="previousposts" >
+            <img ng-src="//{{settings.cookielessHost}}/images/parts/down_arrow_new.png" alt="">
+            {{_getTranslation('wallTexts','older_posts')}}
+        </button>
+    </div>
+</div>
+		</div>
+	</div>
+
+
+
+
+
+
+<input type="hidden" value="true" id="isHomepage" />
+
+			</div><!-- END content -->
+
+		<div id="footer" >
+        <p>
+				
+		<a href="/en/main/ga_track/wiki" target="_blank">Wiki</a> &nbsp; | &nbsp;
+		<a href="/en/main/ga_track/latest-updates" target="_blank">Latest Updates  </a> &nbsp; | &nbsp;
+		<a href="/en/main/ga_track/blog" target="_blank">Blog</a> &nbsp; | &nbsp;
+		<a href="/en/main/ga_track/contact" rel="nofollow" target="_blank">Contact</a> &nbsp; | &nbsp;
+		<a href="/en/main/ga_track/jobs" rel="nofollow" target="_blank" class="jobs">Jobs</a> &nbsp; | &nbsp;
+
+		<a href="/en/main/ga_track/terms" rel="nofollow" target="_blank">Terms of Service</a> &nbsp; | &nbsp;
+		<a href="/en/main/ga_track/privacy" rel="nofollow" target="_blank">Privacy</a>&nbsp; | &nbsp;
+		<a href="/en/main/ga_track/rules" rel="nofollow" target="_blank">eRepublik Laws</a>
+
+				 		&nbsp; | &nbsp; <a href="/en/badges">Badges</a>
+		        &nbsp; | &nbsp; <a href="/en/main/ga_track/forum" rel="nofollow" target="_blank">Forum</a>
+        				</p>
+        <style>#footer a.jobs>em.alert_bubble{left:0}</style>
+
+        <ul class="footer_flags" style="margin:0 auto 15px auto">
+    <li class="footer_flags_text" style="line-height:16px;border:0;background:none;vertical-align: top;">Language:</li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ar" title="Language: العربية / AR (Arab League)">
+                <img src="//www.erepublik.net/images/flags_png/S/Arab-League.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/be" title="Language: беларуская / BE (Belarus)">
+                <img src="//www.erepublik.net/images/flags_png/S/Belarus.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/bg" title="Language: български език / BG (Bulgaria)">
+                <img src="//www.erepublik.net/images/flags_png/S/Bulgaria.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/br" title="Language: Português brasileiro / BR (Brazil)">
+                <img src="//www.erepublik.net/images/flags_png/S/Brazil.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/cn" title="Language: 简体字 / CN (China)">
+                <img src="//www.erepublik.net/images/flags_png/S/China.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/de" title="Language: Deutsch / DE (Germany)">
+                <img src="//www.erepublik.net/images/flags_png/S/Germany.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/es" title="Language: Español / ES (Spain)">
+                <img src="//www.erepublik.net/images/flags_png/S/Spain.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/fa" title="Language: فارسی / FA (Iran)">
+                <img src="//www.erepublik.net/images/flags_png/S/Iran.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/fr" title="Language: Français / FR (France)">
+                <img src="//www.erepublik.net/images/flags_png/S/France.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/gr" title="Language: ελληνικά / GR (Greece)">
+                <img src="//www.erepublik.net/images/flags_png/S/Greece.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/he" title="Language: עִבְרִית / HE (Israel)">
+                <img src="//www.erepublik.net/images/flags_png/S/Israel.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/hr" title="Language: Hrvatski / HR (Croatia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Croatia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/hu" title="Language: Magyar / HU (Hungary)">
+                <img src="//www.erepublik.net/images/flags_png/S/Hungary.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/id" title="Language: Bahasa Indonesia / ID (Indonesia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Indonesia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/it" title="Language: Italiano / IT (Italy)">
+                <img src="//www.erepublik.net/images/flags_png/S/Italy.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ka" title="Language: საქართველო / KA (Georgia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Georgia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ko" title="Language: 한국어/조선말 / KO (South Korea)">
+                <img src="//www.erepublik.net/images/flags_png/S/South-Korea.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/mk" title="Language: Македонски / MK (Republic of Macedonia FYROM)">
+                <img src="//www.erepublik.net/images/flags_png/S/Republic-of-Macedonia-FYROM.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ms" title="Language: Bahasa Melayu / MS (Malaysia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Malaysia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/pl" title="Language: Polski / PL (Poland)">
+                <img src="//www.erepublik.net/images/flags_png/S/Poland.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/pt" title="Language: Português / PT (Portugal)">
+                <img src="//www.erepublik.net/images/flags_png/S/Portugal.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ro" title="Language: Română / RO (Romania)">
+                <img src="//www.erepublik.net/images/flags_png/S/Romania.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ru" title="Language: Ру́сский / RU (Russia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Russia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/sl" title="Language: Slovenski / SL (Slovenia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Slovenia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/sq" title="Language: Shqip / SQ (Albania)">
+                <img src="//www.erepublik.net/images/flags_png/S/Albania.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/sr" title="Language: Српски / SR (Serbia)">
+                <img src="//www.erepublik.net/images/flags_png/S/Serbia.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/tr" title="Language: Türkçe / TR (Turkey)">
+                <img src="//www.erepublik.net/images/flags_png/S/Turkey.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/tw" title="Language: 繁體字 / TW (Republic of China Taiwan)">
+                <img src="//www.erepublik.net/images/flags_png/S/Republic-of-China-Taiwan.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/uk" title="Language: Украї́нськ / UK (Ukraine)">
+                <img src="//www.erepublik.net/images/flags_png/S/Ukraine.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+            <li>
+            <a href="//www.erepublik.com/en/main/change-lang/ur" title="Language: اردو / UR (Pakistan)">
+                <img src="//www.erepublik.net/images/flags_png/S/Pakistan.png" alt="" width="16" height="16"/>
+            </a>
+        </li>
+    </ul>
+		<p class="follow">Follow us:            <a href="//www.facebook.com/pages/Erepublik/26897053321?ref=ts" title="Facebook" target="_blank"><img alt="Facebook" src="//www.erepublik.net/images/parts/facebook_small_icon.png" title="Facebook" />Facebook</a>
+            <a href="//www.twitter.com/erepublik" title="Twitter" target="_blank"><img alt="Twitter" src="//www.erepublik.net/images/parts/twitter_small_icon.png" title="Twitter" />Twitter</a>
+            <a href="//www.youtube.com/officialerepublik" title="Youtube" target="_blank"><img alt="Youtube" src="//www.erepublik.net/images/parts/youtube_icon.png" title="Youtube" />Youtube</a>
+            <a href="https://discord.gg/fRFuDsG" title="Discord" target="_blank"><img alt="Discord" src="//www.erepublik.net/images/parts/discord_icon.png" title="Youtube" />Discord</a>
+            <a href="//www.erepublik.com/en/main/news/rated/all/all/1/rss" class="rss_footer">Articles</a>
+                </p>
+
+	<p>
+		Our other games:		<a href="http://m.onelink.me/4a48e307" target="_blank" title="">War and Peace</a>&nbsp; | &nbsp;
+		<a href="http://m.onelink.me/1bd098d7" target="_blank" title="">World at War</a>&nbsp; | &nbsp;
+        <a href="http://m.onelink.me/9b55218b" target="_blank" title="">Age of Lords</a>&nbsp; | &nbsp;
+        <a href="http://m.onelink.me/1748a5dd" target="_blank" title="">Twin Shooter - Invaders</a>
+	</p>
+
+	<p style="margin-bottom:35px;">Copyright &copy; 2007-2019&nbsp;eRepublik</p>
+
+</div>
+			</div>
+
+<div id="f_l_c"></div>
+<script type="text/javascript">
+	function switchToMobileVersion() {
+		$j.cookie('prefer_full_site', 'false', {
+			expires: 14, path: '/', domain: erepublik.settings.domainname
+		});
+		window.location = "//m.erepublik.com/en";
+	}
+	erepublik.functions.liveClock("live_time",23,39);
+	var flc = new SWFObject("/flash/cookie.swf", "f_l_c", "1", "1", "9", "#ffffff");
+	flc.addParam("wmode", "transparent");
+	flc.addVariable("token", "a26d8352c3709a10a5acff1c6882e81f");
+	flc.addVariable("citizen_id", "1620414");
+	flc.write("f_l_c");
+</script>
+<div id="shortcut_list" class="shortcuts">
+	<h3>List of eRepublik shortcuts</h3>
+    <ul>
+        <li><strong>Alerts</strong><em>Shift + A</em></li>
+        <li><strong>Military campaigns</strong><em>Shift + C</em></li>
+        <li><strong>Military unit</strong><em>Shift + M</em></li>
+        <li><strong>My places</strong><em>Shift + L</em></li>
+        <li><strong>New Message</strong><em>Shift + N</em></li>
+        <li><strong>Storage</strong><em>Shift + S</em></li>
+        <li><strong>Top news</strong><em>Shift + T</em></li>
+        <li><strong>World map</strong><em>Shift + W</em></li>
+        <li><strong>Residence</strong><em>Shift + G</em></li>
+    </ul>
+    <em>(press ESC to close)</em>
+</div>
+<div id="div_b" style="display:block;padding:10px;position:absolute;top: 20%;left: 50%; margin-top: 0px; margin-left: -351px;z-index: 99999"></div>
+<script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"c4d8d93179","applicationID":"5077316","transactionName":"NV0DNUFTVkQEAUZdDgwXIhRARldaSgpdWQRNUQ8FVko=","queueTime":0,"applicationTime":39,"atts":"GRoAQwlJRUo=","errorBeacon":"bam.nr-data.net","agent":""}</script></body>
+</html>
