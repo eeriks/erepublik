@@ -7,7 +7,7 @@
 import unittest
 from click.testing import CliRunner
 
-from erepublik_script import erepublik_script
+from erepublik_script import Citizen
 from erepublik_script import cli
 
 
