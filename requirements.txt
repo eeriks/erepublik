@@ -1,7 +1,0 @@
-ipython==7.3.0
-pycryptodome==3.7.3
-PyInstaller==3.4
-python-slugify==2.0.1
-pytz==2018.9
-requests==2.21.0
-Click>=6.0

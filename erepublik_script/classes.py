@@ -778,57 +778,57 @@ class CitizenAPI:
 
     def post_country_comment_retrieve(self, token: str, post_id: int):
         data = {"_token": token, "postId": post_id}
-        return self.post("{}/main/country-comment/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/country-comment/retrieve/json".format(self.url), data=data)
 
     def post_country_post_create(self, token: str, body: str, post_as: int):
         data = {"_token": token, "post_message": body, "post_as": post_as}
-        return self.post("{}/main/country-post/create/".format(self.url), data=data)
+        return self.post("{}/main/country-post/create/json".format(self.url), data=data)
 
     def post_country_post_retrieve(self, token: str):
         data = {"_token": token, "page": 1, "switchedFrom": False}
-        return self.post("{}/main/country-post/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/country-post/retrieve/json".format(self.url), data=data)
 
     # ## Military Unit
 
     def post_military_unit_comment_retrieve(self, token: str, post_id: int):
         data = {"_token": token, "postId": post_id}
-        return self.post("{}/main/military-unit-comment/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/military-unit-comment/retrieve/json".format(self.url), data=data)
 
     def post_military_unit_post_create(self, token: str, body: str, post_as: int):
         data = {"_token": token, "post_message": body, "post_as": post_as}
-        return self.post("{}/main/military-unit-post/create/".format(self.url), data=data)
+        return self.post("{}/main/military-unit-post/create/json".format(self.url), data=data)
 
     def post_military_unit_post_retrieve(self, token: str):
         data = {"_token": token, "page": 1, "switchedFrom": False}
-        return self.post("{}/main/military-unit-post/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/military-unit-post/retrieve/json".format(self.url), data=data)
 
     # ## Party
 
     def post_party_comment_retrieve(self, token: str, post_id: int):
         data = {"_token": token, "postId": post_id}
-        return self.post("{}/main/party-comment/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/party-comment/retrieve/json".format(self.url), data=data)
 
     def post_party_post_create(self, token: str, body: str):
         data = {"_token": token, "post_message": body}
-        return self.post("{}/main/party-post/create/".format(self.url), data=data)
+        return self.post("{}/main/party-post/create/json".format(self.url), data=data)
 
     def post_party_post_retrieve(self, token: str):
         data = {"_token": token, "page": 1, "switchedFrom": False}
-        return self.post("{}/main/party-post/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/party-post/retrieve/json".format(self.url), data=data)
 
     # ## Friend's Wall
 
     def post_wall_comment_retrieve(self, token: str, post_id: int):
         data = {"_token": token, "postId": post_id}
-        return self.post("{}/main/wall-comment/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/wall-comment/retrieve/json".format(self.url), data=data)
 
     def post_wall_post_create(self, token: str, body: str):
         data = {"_token": token, "post_message": body}
-        return self.post("{}/main/wall-post/create/".format(self.url), data=data)
+        return self.post("{}/main/wall-post/create/json".format(self.url), data=data)
 
     def post_wall_post_retrieve(self, token: str):
         data = {"_token": token, "page": 1, "switchedFrom": False}
-        return self.post("{}/main/wall-post/retrieve/".format(self.url), data=data)
+        return self.post("{}/main/wall-post/retrieve/json".format(self.url), data=data)
 
 
 class Reporter:

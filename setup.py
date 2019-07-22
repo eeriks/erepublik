@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', 'pytz==2018.9', 'requests==2.21.0', 'python-slugify==2.0.1']
+requirements = ['pytz==2019.1', 'requests==2.22.0', 'python-slugify<3.0.0']
 
 setup_requirements = [ ]
 
@@ -29,11 +29,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     description="Python package for eRepublik automated playing",
-    entry_points={
-        'console_scripts': [
-            'erepublik_script=erepublik_script.cli:main',
-        ],
-    },
+    entry_points={},
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
