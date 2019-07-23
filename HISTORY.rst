@@ -9,6 +9,6 @@ History
 
 
 0.14.4 (2019-07-23)
-------------------
+-------------------
 
 * Wall post comment endpoints updated with comment create endpoints
