@@ -358,6 +358,7 @@ class Energy:
     def available(self):
         return self.recovered + self.recoverable
 
+    @property
     def __dict__(self):
         return dict(
             limit=self.limit,
@@ -780,6 +781,10 @@ class CitizenAPI:
         data = {"_token": token, "postId": post_id}
         return self.post("{}/main/country-comment/retrieve/json".format(self.url), data=data)
 
+    def post_country_comment_create(self, token: str, post_id: int, comment_message: str):
+        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+        return self.post("{}/main/country-comment/create/json".format(self.url), data=data)
+
     def post_country_post_create(self, token: str, body: str, post_as: int):
         data = {"_token": token, "post_message": body, "post_as": post_as}
         return self.post("{}/main/country-post/create/json".format(self.url), data=data)
@@ -793,6 +798,10 @@ class CitizenAPI:
     def post_military_unit_comment_retrieve(self, token: str, post_id: int):
         data = {"_token": token, "postId": post_id}
         return self.post("{}/main/military-unit-comment/retrieve/json".format(self.url), data=data)
+
+    def post_military_unit_comment_create(self, token: str, post_id: int, comment_message: str):
+        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+        return self.post("{}/main/military-unit-comment/create/json".format(self.url), data=data)
 
     def post_military_unit_post_create(self, token: str, body: str, post_as: int):
         data = {"_token": token, "post_message": body, "post_as": post_as}
@@ -808,6 +817,10 @@ class CitizenAPI:
         data = {"_token": token, "postId": post_id}
         return self.post("{}/main/party-comment/retrieve/json".format(self.url), data=data)
 
+    def post_party_comment_create(self, token: str, post_id: int, comment_message: str):
+        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+        return self.post("{}/main/party-comment/create/json".format(self.url), data=data)
+
     def post_party_post_create(self, token: str, body: str):
         data = {"_token": token, "post_message": body}
         return self.post("{}/main/party-post/create/json".format(self.url), data=data)
@@ -821,6 +834,10 @@ class CitizenAPI:
     def post_wall_comment_retrieve(self, token: str, post_id: int):
         data = {"_token": token, "postId": post_id}
         return self.post("{}/main/wall-comment/retrieve/json".format(self.url), data=data)
+
+    def post_wall_comment_create(self, token: str, post_id: int, comment_message: str):
+        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+        return self.post("{}/main/wall-comment/create/json".format(self.url), data=data)
 
     def post_wall_post_create(self, token: str, body: str):
         data = {"_token": token, "post_message": body}
@@ -998,21 +1015,24 @@ class Battle(object):
             else:
                 end = datetime.datetime.max
 
-            self.div.update({div: BattleDivision(end, data.get('epic_type') in [1, 5],
-                                                 data.get('dom_pts').get("inv"), data.get('dom_pts').get("def"),
-                                                 data.get('wall').get("for"), data.get('wall').get("dom"))})
+            battle_div = BattleDivision(
+                end=end, epic=data.get('epic_type') in [1, 5],
+                inv_pts=data.get('dom_pts').get("inv"), def_pts=data.get('dom_pts').get("def"),
+                wall_for=data.get('wall').get("for"), wall_dom=data.get('wall').get("dom")
+            )
+
+            self.div.update({div: battle_div})
 
     def __repr__(self):
         now = utils.now()
         is_started = self.start < utils.now()
         if is_started:
-            timepart = "{}".format(now - self.start)
+            time_part = "{}".format(now - self.start)
         else:
-            timepart = "- {}".format(self.start - now)
-        return "Battle {} | {:>21.21}:{:<21.21} | Round {:2} | Start {}".format(self.id,
-                                                                                utils.COUNTRIES[self.invader.id],
-                                                                                utils.COUNTRIES[self.defender.id],
-                                                                                self.zone_id, timepart)
+            time_part = "- {}".format(self.start - now)
+        return "Battle {} | {:>21.21}:{:<21.21} | Round {:2} | Start {}".format(
+            self.id, utils.COUNTRIES[self.invader.id], utils.COUNTRIES[self.defender.id], self.zone_id, time_part
+        )
 
 
 class EnergyToFight:
