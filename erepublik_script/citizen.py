@@ -94,6 +94,8 @@ class Citizen(classes.CitizenAPI):
         ret = super().__dict__.copy()
         ret.pop('reporter', None)
         ret.pop('stop_threads', None)
+        ret.pop('_Citizen__last_war_update_data', None)
+        ret.update(all_battles=self.all_battles)
 
         return ret
 
@@ -440,6 +442,7 @@ class Citizen(classes.CitizenAPI):
             self.update_citizen_info()
 
         resp_json = self.get_military_campaigns().json()
+        self.all_battles = {}
         if resp_json.get("countries"):
             for c_id, c_data in resp_json.get("countries").items():
                 if int(c_id) not in self.countries:
@@ -1285,12 +1288,12 @@ class Citizen(classes.CitizenAPI):
 
         if count > 0 and not force_fight:
             if self.my_companies.ff_lockdown and self.details.pp > 75:
-                if self.energy.food_fights - self.my_companies.ff_lockdown > 0:
+                if count - self.my_companies.ff_lockdown > 0:
                     log_msg = ("Fight count modified (old count: {} | FF: {} | "
                                "WAM ff_lockdown: {} | New count: {})").format(
                         count, self.energy.food_fights, self.my_companies.ff_lockdown,
-                        self.energy.food_fights - self.my_companies.ff_lockdown)
-                    count = self.energy.food_fights - self.my_companies.ff_lockdown
+                        count - self.my_companies.ff_lockdown)
+                    count -= self.my_companies.ff_lockdown
                 else:
                     count = 0
                 if count <= 0:
