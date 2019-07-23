@@ -21,7 +21,7 @@ setup(
     author="Eriks Karls",
     author_email='eriks@72.lv',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
@@ -40,7 +40,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/eeriks/erepublik',
+    url='https://github.com/eeriks/erepublik_script',
     version='0.14.4',
     zip_safe=False,
 )
