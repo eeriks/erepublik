@@ -214,7 +214,7 @@ def write_file(filename: str, content: str) -> int:
 
 
 def write_request(response: requests.Response, is_error: bool = False):
-    from erepublik_script import Citizen
+    from erepublik import Citizen
     # Remove GET args from url name
     url = response.url
     last_index = url.index("?") if "?" in url else len(response.url)
@@ -238,7 +238,7 @@ def write_request(response: requests.Response, is_error: bool = False):
 
 
 def send_email(name, content: list, player=None, local_vars=dict, promo: bool = False, captcha: bool = False):
-    from erepublik_script import Citizen
+    from erepublik import Citizen
 
     file_content_template = "<html><head><title>{title}</title></head><body>{body}</body></html>"
     if isinstance(player, Citizen):

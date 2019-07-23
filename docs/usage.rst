@@ -4,4 +4,4 @@ Usage
 
 To use eRepublik script in a project::
 
-    import erepublik_script
+    import erepublik

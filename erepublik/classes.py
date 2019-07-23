@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Union
 from requests import Response, Session
 from slugify import slugify
 
-from erepublik_script import utils
+from erepublik import utils
 
 
 class ErepublikException(Exception):
@@ -228,7 +228,7 @@ class SlowRequests(Session):
                 file.write(body.encode("UTF-8"))
 
     def _log_response(self, url, resp, redirect: bool = False):
-        from erepublik_script import Citizen
+        from erepublik import Citizen
         if self.debug:
             if resp.history and not redirect:
                 for hist_resp in resp.history:

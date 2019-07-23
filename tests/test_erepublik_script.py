@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `erepublik_script` package."""
+"""Tests for `erepublik` package."""
 
 
 import unittest
 from click.testing import CliRunner
 
-from erepublik_script import Citizen
-from erepublik_script import cli
+from erepublik import Citizen
+from erepublik import cli
 
 
 class TestErepublik_script(unittest.TestCase):
-    """Tests for `erepublik_script` package."""
+    """Tests for `erepublik` package."""
 
     def setUp(self):
         """Set up test fixtures, if any."""
@@ -28,7 +28,7 @@ class TestErepublik_script(unittest.TestCase):
         runner = CliRunner()
         result = runner.invoke(cli.main)
         assert result.exit_code == 0
-        assert 'erepublik_script.cli.main' in result.output
+        assert 'erepublik.cli.main' in result.output
         help_result = runner.invoke(cli.main, ['--help'])
         assert help_result.exit_code == 0
         assert '--help  Show this message and exit.' in help_result.output

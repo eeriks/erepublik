@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-"""Unit test package for erepublik_script."""
+"""Unit test package for erepublik."""

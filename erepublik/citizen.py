@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple, Any, Union
 import requests
 from requests import Response, RequestException
 
-from erepublik_script import classes, utils
+from erepublik import classes, utils
 
 
 class Citizen(classes.CitizenAPI):
@@ -622,10 +622,8 @@ class Citizen(classes.CitizenAPI):
             battle_id = r.get("citizen_contribution")[0].get("battle_id", 0)
             ret_battles.append(battle_id)
 
-        ret_battles += (cs_battles_air + cs_battles_ground +
-                        deployed_battles_air + deployed_battles_ground +
-                        ally_battles_air + ally_battles_ground +
-                        other_battles_air + other_battles_ground)
+        ret_battles += cs_battles_air + cs_battles_ground + deployed_battles_air + deployed_battles_ground + \
+            ally_battles_air + ally_battles_ground + other_battles_air + other_battles_ground
         return ret_battles
 
     @property
@@ -646,8 +644,8 @@ class Citizen(classes.CitizenAPI):
                 if battle.is_rw:
                     side_id = battle.defender.id if self.config.rw_def_side else battle.invader.id
                 else:
-                    side_id = battle.defender.id if (self.details.current_country in battle.defender.allies +
-                                                     [battle.defender.id, ]) else battle.invader.id
+                    side = self.details.current_country in battle.defender.allies + [battle.defender.id, ]
+                    side_id = battle.defender.id if side else battle.invader.id
                 try:
                     def_points = battle.div.get(div).dom_pts.get('def')
                     inv_points = battle.div.get(div).dom_pts.get('inv')
@@ -1449,11 +1447,12 @@ class Citizen(classes.CitizenAPI):
                 raw = wrm
             else:
                 continue
+            effective_bonus = cdata["effective_bonus"]
+            base_prod = float(cdata["base_production"])
             if cdata["is_raw"]:
-                raw += float(cdata["base_production"]) * cdata["effective_bonus"] / 100
+                raw += base_prod * effective_bonus / 100
             else:
-                raw -= cdata["effective_bonus"] / 100 * cdata["base_production"] * \
-                    cdata["upgrades"][str(cdata["quality"])]["raw_usage"]
+                raw -= effective_bonus / 100 * base_prod * cdata["upgrades"][str(cdata["quality"])]["raw_usage"]
             if cdata["industry_token"] == "FOOD":
                 frm = raw
             elif cdata["industry_token"] == "WEAPON":

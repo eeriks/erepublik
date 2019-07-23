@@ -12,7 +12,7 @@ To install eRepublik script, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install erepublik_script
+    $ pip install erepublik
 
 This is the preferred method to install eRepublik script, as it will always install the most recent stable release.
 
