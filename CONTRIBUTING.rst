@@ -57,7 +57,7 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `erepublik_script` for local development.
+Ready to contribute? Here's how to set up `erepublik` for local development.
 
 1. Fork the `erepublik_script` repo on GitHub.
 2. Clone your fork locally::
@@ -66,8 +66,8 @@ Ready to contribute? Here's how to set up `erepublik_script` for local developme
 
 3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
 
-    $ mkvirtualenv erepublik_script
-    $ cd erepublik_script/
+    $ mkvirtualenv erepublik
+    $ cd erepublik/
     $ python setup.py develop
 
 4. Create a branch for local development::
@@ -79,7 +79,7 @@ Ready to contribute? Here's how to set up `erepublik_script` for local developme
 5. When you're done making changes, check that your changes pass flake8 and the
    tests, including testing other Python versions with tox::
 
-    $ flake8 erepublik_script tests
+    $ flake8 erepublik tests
     $ python setup.py test or py.test
     $ tox
 
@@ -102,7 +102,7 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.7, 3.4, 3.5 and 3.6, and for PyPy. Check
+3. The pull request should work for Python 3.7.1. Check
    https://travis-ci.org/eeriks/erepublik_script/pull_requests
    and make sure that the tests pass for all supported Python versions.
 

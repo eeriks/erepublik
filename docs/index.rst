@@ -1,5 +1,5 @@
 Welcome to eRepublik script's documentation!
-======================================
+============================================
 
 .. toctree::
    :maxdepth: 2

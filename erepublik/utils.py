@@ -237,7 +237,7 @@ def write_request(response: requests.Response, is_error: bool = False):
                 "mimetype": "application/json" if ext == "json" else "text/html"}
 
 
-def send_email(name, content: list, player=None, local_vars=dict, promo: bool = False, captcha: bool = False):
+def send_email(name: str, content: list, player=None, local_vars=dict, promo: bool = False, captcha: bool = False):
     from erepublik import Citizen
 
     file_content_template = "<html><head><title>{title}</title></head><body>{body}</body></html>"
@@ -312,4 +312,9 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
         write_interactive_log(log_info)
     else:
         write_silent_log(log_info)
-    send_email(name, bugtrace, citizen, local_vars=inspect.trace()[-1][0].f_locals)
+    trace = inspect.trace()
+    if trace:
+        trace = trace[-1][0].f_locals
+    else:
+        trace = dict()
+    send_email(name, bugtrace, citizen, local_vars=trace)

@@ -101,7 +101,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'erepublik_scriptdoc'
+htmlhelp_basename = 'erepublikdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------

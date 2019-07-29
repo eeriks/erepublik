@@ -438,8 +438,9 @@ class House(object):
 
 
 class CitizenAPI:
-    url = "https://www.erepublik.com/en"
-    _req = SlowRequests
+    url: str = "https://www.erepublik.com/en"
+    _req: SlowRequests = None
+    token: str = ""
 
     def __init__(self):
         self._req = SlowRequests()
@@ -468,7 +469,9 @@ class CitizenAPI:
     def get_citizen_daily_assistant(self):
         return self.get("{}/main/citizenDailyAssistant".format(self.url))
 
-    def get_city_data_residents(self, city: int, page: int = 1, params: Dict[str, Any] = {}):
+    def get_city_data_residents(self, city: int, page: int = 1, params: Dict[str, Any] = None):
+        if params is None:
+            params = {}
         return self.get("{}/main/city-data/{}/residents".format(self.url, city), params={"currentPage": page, **params})
 
     def get_country_military(self, country: str) -> Response:
@@ -514,15 +517,15 @@ class CitizenAPI:
     def get_military_campaigns(self) -> Response:
         return self.get("{}/military/campaigns-new/".format(self.url))
 
-    def get_military_unit_data(self, unit_id: int, page: int = 1) -> Response:
-        params = {"groupId": unit_id, "panel": "members", "currentPage": page}
+    def get_military_unit_data(self, unit_id: int, **kwargs) -> Response:
+        params = {"groupId": unit_id, "panel": "members", **kwargs}
         return self.get("{}/military/military-unit-data/".format(self.url), params=params)
 
-    def get_money_donation_accept(self, token: str, donation_id: int) -> Response:
-        return self.get("{}/main/money-donation/accept/{}".format(self.url, donation_id), params={"_token": token})
+    def get_money_donation_accept(self, donation_id: int) -> Response:
+        return self.get("{}/main/money-donation/accept/{}".format(self.url, donation_id), params={"_token": self.token})
 
-    def get_money_donation_reject(self, token: str, donation_id: int) -> Response:
-        return self.get("{}/main/money-donation/reject/{}".format(self.url, donation_id), params={"_token": token})
+    def get_money_donation_reject(self, donation_id: int) -> Response:
+        return self.get("{}/main/money-donation/reject/{}".format(self.url, donation_id), params={"_token": self.token})
 
     def get_party_members(self, party: int) -> Response:
         return self.get("{}/main/party-members/{}".format(self.url, party))
@@ -536,26 +539,26 @@ class CitizenAPI:
     def get_weekly_challenge_data(self) -> Response:
         return self.get("{}/main/weekly-challenge-data".format(self.url))
 
-    def post_activate_battle_effect(self, token: str, battle: int, kind: str, citizen_id: int) -> Response:
-        data = dict(battleId=battle, citizenId=citizen_id, type=kind, _token=token)
+    def post_activate_battle_effect(self, battle: int, kind: str, citizen_id: int) -> Response:
+        data = dict(battleId=battle, citizenId=citizen_id, type=kind, _token=self.token)
         return self.post("{}/main/fight-activateBattleEffect".format(self.url), data=data)
 
-    def post_article_comments(self, token: str, article: int, page: int = 0) -> Response:
-        data = dict(_token=token, articleId=article, page=page)
+    def post_article_comments(self, article: int, page: int = 1) -> Response:
+        data = dict(_token=self.token, articleId=article, page=page)
         if page:
             data.update({'page': page})
         return self.post("{}/main/articleComments".format(self.url), data=data)
 
-    def post_article_comments_create(self, token: str, message: str, article: int, parent: int = 0) -> Response:
-        data = dict(_token=token, message=message, articleId=article)
+    def post_article_comments_create(self, message: str, article: int, parent: int = 0) -> Response:
+        data = dict(_token=self.token, message=message, articleId=article)
         if parent:
             data.update({"parentId": parent})
         return self.post("{}/main/articleComments/create".format(self.url), data=data)
 
-    def post_battle_console(self, token: str, battle: int, zone: int, round_id: int, division: int, page: int,
+    def post_battle_console(self, battle: int, zone: int, round_id: int, division: int, page: int,
                             damage: bool) -> Response:
         data = dict(battleId=battle, zoneId=zone, action="battleStatistics", round=round_id, division=division,
-                    leftPage=page, rightPage=page, _token=token)
+                    leftPage=page, rightPage=page, _token=self.token)
         if damage:
             data.update({"type": "damage"})
         else:
@@ -563,108 +566,108 @@ class CitizenAPI:
 
         return self.post("{}/military/battle-console".format(self.url), data=data)
 
-    def post_buy_gold_items(self, token: str, currency: str, item: str, amount: int) -> Response:
-        data = dict(itemId=item, currency=currency, amount=amount, _token=token)
+    def post_buy_gold_items(self, currency: str, item: str, amount: int) -> Response:
+        data = dict(itemId=item, currency=currency, amount=amount, _token=self.token)
         return self.post("{}/main/buyGoldItems".format(self.url), data=data)
 
-    def post_candidate_for_congress(self, token: str, presentation: str = "") -> Response:
-        data = dict(_token=token, presentation=presentation)
+    def post_candidate_for_congress(self, presentation: str = "") -> Response:
+        data = dict(_token=self.token, presentation=presentation)
         return self.post("{}/candidate-for-congress".format(self.url), data=data)
 
-    def post_citizen_add_remove_friend(self, token: str, citizen: int, add: bool) -> Response:
-        data = dict(_token=token, citizenId=citizen, url="//www.erepublik.com/en/main/citizen-addRemoveFriend")
+    def post_citizen_add_remove_friend(self, citizen: int, add: bool) -> Response:
+        data = dict(_token=self.token, citizenId=citizen, url="//www.erepublik.com/en/main/citizen-addRemoveFriend")
         if add:
             data.update({"action": "addFriend"})
         else:
             data.update({"action": "removeFriend"})
         return self.post("{}/main/citizen-addRemoveFriend".format(self.url), data=data)
 
-    def post_collect_anniversary_reward(self, token: str) -> Response:
-        return self.post("{}/main/collect-anniversary-reward".format(self.url), data={"_token": token})
+    def post_collect_anniversary_reward(self) -> Response:
+        return self.post("{}/main/collect-anniversary-reward".format(self.url), data={"_token": self.token})
 
-    def post_country_donate(self, token: str, country: int, action: str, value: Union[int, float], quality: int = None):
-        json = dict(countryId=country, action=action, _token=token, value=value, quality=quality)
+    def post_country_donate(self, country: int, action: str, value: Union[int, float], quality: int = None):
+        json = dict(countryId=country, action=action, _token=self.token, value=value, quality=quality)
         return self.post("{}/main/country-donate".format(self.url), data=json,
                          headers={"Referer": "{}/country/economy/Latvia".format(self.url)})
 
-    def post_daily_task_reward(self, token: str) -> Response:
-        return self.post("{}/main/daily-tasks-reward".format(self.url), data=dict(_token=token))
+    def post_daily_task_reward(self) -> Response:
+        return self.post("{}/main/daily-tasks-reward".format(self.url), data=dict(_token=self.token))
 
-    def post_delete_message(self, token: str, msg_id: list) -> Response:
-        data = {"_token": token, "delete_message[]": msg_id}
+    def post_delete_message(self, msg_id: list) -> Response:
+        data = {"_token": self.token, "delete_message[]": msg_id}
         return self.post("{}/main/messages-delete".format(self.url), data)
 
-    def post_eat(self, token: str, color: str) -> Response:
-        data = dict(_token=token, buttonColor=color)
+    def post_eat(self, color: str) -> Response:
+        data = dict(_token=self.token, buttonColor=color)
         return self.post("{}/main/eat".format(self.url), params=data)
 
-    def post_economy_activate_house(self, token: str, quality: int) -> Response:
-        data = {"action": "activate", "quality": quality, "type": "house", "_token": token}
+    def post_economy_activate_house(self, quality: int) -> Response:
+        data = {"action": "activate", "quality": quality, "type": "house", "_token": self.token}
         return self.post("{}/economy/activateHouse".format(self.url), data=data)
 
-    def post_economy_assign_to_holding(self, token: str, factory: int, holding: int) -> Response:
-        data = dict(_token=token, factoryId=factory, action="assign", holdingCompanyId=holding)
+    def post_economy_assign_to_holding(self, factory: int, holding: int) -> Response:
+        data = dict(_token=self.token, factoryId=factory, action="assign", holdingCompanyId=holding)
         return self.post("{}/economy/assign-to-holding".format(self.url), data=data)
 
-    def post_economy_create_company(self, token: str, industry: int, building_type: int = 1) -> Response:
-        data = {"_token": token, "company[industry_id]": industry, "company[building_type]": building_type}
+    def post_economy_create_company(self, industry: int, building_type: int = 1) -> Response:
+        data = {"_token": self.token, "company[industry_id]": industry, "company[building_type]": building_type}
         return self.post("{}/economy/create-company".format(self.url), data=data,
                          headers={"Referer": "{}/economy/create-company".format(self.url)})
 
-    def post_economy_donate_items_action(self, token: str, citizen: int, amount: int, industry: int,
+    def post_economy_donate_items_action(self, citizen: int, amount: int, industry: int,
                                          quality: int) -> Response:
-        data = dict(citizen_id=citizen, amount=amount, industry_id=industry, quality=quality, _token=token)
+        data = dict(citizen_id=citizen, amount=amount, industry_id=industry, quality=quality, _token=self.token)
         return self.post("{}/economy/donate-items-action".format(self.url), data=data,
                          headers={"Referer": "{}/economy/donate-items/{}".format(self.url, citizen)})
 
-    def post_economy_donate_money_action(self, token: str, citizen: int, amount: float = 0.0,
+    def post_economy_donate_money_action(self, citizen: int, amount: float = 0.0,
                                          currency: int = 62) -> Response:
-        data = dict(citizen_id=citizen, _token=token, currency_id=currency, amount=amount)
+        data = dict(citizen_id=citizen, _token=self.token, currency_id=currency, amount=amount)
         return self.post("{}/economy/donate-money-action".format(self.url), data=data,
                          headers={"Referer": "{}/economy/donate-money/{}".format(self.url, citizen)})
 
-    def post_economy_exchange_purchase(self, token: str, amount: float, currency: int, offer: int) -> Response:
-        data = dict(_token=token, amount=amount, currencyId=currency, offerId=offer)
+    def post_economy_exchange_purchase(self, amount: float, currency: int, offer: int) -> Response:
+        data = dict(_token=self.token, amount=amount, currencyId=currency, offerId=offer)
         return self.post("{}/economy/exchange/purchase/".format(self.url), data=data)
 
-    def post_economy_exchange_retrieve(self, token: str, personal: bool, page: int, currency: int) -> Response:
-        data = dict(_token=token, personalOffers=int(personal), page=page, currencyId=currency)
+    def post_economy_exchange_retrieve(self, personal: bool, page: int, currency: int) -> Response:
+        data = dict(_token=self.token, personalOffers=int(personal), page=page, currencyId=currency)
         return self.post("{}/economy/exchange/retrieve/".format(self.url), data=data)
 
-    def post_economy_job_market_apply(self, token: str, citizen: int, salary: int) -> Response:
-        data = dict(_token=token, citizenId=citizen, salary=salary)
+    def post_economy_job_market_apply(self, citizen: int, salary: int) -> Response:
+        data = dict(_token=self.token, citizenId=citizen, salary=salary)
         return self.post("{}/economy/job-market-apply".format(self.url), data=data)
 
-    def post_economy_marketplace(self, token: str, country: int, industry: int, quality: int,
+    def post_economy_marketplace(self, country: int, industry: int, quality: int,
                                  order_asc: bool = True) -> Response:
         data = dict(countryId=country, industryId=industry, quality=quality, ajaxMarket=1,
-                    orderBy="price_asc" if order_asc else "price_desc", _token=token)
+                    orderBy="price_asc" if order_asc else "price_desc", _token=self.token)
         return self.post("{}/economy/marketplaceAjax".format(self.url), data=data)
 
-    def post_economy_marketplace_actions(self, token: str, amount: int, buy: bool = False, **kwargs) -> Response:
+    def post_economy_marketplace_actions(self, amount: int, buy: bool = False, **kwargs) -> Response:
         if buy:
-            data = dict(_token=token, offerId=kwargs['offer'], amount=amount, orderBy="price_asc", currentPage=1,
+            data = dict(_token=self.token, offerId=kwargs['offer'], amount=amount, orderBy="price_asc", currentPage=1,
                         buyAction=1)
         else:
-            data = dict(_token=token, countryId=kwargs["country"], price=kwargs["price"], industryId=kwargs["industry"],
-                        quality=kwargs["quality"], amount=amount, sellAction='postOffer')
+            data = dict(_token=self.token, countryId=kwargs["country"], price=kwargs["price"],
+                        industryId=kwargs["industry"], quality=kwargs["quality"], amount=amount, sellAction='postOffer')
         return self.post("{}/economy/marketplaceActions".format(self.url), data=data)
 
-    def post_economy_resign(self, token: str) -> Response:
+    def post_economy_resign(self) -> Response:
         return self.post("{}/economy/resign".format(self.url),
                          headers={"Content-Type": "application/x-www-form-urlencoded"},
-                         data={"_token": token, "action_type": "resign"})
+                         data={"_token": self.token, "action_type": "resign"})
 
-    def post_economy_sell_company(self, token: str, factory: int, pin: int = None, sell: bool = True) -> Response:
+    def post_economy_sell_company(self, factory: int, pin: int = None, sell: bool = True) -> Response:
         url = "{}/economy/sell-company/{}".format(self.url, factory)
-        data = dict(_token=token, pin="" if pin is None else pin)
+        data = dict(_token=self.token, pin="" if pin is None else pin)
         if sell:
             data.update({"sell": "sell"})
         else:
             data.update({"dissolve": factory})
         return self.post(url, data=data, headers={"Referer": url})
 
-    def post_economy_train(self, token: str, tg_ids: List[int]) -> Response:
+    def post_economy_train(self, tg_ids: List[int]) -> Response:
         data: Dict[str, Union[int, str]] = {}
         if not tg_ids:
             return self.get_training_grounds_json()
@@ -673,14 +676,14 @@ class CitizenAPI:
                 data["grounds[%i][id]" % idx] = tg_id
                 data["grounds[%i][train]" % idx] = 1
         if data:
-            data['_token'] = token
+            data['_token'] = self.token
         return self.post("{}/economy/train".format(self.url), data=data)
 
-    def post_economy_upgrade_company(self, token: str, factory: int, level: int, pin: str = None) -> Response:
-        data = dict(_token=token, type="upgrade", companyId=factory, level=level, pin="" if pin is None else pin)
+    def post_economy_upgrade_company(self, factory: int, level: int, pin: str = None) -> Response:
+        data = dict(_token=self.token, type="upgrade", companyId=factory, level=level, pin="" if pin is None else pin)
         return self.post("{}/economy/upgrade-company".format(self.url), data=data)
 
-    def post_economy_work(self, token: str, action_type: str, wam: List[int] = None, employ: Dict[int, int] = None):
+    def post_economy_work(self, action_type: str, wam: List[int] = None, employ: Dict[int, int] = None):
         """
         :return: requests.Response or None
         """
@@ -688,7 +691,7 @@ class CitizenAPI:
             employ = dict()
         if wam is None:
             wam = []
-        data: Dict[str, Union[int, str]] = dict(action_type=action_type, _token=token)
+        data: Dict[str, Union[int, str]] = dict(action_type=action_type, _token=self.token)
         if action_type == "work":
             return self.post("{}/economy/work".format(self.url), data=data)
         elif action_type == "production":
@@ -711,140 +714,140 @@ class CitizenAPI:
         else:
             return
 
-    def post_economy_work_overtime(self, token: str) -> Response:
-        data = dict(action_type="workOvertime", _token=token)
+    def post_economy_work_overtime(self) -> Response:
+        data = dict(action_type="workOvertime", _token=self.token)
         return self.post("{}/economy/workOvertime".format(self.url), data=data)
 
-    def post_forgot_password(self, token: str, email: str) -> Response:
-        data = dict(_token=token, email=email, commit="Reset password")
+    def post_forgot_password(self, email: str) -> Response:
+        data = dict(_token=self.token, email=email, commit="Reset password")
         return self.post("{}/forgot-password".format(self.url), data=data)
 
-    def post_fight_activate_booster(self, token: str, battle: int, quality: int, duration: int, kind: str) -> Response:
-        data = dict(type=kind, quality=quality, duration=duration, battleId=battle, _token=token)
+    def post_fight_activate_booster(self, battle: int, quality: int, duration: int, kind: str) -> Response:
+        data = dict(type=kind, quality=quality, duration=duration, battleId=battle, _token=self.token)
         return self.post("{}/military/fight-activateBooster".format(self.url), data=data)
 
-    def post_login(self, token: str, email: str, password: str) -> Response:
-        data = dict(csrf_token=token, citizen_email=email, citizen_password=password, remember='on')
+    def post_login(self, email: str, password: str) -> Response:
+        data = dict(csrf_token=self.token, citizen_email=email, citizen_password=password, remember='on')
         return self.post("{}/login".format(self.url), data=data)
 
-    def post_messages_alert(self, token: str, notification_ids: list) -> Response:
-        data = {"_token": token, "delete_alerts[]": notification_ids, "deleteAllAlerts": "1", "delete": "Delete"}
+    def post_messages_alert(self, notification_ids: list) -> Response:
+        data = {"_token": self.token, "delete_alerts[]": notification_ids, "deleteAllAlerts": "1", "delete": "Delete"}
         return self.post("{}/main/messages-alerts/1".format(self.url), data=data)
 
-    def post_messages_compose(self, token: str, subject: str, body: str, citizens: List[int]) -> Response:
+    def post_messages_compose(self, subject: str, body: str, citizens: List[int]) -> Response:
         url_pk = 0 if len(citizens) > 1 else str(citizens[0])
         data = dict(citizen_name=",".join([str(x) for x in citizens]),
-                    citizen_subject=subject, _token=token, citizen_message=body)
+                    citizen_subject=subject, _token=self.token, citizen_message=body)
         return self.post("{}/main/messages-compose/{}}".format(self.url, url_pk), data=data)
 
-    def post_military_battle_console(self, token: str, battle_id: int, round_id: int, division: int) -> Response:
+    def post_military_battle_console(self, battle_id: int, round_id: int, division: int) -> Response:
         data = dict(battleId=battle_id, zoneId=round_id, action="battleStatistics", round=round_id, division=division,
-                    type="damage", leftPage=1, rightPage=1, _token=token)
+                    type="damage", leftPage=1, rightPage=1, _token=self.token)
         return self.post("{}/military/battle-console".format(self.url, battle_id), data=data)
 
-    def post_military_fight_air(self, token: str, battle_id: int, side_id: int) -> Response:
-        data = dict(sideId=side_id, battleId=battle_id, _token=token)
+    def post_military_fight_air(self, battle_id: int, side_id: int) -> Response:
+        data = dict(sideId=side_id, battleId=battle_id, _token=self.token)
         return self.post("{}/military/fight-shoooot/{}".format(self.url, battle_id), data=data)
 
-    def post_military_fight_ground(self, token: str, battle_id: int, side_id: int) -> Response:
-        data = dict(sideId=side_id, battleId=battle_id, _token=token)
+    def post_military_fight_ground(self, battle_id: int, side_id: int) -> Response:
+        data = dict(sideId=side_id, battleId=battle_id, _token=self.token)
         return self.post("{}/military/fight-shooot/{}".format(self.url, battle_id), data=data)
 
-    def post_military_group_missions(self, token: str) -> Response:
-        data = dict(action="check", _token=token)
+    def post_military_group_missions(self) -> Response:
+        data = dict(action="check", _token=self.token)
         return self.post("{}/military/group-missions".format(self.url), data=data)
 
-    def post_travel(self, token: str, check: str, **kwargs) -> Response:
-        data = dict(_token=token, check=check, **kwargs)
+    def post_travel(self, check: str, **kwargs) -> Response:
+        data = dict(_token=self.token, check=check, **kwargs)
         return self.post("{}/main/travel".format(self.url), data=data)
 
-    def post_travel_data(self, token: str, **kwargs) -> Response:
-        return self.post("{}/main/travelData".format(self.url), data=dict(_token=token, **kwargs))
+    def post_travel_data(self, **kwargs) -> Response:
+        return self.post("{}/main/travelData".format(self.url), data=dict(_token=self.token, **kwargs))
 
-    def post_wars_attack_region(self, token: str, war: int, region: int) -> Response:
-        data = dict(_token=token)
+    def post_wars_attack_region(self, war: int, region: int) -> Response:
+        data = dict(_token=self.token)
         return self.post("{}/wars/attack-region/{}/{}".format(self.url, war, region), data=data)
 
-    def post_weekly_challenge_reward(self, token: str, reward_id: int) -> Response:
-        data = dict(_token=token, rewardId=reward_id)
+    def post_weekly_challenge_reward(self, reward_id: int) -> Response:
+        data = dict(_token=self.token, rewardId=reward_id)
         return self.post("{}/main/weekly-challenge-collect-reward".format(self.url), data=data)
 
-    def post_write_article(self, token: str, title: str, content: str, location: int, kind: int) -> Response:
-        data = dict(_token=token, article_name=title, article_body=content, article_location=location,
+    def post_write_article(self, title: str, content: str, location: int, kind: int) -> Response:
+        data = dict(_token=self.token, article_name=title, article_body=content, article_location=location,
                     article_category=kind)
         return self.post("{}/main/write-article".format(self.url), data=data)
 
     # Wall Posts
     # ## Country
 
-    def post_country_comment_retrieve(self, token: str, post_id: int):
-        data = {"_token": token, "postId": post_id}
+    def post_country_comment_retrieve(self, post_id: int):
+        data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/country-comment/retrieve/json".format(self.url), data=data)
 
-    def post_country_comment_create(self, token: str, post_id: int, comment_message: str):
-        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+    def post_country_comment_create(self, post_id: int, comment_message: str):
+        data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/country-comment/create/json".format(self.url), data=data)
 
-    def post_country_post_create(self, token: str, body: str, post_as: int):
-        data = {"_token": token, "post_message": body, "post_as": post_as}
+    def post_country_post_create(self, body: str, post_as: int):
+        data = {"_token": self.token, "post_message": body, "post_as": post_as}
         return self.post("{}/main/country-post/create/json".format(self.url), data=data)
 
-    def post_country_post_retrieve(self, token: str):
-        data = {"_token": token, "page": 1, "switchedFrom": False}
+    def post_country_post_retrieve(self):
+        data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/country-post/retrieve/json".format(self.url), data=data)
 
     # ## Military Unit
 
-    def post_military_unit_comment_retrieve(self, token: str, post_id: int):
-        data = {"_token": token, "postId": post_id}
+    def post_military_unit_comment_retrieve(self, post_id: int):
+        data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/military-unit-comment/retrieve/json".format(self.url), data=data)
 
-    def post_military_unit_comment_create(self, token: str, post_id: int, comment_message: str):
-        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+    def post_military_unit_comment_create(self, post_id: int, comment_message: str):
+        data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/military-unit-comment/create/json".format(self.url), data=data)
 
-    def post_military_unit_post_create(self, token: str, body: str, post_as: int):
-        data = {"_token": token, "post_message": body, "post_as": post_as}
+    def post_military_unit_post_create(self, body: str, post_as: int):
+        data = {"_token": self.token, "post_message": body, "post_as": post_as}
         return self.post("{}/main/military-unit-post/create/json".format(self.url), data=data)
 
-    def post_military_unit_post_retrieve(self, token: str):
-        data = {"_token": token, "page": 1, "switchedFrom": False}
+    def post_military_unit_post_retrieve(self):
+        data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/military-unit-post/retrieve/json".format(self.url), data=data)
 
     # ## Party
 
-    def post_party_comment_retrieve(self, token: str, post_id: int):
-        data = {"_token": token, "postId": post_id}
+    def post_party_comment_retrieve(self, post_id: int):
+        data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/party-comment/retrieve/json".format(self.url), data=data)
 
-    def post_party_comment_create(self, token: str, post_id: int, comment_message: str):
-        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+    def post_party_comment_create(self, post_id: int, comment_message: str):
+        data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/party-comment/create/json".format(self.url), data=data)
 
-    def post_party_post_create(self, token: str, body: str):
-        data = {"_token": token, "post_message": body}
+    def post_party_post_create(self, body: str):
+        data = {"_token": self.token, "post_message": body}
         return self.post("{}/main/party-post/create/json".format(self.url), data=data)
 
-    def post_party_post_retrieve(self, token: str):
-        data = {"_token": token, "page": 1, "switchedFrom": False}
+    def post_party_post_retrieve(self):
+        data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/party-post/retrieve/json".format(self.url), data=data)
 
     # ## Friend's Wall
 
-    def post_wall_comment_retrieve(self, token: str, post_id: int):
-        data = {"_token": token, "postId": post_id}
+    def post_wall_comment_retrieve(self, post_id: int):
+        data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/wall-comment/retrieve/json".format(self.url), data=data)
 
-    def post_wall_comment_create(self, token: str, post_id: int, comment_message: str):
-        data = {"_token": token, "postId": post_id, 'comment_message': comment_message}
+    def post_wall_comment_create(self, post_id: int, comment_message: str):
+        data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/wall-comment/create/json".format(self.url), data=data)
 
-    def post_wall_post_create(self, token: str, body: str):
-        data = {"_token": token, "post_message": body}
+    def post_wall_post_create(self, body: str):
+        data = {"_token": self.token, "post_message": body}
         return self.post("{}/main/wall-post/create/json".format(self.url), data=data)
 
-    def post_wall_post_retrieve(self, token: str):
-        data = {"_token": token, "page": 1, "switchedFrom": False}
+    def post_wall_post_retrieve(self):
+        data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/wall-post/retrieve/json".format(self.url), data=data)
 
 
@@ -938,7 +941,7 @@ class MyJSONEncoder(JSONEncoder):
             return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
                         microseconds=o.microseconds, total_seconds=o.total_seconds())
         elif isinstance(o, Response):
-            return dict(_content=o._content.decode("UTF-8"), headers=o.headers.__dict__, url=o.url, text=o.text)
+            return dict(headers=o.headers.__dict__, url=o.url, text=o.text)
         elif hasattr(o, '__dict__'):
             return o.__dict__
         elif isinstance(o, deque):

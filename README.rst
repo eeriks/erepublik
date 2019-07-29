@@ -7,7 +7,7 @@ eRepublik script
         :target: https://pypi.python.org/pypi/erepublik
 
 .. image:: https://readthedocs.org/projects/erepublik/badge/?version=latest
-        :target: https://erepublik-script.readthedocs.io/en/latest/?badge=latest
+        :target: https://erepublik.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
