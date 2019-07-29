@@ -296,7 +296,6 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
                   interactive: bool = False):
     """
     Process error logging and email sending to developer
-    :param error:
     :param interactive: Should print interactively
     :param log_info: String to be written in output
     :param name: String Instance name

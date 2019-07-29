@@ -223,7 +223,7 @@ class SlowRequests(Session):
 
             body = "[{dt}]\tURL: '{url}'\tMETHOD: {met}\tARGS: {args}\n".format(dt=utils.now().strftime("%F %T"),
                                                                                 url=url, met=method, args=args)
-
+            utils.get_file(self.request_log_name)
             with open(self.request_log_name, 'ab') as file:
                 file.write(body.encode("UTF-8"))
 
