@@ -6,6 +6,7 @@ import re
 import sys
 import time
 import traceback
+import unicodedata
 from collections import deque
 from decimal import Decimal
 from json import JSONEncoder
@@ -15,7 +16,6 @@ from typing import Union
 import pytz
 import requests
 from requests import Response
-from slugify import slugify
 
 
 __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz",
@@ -317,3 +317,19 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     else:
         trace = dict()
     send_email(name, bugtrace, citizen, local_vars=trace)
+
+
+def slugify(value, allow_unicode=False):
+    """
+    Function copied from Django2.2.1 django.utils.text.slugify
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces to hyphens.
+    Remove characters that aren't alphanumerics, underscores, or hyphens.
+    Convert to lowercase. Also strip leading and trailing whitespace.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value).strip().lower()
+    return re.sub(r'[-\s]+', '-', value)

@@ -9,7 +9,6 @@ from json import JSONDecodeError, loads, JSONEncoder
 from typing import Any, Dict, List, Union
 
 from requests import Response, Session
-from slugify import slugify
 
 from erepublik import utils
 
@@ -239,7 +238,7 @@ class SlowRequests(Session):
             file_data = {
                 "path": 'debug/requests',
                 "time": self.last_time.strftime('%Y-%m-%d_%H-%M-%S'),
-                "name": slugify(url[len(Citizen.url):]),
+                "name": utils.slugify(url[len(Citizen.url):]),
                 "extra": "_REDIRECT" if redirect else ""
             }
 

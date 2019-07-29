@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['pytz==2019.1', 'requests==2.22.0', 'python-slugify<3.0.0']
+requirements = ['pytz==2019.1', 'requests==2.22.0']
 
 setup_requirements = [ ]
 
@@ -41,6 +41,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/eeriks/erepublik_script',
-    version='0.14.5.1',
+    version='0.14.5',
     zip_safe=False,
 )
