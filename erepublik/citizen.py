@@ -136,7 +136,7 @@ class Citizen(classes.CitizenAPI):
 
     def _login(self):
         # MUST BE CALLED TROUGH self.get_csrf_token()
-        r = self.post_login(self.config.email, self.config.password)
+        r = self._post_login(self.config.email, self.config.password)
         self.r = r
 
         if r.url == "{}/login".format(self.url):
@@ -288,7 +288,7 @@ class Citizen(classes.CitizenAPI):
         Gets main page and updates most information about player
         """
         if html is None:
-            self.get_main()
+            self._get_main()
             html = self.r.text
         ugly_js = re.search(r"promotions: (\[{?.*}?]),\s+", html).group(1)
         promos = loads(utils.normalize_html_json(ugly_js))
@@ -362,19 +362,19 @@ class Citizen(classes.CitizenAPI):
         """
         if currency not in [1, 62]:
             currency = 62
-        resp = self.post_economy_exchange_retrieve(False, page, currency)
+        resp = self._post_economy_exchange_retrieve(False, page, currency)
         self.details.cc = float(resp.json().get("ecash").get("value"))
         self.details.gold = float(resp.json().get("gold").get("value"))
         return resp
 
     def update_job_info(self):
-        ot = self.get_job_data().json().get("overTime", {})
+        ot = self._get_job_data().json().get("overTime", {})
         if ot:
             self.my_companies.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
             self.ot_points = ot.get("points", 0)
 
     def update_companies(self):
-        html = self.get_economy_my_companies().text
+        html = self._get_economy_my_companies().text
         page_details = loads(re.search(r"var pageDetails\s+= ({.*});", html).group(1))
         self.my_companies.work_units = int(page_details.get("total_works", 0))
 
@@ -386,7 +386,7 @@ class Citizen(classes.CitizenAPI):
             self.my_companies.update_holding_companies()
 
     def update_inventory(self) -> dict:
-        j = self.get_economy_inventory_items().json()
+        j = self._get_economy_inventory_items().json()
 
         self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
                                "total": j.get("inventoryStatus").get("totalStorage")})
@@ -418,7 +418,7 @@ class Citizen(classes.CitizenAPI):
         return j
 
     def update_weekly_challenge(self):
-        data = self.get_weekly_challenge_data().json()
+        data = self._get_weekly_challenge_data().json()
         self.details.pp = data.get("player", {}).get("prestigePoints", 0)
         self.details.next_pp = []
         for reward in data.get("rewards", {}).get("normal", {}):
@@ -426,7 +426,7 @@ class Citizen(classes.CitizenAPI):
             if status == "rewarded":
                 continue
             elif status == "completed":
-                self.post_weekly_challenge_reward(reward.get("id", 0))
+                self._post_weekly_challenge_reward(reward.get("id", 0))
             elif reward.get("icon", "") == "energy_booster":
                 pps = re.search(r"Reach (\d+) Prestige Points to unlock the following reward: \+1 Energy",
                                 reward.get("tooltip", ""))
@@ -437,7 +437,7 @@ class Citizen(classes.CitizenAPI):
         if not self.details.current_country:
             self.update_citizen_info()
 
-        resp_json = self.get_military_campaigns().json()
+        resp_json = self._get_military_campaigns().json()
         self.all_battles = {}
         if resp_json.get("countries"):
             for c_id, c_data in resp_json.get("countries").items():
@@ -486,7 +486,7 @@ class Citizen(classes.CitizenAPI):
         self.write_log(self.health_info)
 
     def _eat(self, colour: str = "blue") -> Response:
-        response = self.post_eat(colour)
+        response = self._post_eat(colour)
         r_json = response.json()
         next_recovery = r_json.get("food_remaining_reset").split(":")
         self.energy.set_reference_time(
@@ -715,9 +715,9 @@ class Citizen(classes.CitizenAPI):
 
     def _shoot(self, air: bool, data: dict):
         if air:
-            response = self.post_military_fight_air(data['battleId'], data['sideId'])
+            response = self._post_military_fight_air(data['battleId'], data['sideId'])
         else:
-            response = self.post_military_fight_ground(data['battleId'], data['sideId'])
+            response = self._post_military_fight_ground(data['battleId'], data['sideId'])
 
         if "Zone is not meant for " in response.text:
             self.sleep(5)
@@ -749,7 +749,7 @@ class Citizen(classes.CitizenAPI):
         # I"m not checking for 1h cooldown. Beware of nightshift work, if calling more than once every 60min
         self.update_job_info()
         if self.ot_points >= 24 and self.energy.food_fights > 1:
-            r = self.post_economy_work_overtime()
+            r = self._post_economy_work_overtime()
             if not r.json().get("status") and r.json().get("message") == "money":
                 self.resign()
                 self.find_new_job()
@@ -767,7 +767,7 @@ class Citizen(classes.CitizenAPI):
 
     def work(self):
         if self.energy.food_fights >= 1:
-            response = self.post_economy_work("work")
+            response = self._post_economy_work("work")
             js = response.json()
             good_msg = ["already_worked", "captcha"]
             if not js.get("status") and not js.get("message") in good_msg:
@@ -786,7 +786,7 @@ class Citizen(classes.CitizenAPI):
             self.work()
 
     def train(self):
-        r = self.get_training_grounds_json()
+        r = self._get_training_grounds_json()
         tg_json = r.json()
         self.details.gold = tg_json["page_details"]["gold"]
         self.tg_contract.update({"free_train": tg_json["hasFreeTrain"]})
@@ -799,7 +799,7 @@ class Citizen(classes.CitizenAPI):
                 tgs.append(data["id"])
         if tgs:
             if self.energy.food_fights >= len(tgs):
-                response = self.post_economy_train(tgs)
+                response = self._post_economy_train(tgs)
                 if not response.json().get("status"):
                     self.update_citizen_info()
                     self.train()
@@ -901,7 +901,7 @@ class Citizen(classes.CitizenAPI):
                 wam_holding = self.my_companies.holdings.get(wam_holding_id)
                 if not self.details.current_region == wam_holding['region_id']:
                     self.travel(holding_id=wam_holding_id, region_id=wam_holding['region_id'])
-            response = self.post_economy_work("production", wam=wam_list, employ=employee_companies).json()
+            response = self._post_economy_work("production", wam=wam_list, employ=employee_companies).json()
             self.reporter.report_action("WORK_WAM_EMPLOYEES", response)
             if response.get("status"):
                 if self.config.auto_sell:
@@ -1002,7 +1002,7 @@ class Citizen(classes.CitizenAPI):
             "inRegionId": region_id,
             "battleId": 0,
         }
-        return self.post_travel("moveAction", **data)
+        return self._post_travel("moveAction", **data)
 
     def get_travel_regions(self, holding_id: int = 0, battle_id: int = 0, region_id: int = 0,
                            country_id: int = 0) -> Response:
@@ -1012,7 +1012,7 @@ class Citizen(classes.CitizenAPI):
             "regionId": region_id,
         }
         data.update(countryId=country_id)
-        return self.post_travel_data(**data)
+        return self._post_travel_data(**data)
 
     def parse_notifications(self, page: int = 1) -> list:
         response = self.get_message_alerts(page)
@@ -1025,7 +1025,7 @@ class Citizen(classes.CitizenAPI):
 
         response = self.get_message_alerts()
         while notification_ids(response.text):
-            response = self.post_messages_alert(notification_ids(response.text))
+            response = self._post_messages_alert(notification_ids(response.text))
 
     def collect_weekly_reward(self):
         self.update_weekly_challenge()
@@ -1033,7 +1033,7 @@ class Citizen(classes.CitizenAPI):
     def collect_daily_task(self) -> None:
         self.update_citizen_info()
         if self.details.daily_task_done and not self.details.daily_task_reward:
-            self.post_daily_task_reward()
+            self._post_daily_task_reward()
 
     def send_mail_to_owner(self) -> None:
         if not self.details.citizen_id == 1620414:
@@ -1041,8 +1041,7 @@ class Citizen(classes.CitizenAPI):
             self.sleep(1)
             msg_id = re.search(r"<input type=\"hidden\" value=\"(\d+)\" "
                                r"id=\"delete_message_(\d+)\" name=\"delete_message\[]\">", self.r.text).group(1)
-            self.post_delete_message([msg_id])
-            None
+            self._post_delete_message([msg_id])
 
     def get_market_offers(self, country_id: int = None, product: str = None, quality: int = None) -> dict:
         ret = dict()
@@ -1080,7 +1079,7 @@ class Citizen(classes.CitizenAPI):
                     str_q = "q%i" % q
 
                     data = {'country': country, 'industry': self.available_industries[industry], 'quality': q}
-                    r = self.post_economy_marketplace(**data)
+                    r = self._post_economy_marketplace(**data)
                     rjson = r.json()
                     obj = items[industry][str_q]
                     if not rjson.get("error", False):
@@ -1147,7 +1146,7 @@ class Citizen(classes.CitizenAPI):
         return sorted(ret, key=lambda o: (o["price"], -o["amount"]))
 
     def buy_monetary_market_offer(self, offer: int, amount: float, currency: int) -> bool:
-        response = self.post_economy_exchange_purchase(amount, currency, offer)
+        response = self._post_economy_exchange_purchase(amount, currency, offer)
         self.details.cc = float(response.json().get("ecash").get("value"))
         self.details.gold = float(response.json().get("gold").get("value"))
         self.reporter.report_action("BUY_GOLD", json_val=response.json(),
@@ -1165,35 +1164,35 @@ class Citizen(classes.CitizenAPI):
                 duration = 28800
             elif self.boosters.get("100_damageBoosters_5_86400", 0) > 2:
                 duration = 86400
-            self.post_fight_activate_booster(battle_id, 5, duration, "damage")
+            self._post_fight_activate_booster(battle_id, 5, duration, "damage")
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
-        return self.post_activate_battle_effect(battle_id, kind, self.details.citizen_id)
+        return self._post_activate_battle_effect(battle_id, kind, self.details.citizen_id)
 
     def activate_pp_booster(self, battle_id: int) -> Response:
-        return self.post_fight_activate_booster(battle_id, 1, 180, "prestige_points")
+        return self._post_fight_activate_booster(battle_id, 1, 180, "prestige_points")
 
     def donate_money(self, citizen_id: int = 1620414, amount: float = 0.0, currency: int = 62) -> Response:
         """ currency: gold = 62, cc = 1 """
-        return self.post_economy_donate_money_action(citizen_id, amount, currency)
+        return self._post_economy_donate_money_action(citizen_id, amount, currency)
 
     def donate_items(self, citizen_id: int = 1620414, amount: int = 0, industry_id: int = 1,
                      quality: int = 1) -> Response:
         ind = {v: k for k, v in self.available_industries.items()}
         self.write_log("D,{},q{},{},{}".format(amount, quality, ind[industry_id], citizen_id))
-        return self.post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
+        return self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
 
     def candidate_for_congress(self, presentation: str = "") -> Response:
-        return self.post_candidate_for_congress(presentation)
+        return self._post_candidate_for_congress(presentation)
 
     def candidate_for_party_presidency(self) -> Response:
-        return self.get_candidate_party(self.politics.party_slug)
+        return self._get_candidate_party(self.politics.party_slug)
 
     def accept_money_donations(self):
         for notification in self.parse_notifications():
             don_id = re.search(r"erepublik.functions.acceptRejectDonation\(\"accept\", (\d+)\)", notification)
             if don_id:
-                self.get_money_donation_accept(int(don_id.group(1)))
+                self._get_money_donation_accept(int(don_id.group(1)))
                 self.sleep(5)
 
     def reject_money_donations(self) -> int:
@@ -1202,7 +1201,7 @@ class Citizen(classes.CitizenAPI):
         donation_ids = re.findall(r"erepublik.functions.acceptRejectDonation\(\"reject\", (\d+)\)", r.text)
         while donation_ids:
             for don_id in donation_ids:
-                self.get_money_donation_reject(int(don_id))
+                self._get_money_donation_reject(int(don_id))
                 count += 1
                 self.sleep(5)
             r = self.get_message_alerts()
@@ -1210,7 +1209,7 @@ class Citizen(classes.CitizenAPI):
         return count
 
     def _rw_choose_side(self, battle_id: int, side_id: int) -> Response:
-        return self.get_battlefield_choose_side(battle_id, side_id)
+        return self._get_battlefield_choose_side(battle_id, side_id)
 
     def should_travel_to_fight(self) -> bool:
         ret = False
@@ -1372,7 +1371,7 @@ class Citizen(classes.CitizenAPI):
         return False
 
     def get_article_comments(self, article_id: int = 2645676, page_id: int = 1) -> Response:
-        return self.post_article_comments(article_id, page_id)
+        return self._post_article_comments(article_id, page_id)
 
     def comment_article(self, article_id: int = 2645676, msg: str = None) -> Response:
         if msg is None:
@@ -1385,14 +1384,14 @@ class Citizen(classes.CitizenAPI):
         return r
 
     def write_article_comment(self, message: str, article_id: int, parent_id: int = None) -> Response:
-        return self.post_article_comments_create(message, article_id, parent_id)
+        return self._post_article_comments_create(message, article_id, parent_id)
 
     def publish_article(self, title: str, content: str, kind: int) -> Response:
         kinds = {1: "First steps in eRepublik", 2: "Battle orders", 3: "Warfare analysis",
                  4: "Political debates and analysis", 5: "Financial business",
                  6: "Social interactions and entertainment"}
         if kind in kinds:
-            return self.post_write_article(title, content, self.details.citizenship, kind)
+            return self._post_write_article(title, content, self.details.citizenship, kind)
         else:
             raise classes.ErepublikException(
                 "Article kind must be one of:\n{}\n'{}' is not supported".format(
@@ -1413,12 +1412,12 @@ class Citizen(classes.CitizenAPI):
             "price": price,
             "buy": False,
         }
-        ret = self.post_economy_marketplace_actions(**data)
+        ret = self._post_economy_marketplace_actions(**data)
         self.reporter.report_action("SELL_PRODUCT", ret.json())
         return ret
 
     def buy_from_market(self, offer: int, amount: int) -> Response:
-        ret = self.post_economy_marketplace_actions(amount, True, offer=offer)
+        ret = self._post_economy_marketplace_actions(amount, True, offer=offer)
         json_ret = ret.json()
         if json_ret.get('error'):
             return ret
@@ -1457,10 +1456,10 @@ class Citizen(classes.CitizenAPI):
         """
         Assigns factory to new holding
         """
-        return self.post_economy_assign_to_holding(factory_id, holding_id)
+        return self._post_economy_assign_to_holding(factory_id, holding_id)
 
     def upgrade_factory(self, factory_id: int, level: int) -> Response:
-        return self.post_economy_upgrade_company(factory_id, level, self.details.pin)
+        return self._post_economy_upgrade_company(factory_id, level, self.details.pin)
 
     def create_factory(self, industry_id: int, building_type: int = 1) -> Response:
         """
@@ -1470,10 +1469,10 @@ class Citizen(classes.CitizenAPI):
 
                             Storage={1000: 1, 2000: 2} <- Building_type 2
         """
-        return self.post_economy_create_company(industry_id, building_type)
+        return self._post_economy_create_company(industry_id, building_type)
 
     def dissolve_factory(self, factory_id: int) -> Response:
-        return self.post_economy_sell_company(factory_id, self.details.pin, sell=False)
+        return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
 
     @property
     def available_industries(self) -> Dict[str, int]:
@@ -1493,7 +1492,7 @@ class Citizen(classes.CitizenAPI):
         return self.available_industries.get(industry_name, 0)
 
     def buy_tg_contract(self) -> Response:
-        ret = self.post_buy_gold_items('gold', "TrainingContract2", 1)
+        ret = self._post_buy_gold_items('gold', "TrainingContract2", 1)
         self.reporter.report_action("BUY_TG_CONTRACT", ret.json())
         return ret
 
@@ -1501,12 +1500,12 @@ class Citizen(classes.CitizenAPI):
         self.update_job_info()
         if self.r.json().get("isEmployee"):
             self.reporter.report_action("RESIGN", self.r.json())
-            self.post_economy_resign()
+            self._post_economy_resign()
             return True
         return False
 
     def find_new_job(self) -> Response:
-        r = self.get_economy_job_market_json(self.details.current_country)
+        r = self._get_economy_job_market_json(self.details.current_country)
         jobs = r.json().get("jobs")
         data = dict(citizen=0, salary=10)
         for posting in jobs:
@@ -1517,13 +1516,13 @@ class Citizen(classes.CitizenAPI):
             if (not limit or salary * 3 < limit) and salary > data["salary"]:
                 data.update({"citizen": userid, "salary": salary})
         self.reporter.report_action("APPLYING_FOR_JOB", jobs, str(data['citizen']))
-        return self.post_economy_job_market_apply(**data)
+        return self._post_economy_job_market_apply(**data)
 
     def add_friend(self, player_id: int) -> Response:
-        resp = self.get_citizen_hovercard(player_id)
+        resp = self._get_citizen_hovercard(player_id)
         rjson = resp.json()
         if not any([rjson["isBanned"], rjson["isDead"], rjson["isFriend"], rjson["isOrg"], rjson["isSelf"]]):
-            r = self.post_citizen_add_remove_friend(int(player_id), True)
+            r = self._post_citizen_add_remove_friend(int(player_id), True)
             self.write_log("{:<64} (id:{:>11}) added as friend".format(rjson["name"], player_id))
             return r
         return resp
@@ -1531,15 +1530,15 @@ class Citizen(classes.CitizenAPI):
     def get_country_parties(self, country_id: int = None) -> dict:
         if country_id is None:
             country_id = self.details.citizenship
-        r = self.get_rankings_parties(country_id)
+        r = self._get_rankings_parties(country_id)
         ret = {}
         for name, id_ in re.findall(r'<a class="dotted" title="([^"]+)" href="/en/party/[\w\d-]+-(\d+)/1">', r.text):
             ret.update({int(id_): name})
         return ret
 
-    def get_party_members(self, party_id: int) -> Dict[int, str]:
+    def _get_party_members(self, party_id: int) -> Dict[int, str]:
         ret = {}
-        r = super().get_party_members(party_id)
+        r = super()._get_party_members(party_id)
         for id_, name in re.findall(r'<a href="//www.erepublik.com/en/main/messages-compose/(\d+)" '
                                     r'title="([\w\d_ .]+)">', r.text):
             ret.update({id_: name})
@@ -1547,11 +1546,11 @@ class Citizen(classes.CitizenAPI):
 
     def get_country_mus(self, country_id: int) -> Dict[int, str]:
         ret = {}
-        r = self.get_leaderboards_damage_rankings(country_id)
+        r = self._get_leaderboards_damage_rankings(country_id)
         for data in r.json()["mu_filter"]:
             if data["id"]:
                 ret.update({data["id"]: data["name"]})
-        r = self.get_leaderboards_damage_aircraft_rankings(country_id)
+        r = self._get_leaderboards_damage_aircraft_rankings(country_id)
         for data in r.json()["mu_filter"]:
             if data["id"]:
                 ret.update({data["id"]: data["name"]})
@@ -1559,10 +1558,10 @@ class Citizen(classes.CitizenAPI):
 
     def get_mu_members(self, mu_id: int) -> Dict[int, str]:
         ret = {}
-        r = self.get_military_unit_data(mu_id)
+        r = self._get_military_unit_data(mu_id)
 
         for page in range(1, int(r.json()["panelContents"]["pages"]) + 1):
-            r = self.get_military_unit_data(mu_id, page)
+            r = self._get_military_unit_data(mu_id, page)
             for user in r.json()["panelContents"]["members"]:
                 if not user["isDead"]:
                     ret.update({user["citizenId"]: user["name"]})
@@ -1572,13 +1571,13 @@ class Citizen(classes.CitizenAPI):
         if ids is None:
             ids = [1620414, ]
         for player_id in ids:
-            self.post_messages_compose(subject, msg, [player_id])
+            self._post_messages_compose(subject, msg, [player_id])
 
     def add_every_player_as_friend(self):
         cities = []
         cities_dict = {}
         self.write_log("WARNING! This will take a lot of time.")
-        rj = self.post_travel_data(regionId=662, check="getCountryRegions").json()
+        rj = self._post_travel_data(regionId=662, check="getCountryRegions").json()
         for region_data in rj.get("regions", {}).values():
             cities.append(region_data['cityId'])
             cities_dict.update({region_data['cityId']: region_data['cityName']})
@@ -1586,11 +1585,11 @@ class Citizen(classes.CitizenAPI):
         cities.sort(key=int)
         for city_id in cities:
             self.write_log("Adding friends from {} (id: {})".format(cities_dict[city_id], city_id))
-            resp = self.get_city_data_residents(city_id).json()
+            resp = self._get_city_data_residents(city_id).json()
             for resident in resp["widgets"]["residents"]["residents"]:
                 self.add_friend(resident["citizenId"])
             for page in range(2, resp["widgets"]["residents"]["numResults"] // 10 + 2):
-                r = self.get_city_data_residents(city_id, page)
+                r = self._get_city_data_residents(city_id, page)
                 resp = r.json()
                 for resident in resp["widgets"]["residents"]["residents"]:
                     self.add_friend(resident["citizenId"])
@@ -1602,11 +1601,11 @@ class Citizen(classes.CitizenAPI):
         self._launch_battle(war_id, region_id)
 
     def get_active_wars_with_regions(self):
-        self.get_country_military(self.countries.get(self.details.citizen_id)["name"])
+        self._get_country_military(self.countries.get(self.details.citizen_id)["name"])
         raise NotImplementedError
 
     def _launch_battle(self, war_id: int, region_id: int) -> Response:
-        return self.post_wars_attack_region(war_id, region_id)
+        return self._post_wars_attack_region(war_id, region_id)
 
     def state_update_repeater(self):
         try:
@@ -1718,20 +1717,20 @@ class Citizen(classes.CitizenAPI):
 
     def activate_house(self, quality: int) -> datetime.datetime:
         active_until = self.now
-        r = self.post_economy_activate_house(quality)
+        r = self._post_economy_activate_house(quality)
         if r.json().get("status") and not r.json().get("error"):
             house = r.json()["inventoryItems"]["activeEnhancements"]["items"]["4_%i_active" % quality]
             active_until = utils.good_timedelta(active_until, datetime.timedelta(seconds=house["active"]["time_left"]))
         return active_until
 
     def collect_anniversary_reward(self) -> Response:
-        return self.post_collect_anniversary_reward()
+        return self._post_collect_anniversary_reward()
 
     def get_battle_round_data(self, battle_id: int, round_id: int, division: int = None) -> dict:
         battle = self.all_battles.get(battle_id)
         if not battle:
             return {}
-        r = self.post_battle_console(battle_id, battle.zone_id, round_id, division, 1, True)
+        r = self._post_battle_console(battle_id, battle.zone_id, round_id, division, 1, True)
         return {battle.invader.id: r.json().get(str(battle.invader.id)).get("fighterData"),
                 battle.defender.id: r.json().get(str(battle.defender.id)).get("fighterData")}
 
@@ -1740,9 +1739,9 @@ class Citizen(classes.CitizenAPI):
         amount = int(amount)
         if self.details.cc < amount or amount < 20:
             return False
-        json = dict(country=71, action='currency', value=amount)
-        self.reporter.report_action("CONTRIBUTE_CC", json)
-        r = self.post_country_donate(**json)
+        data = dict(country=71, action='currency', value=amount)
+        self.reporter.report_action("CONTRIBUTE_CC", data)
+        r = self._post_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
     def contribute_food_to_country(self, amount: int = 0, quality: int = 1) -> bool:
@@ -1750,9 +1749,9 @@ class Citizen(classes.CitizenAPI):
         amount = amount // 1
         if self.food["q" + str(quality)] < amount or amount < 10:
             return False
-        json = dict(country=71, action='food', value=amount, quality=quality)
-        self.reporter.report_action("CONTRIBUTE_FOOD", json)
-        r = self.post_country_donate(**json)
+        data = dict(country=71, action='food', value=amount, quality=quality)
+        self.reporter.report_action("CONTRIBUTE_FOOD", data)
+        r = self._post_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
     def contribute_gold_to_country(self, amount: int) -> bool:
@@ -1760,17 +1759,17 @@ class Citizen(classes.CitizenAPI):
 
         if self.details.cc < amount:
             return False
-        json = dict(country=71, action='gold', value=amount)
-        self.reporter.report_action("CONTRIBUTE_GOLD", json)
-        r = self.post_country_donate(**json)
+        data = dict(country=71, action='gold', value=amount)
+        self.reporter.report_action("CONTRIBUTE_GOLD", data)
+        r = self._post_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
     def write_on_country_wall(self, message: str) -> bool:
-        self.get_main()
+        self._get_main()
         post_to_wall_as = re.findall(r"""id="post_to_country_as".*?<option value="(.*?)">.*?</option>.*</select>""",
                                      self.r.text, re.S | re.M)
         if post_to_wall_as:
-            self.post_country_post_create(message, max(post_to_wall_as))
+            self._post_country_post_create(message, max(post_to_wall_as))
             return True
         return False
 
@@ -1782,7 +1781,7 @@ class Citizen(classes.CitizenAPI):
         round_id = battle.get('zone_id')
         division = self.division if round_id % 4 else 11
 
-        resp = self.post_military_battle_console(battle_id, round_id, division).json()
+        resp = self._post_military_battle_console(battle_id, round_id, division).json()
         resp.pop('rounds', None)
         ret = dict()
         for country_id, data in resp.items():
