@@ -927,7 +927,7 @@ class Citizen(classes.CitizenAPI):
                         amount = amount_remaining
                         best_offer = self.get_market_offers(self.details.citizenship, industry, 1)
                         amount = best_offer['amount'] if amount >= best_offer['amount'] else amount
-                        rj = self.buy_from_market(amount=best_offer['amount'], offer=best_offer['offer_id']).json()
+                        rj = self.buy_from_market(amount=best_offer['amount'], offer=best_offer['offer_id'])
                         if not rj.get('error'):
                             amount_remaining -= amount
                         else:
@@ -1416,18 +1416,18 @@ class Citizen(classes.CitizenAPI):
         self.reporter.report_action("SELL_PRODUCT", ret.json())
         return ret
 
-    def buy_from_market(self, offer: int, amount: int) -> Response:
+    def buy_from_market(self, offer: int, amount: int) -> dict:
         ret = self._post_economy_marketplace_actions(amount, True, offer=offer)
         json_ret = ret.json()
         if json_ret.get('error'):
-            return ret
+            return json_ret
         else:
             self.details.cc = ret.json()['currency']
             self.details.gold = ret.json()['gold']
             r_json = ret.json()
             r_json.pop("offerUpdate", None)
             self.reporter.report_action("BUY_PRODUCT", ret.json())
-        return ret
+        return json_ret
 
     def get_raw_surplus(self) -> (float, float):
         frm = 0.00
@@ -1691,8 +1691,8 @@ class Citizen(classes.CitizenAPI):
                 buy = self.buy_from_market(global_cheapest['offer_id'], 1)
             else:
                 buy = self.buy_from_market(cheapest_offer['offer_id'], 1)
-            if buy.json()["error"]:
-                msg = "Unable to buy q{} house! \n{}".format(q, buy.json()['message'])
+            if buy["error"]:
+                msg = "Unable to buy q{} house! \n{}".format(q, buy['message'])
                 self.write_log(msg)
             else:
                 ok_to_activate = True
@@ -1766,12 +1766,10 @@ class Citizen(classes.CitizenAPI):
 
     def write_on_country_wall(self, message: str) -> bool:
         self._get_main()
-        post_to_wall_as = re.findall(r"""id="post_to_country_as".*?<option value="(.*?)">.*?</option>.*</select>""",
+        post_to_wall_as = re.findall(r"""id="post_to_country_as".*?<option value="(\d?)">.*?</option>.*</select>""",
                                      self.r.text, re.S | re.M)
-        if post_to_wall_as:
-            self._post_country_post_create(message, max(post_to_wall_as))
-            return True
-        return False
+        r = self._post_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
+        return r.json()
 
     def report_error(self, msg: str = ""):
         utils.process_error(msg, self.name, sys.exc_info(), self, self.commit_id, False)
