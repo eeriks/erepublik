@@ -359,16 +359,17 @@ class Citizen(classes.CitizenAPI):
             self.politics.is_party_president = bool(party.get('is_party_president'))
             self.politics.party_slug = "{}-{}".format(party.get("stripped_title"), party.get('party_id'))
 
-    def update_money(self, page: int = 0, currency: int = 62) -> Response:
+    def update_money(self, page: int = 0, currency: int = 62) -> Dict[str, Any]:
         """
         Gets monetary market offers to get exact amount of CC and Gold available
         """
         if currency not in [1, 62]:
             currency = 62
         resp = self._post_economy_exchange_retrieve(False, page, currency)
-        self.details.cc = float(resp.json().get("ecash").get("value"))
-        self.details.gold = float(resp.json().get("gold").get("value"))
-        return resp
+        resp_data = resp.json()
+        self.details.cc = float(resp_data.get("ecash").get("value"))
+        self.details.gold = float(resp_data.get("gold").get("value"))
+        return resp_data
 
     def update_job_info(self):
         ot = self._get_job_data().json().get("overTime", {})
@@ -1190,7 +1191,7 @@ class Citizen(classes.CitizenAPI):
     def get_monetary_offers(self, currency: int = 62) -> List[Dict[str, Union[int, float]]]:
         if currency not in [1, 62]:
             currency = 62
-        resp = self.update_money(0, currency).json()
+        resp = self._post_economy_exchange_retrieve(False, 0, currency).json()
         ret = []
         offers = re.findall(r"id='purchase_(\d+)' data-i18n='Buy for' data-currency='GOLD' "
                             r"data-price='(\d+\.\d+)' data-max='(\d+\.\d+)' trigger='purchase'",
