@@ -11,7 +11,7 @@ from collections import deque
 from decimal import Decimal
 from json import JSONEncoder
 from pathlib import Path
-from typing import Union
+from typing import Union, Dict, Any, List
 
 import pytz
 import requests
@@ -237,7 +237,10 @@ def write_request(response: requests.Response, is_error: bool = False):
                 "mimetype": "application/json" if ext == "json" else "text/html"}
 
 
-def send_email(name: str, content: list, player=None, local_vars=dict, promo: bool = False, captcha: bool = False):
+def send_email(name: str, content: List[Any], player=None, local_vars: Dict[Any, Any] = None,
+               promo: bool = False, captcha: bool = False):
+    if local_vars is None:
+        local_vars = {}
     from erepublik import Citizen
 
     file_content_template = "<html><head><title>{title}</title></head><body>{body}</body></html>"
@@ -317,6 +320,10 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     else:
         trace = dict()
     send_email(name, bugtrace, citizen, local_vars=trace)
+
+
+def report_promo(kind: str, time_untill: datetime.datetime):
+    requests.post('https://api.erep.lv/promos/add/', data=dict(kind=kind, time_untill=time_untill))
 
 
 def slugify(value, allow_unicode=False):
