@@ -437,7 +437,7 @@ class Citizen(classes.CitizenAPI):
                 if pps:
                     self.details.next_pp.append(int(pps.group(1)))
 
-    def update_war_info(self) -> Dict[Any, Any]:
+    def update_war_info(self):
         if not self.details.current_country:
             self.update_citizen_info()
 
@@ -455,7 +455,6 @@ class Citizen(classes.CitizenAPI):
             if resp_json.get("battles"):
                 for battle_id, battle_data in resp_json.get("battles", {}).items():
                     self.all_battles.update({int(battle_id): classes.Battle(battle_data)})
-        return self.__last_war_update_data
 
     def eat(self):
         """
@@ -578,7 +577,6 @@ class Citizen(classes.CitizenAPI):
         self.active_fs = active_fs
 
     def sorted_battles(self, sort_by_time: bool = False) -> List[int]:
-        r = self.update_war_info()
         cs_battles_air: List[int] = []
         cs_battles_ground: List[int] = []
         deployed_battles_air: List[int] = []
@@ -625,17 +623,19 @@ class Citizen(classes.CitizenAPI):
                     other_battles_air.append(battle.id)
 
         ret_battles = []
-        if r.get("citizen_contribution"):
-            battle_id = r.get("citizen_contribution")[0].get("battle_id", 0)
+        if self.__last_war_update_data.get("citizen_contribution"):
+            battle_id = self.__last_war_update_data.get("citizen_contribution")[0].get("battle_id", 0)
             ret_battles.append(battle_id)
 
-        ret_battles += cs_battles_air + cs_battles_ground + deployed_battles_air + deployed_battles_ground + \
-                       ally_battles_air + ally_battles_ground + other_battles_air + other_battles_ground
+        ret_battles += (cs_battles_air + cs_battles_ground +
+                        deployed_battles_air + deployed_battles_ground +
+                        ally_battles_air + ally_battles_ground +
+                        other_battles_air + other_battles_ground)
         return ret_battles
 
     @property
     def has_battle_contribution(self):
-        return bool(self.update_war_info().get("citizen_contribution", []))
+        return bool(self.__last_war_update_data.get("citizen_contribution", []))
 
     def find_battle_and_fight(self):
         if self.should_fight(False):
@@ -993,11 +993,16 @@ class Citizen(classes.CitizenAPI):
         self.details.current_region = region_id
         self.details.current_country = country_id
 
-    def travel_to_residence(self):
+    def travel_to_residence(self) -> bool:
         self.update_citizen_info()
         res_r = self.details.residence_region
         if self.details.residence_country and res_r and not res_r == self.details.current_region:
-            self._travel(self.details.residence_country, self.details.residence_region)
+            r = self._travel(self.details.residence_country, self.details.residence_region)
+            if r.json().get('message', '') == 'success':
+                self._update_citizen_location(self.details.residence_country, self.details.current_region)
+                return True
+            return False
+        return True
 
     def travel_to_region(self, region_id: int) -> bool:
         data = self._post_travel_data(region_id=region_id).json()
@@ -1005,10 +1010,13 @@ class Citizen(classes.CitizenAPI):
             return True
         else:
             r = self._travel(data.get('preselectCountryId'), region_id).json()
-            return r.get('message', '') == 'success'
+            if r.get('message', '') == 'success':
+                self._update_citizen_location(data.get('preselectCountryId'), region_id)
+                return True
+            return False
 
     def travel_to_country(self, country_id: int) -> bool:
-        data = self._post_travel_data(country_id=country_id, check="getCountryRegions").json()
+        data = self._post_travel_data(countryId=country_id, check="getCountryRegions").json()
 
         regs = []
         if data.get('regions'):
@@ -1018,24 +1026,28 @@ class Citizen(classes.CitizenAPI):
         if regs:
             region_id = min(regs, key=lambda _: int(_[1]))[0]
             r = self._travel(country_id, region_id).json()
-            return r.get('message', '') == 'success'
-        else:
-            return False
+            if r.get('message', '') == 'success':
+                self._update_citizen_location(country_id, region_id)
+                return True
+        return False
 
     def travel_to_holding(self, holding_id: int) -> bool:
-        data = self._post_travel_data(holding_id=holding_id).json()
+        data = self._post_travel_data(holdingId=holding_id).json()
         if data.get('alreadyInRegion'):
             return True
         else:
             r = self._travel(data.get('preselectCountryId'), data.get('preselectRegionId')).json()
-            return r.get('message', '') == 'success'
+            if r.get('message', '') == 'success':
+                self._update_citizen_location(data.get('preselectCountryId'), data.get('preselectRegionId'))
+                return True
+            return False
 
     def travel_to_battle(self, battle_id: int, *allowed_countries: List[int]) -> bool:
-        data = self._post_travel_data(battle_id=battle_id).json()
+        data = self.get_travel_regions(battle_id=battle_id)
 
         regs = []
-        if data.get('regions'):
-            for region in data.get('regions').values():
+        if data:
+            for region in data.values():
                 if region['countryId'] in allowed_countries:  # Is not occupied by other country
                     regs.append((region['distanceInKm'], region['id'], region['countryId']))
         if regs:
@@ -1043,9 +1055,10 @@ class Citizen(classes.CitizenAPI):
             region_id = reg[1]
             country_id = reg[2]
             r = self._travel(country_id, region_id).json()
-            return r.get('message', '') == 'success'
-        else:
-            return False
+            if r.get('message', '') == 'success':
+                self._update_citizen_location(country_id, region_id)
+                return True
+        return False
 
     def _travel(self, country_id: int, region_id: int = 0) -> Response:
         data = {
@@ -1054,17 +1067,18 @@ class Citizen(classes.CitizenAPI):
         }
         return self._post_travel("moveAction", **data)
 
-    def get_travel_regions(self, holding_id: int = 1, battle_id: int = 0,
-                           country_id: int = 0) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
-        d = self._post_travel_data(holdingId=holding_id, battleId=battle_id, regionId=0, countryId=country_id).json()
+    def get_travel_regions(self, holding_id: int = 0, battle_id: int = 0, country_id: int = 0
+                           ) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
+        d = self._post_travel_data(holdingId=holding_id, battleId=battle_id, countryId=country_id).json()
         return d.get('regions', [])
 
-    def get_travel_countries(self, holding_id: int = 1, battle_id: int = 0,
-                             region_id: int = 0) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
-        d = self._post_travel_data(holdingId=holding_id, battleId=battle_id,
-                                   regionId=region_id).json()
-
-        return [cid['id'] for cid in d['countries'].values() if cid['currentRegions']]
+    def get_travel_countries(self) -> List[int]:
+        response_json = self._post_travel_data().json()
+        return_list = []
+        for country_data in response_json['countries'].values():
+            if country_data['currentRegions']:
+                return_list.append(country_data['id'])
+        return return_list
 
     def parse_notifications(self, page: int = 1) -> list:
         community = self._get_notifications_ajax_community(page).json()
@@ -1101,9 +1115,15 @@ class Citizen(classes.CitizenAPI):
     def get_market_offers(self, country_id: int = None, product: str = None, quality: int = None) -> dict:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
-        if product in raw_short_names:
-            quality = 1
-            product = raw_short_names.get(product)
+        if product:
+            if product not in self.available_industries:
+                self.write_log("Industry '{}' not implemented".format(product))
+                raise IndexError("Industry '{}' not implemented".format(product))
+            elif product in raw_short_names:
+                quality = 1
+                product = raw_short_names.get(product)
+        else:
+            product = []
 
         item_data = dict(price=999999., country=0, amount=0, offer_id=0, citizen_id=0)
 
@@ -1121,13 +1141,10 @@ class Citizen(classes.CitizenAPI):
         else:
             good_countries = self.get_travel_countries()
             countries = [cid for cid in self.countries.keys() if cid in good_countries]
-        if product not in self.available_industries:
-            self.write_log("Industry '{}' not implemented".format(product))
-            raise IndexError("Industry '{}' not implemented".format(product))
 
         start_dt = self.now
         for country in countries:
-            for industry in [product] or items:
+            for industry in product or items:
                 for q in [quality] if quality else range(1, 8):
                     if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
                         break
@@ -1135,19 +1152,17 @@ class Citizen(classes.CitizenAPI):
                     str_q = "q%i" % q
 
                     data = {'country': country, 'industry': self.available_industries[industry], 'quality': q}
-                    r = self._post_economy_marketplace(**data)
-                    rjson = r.json()
+                    r = self._post_economy_marketplace(**data).json()
                     obj = items[industry][str_q]
-                    if not rjson.get("error", False):
-                        for offer in rjson["offers"]:
+                    if not r.get("error", False):
+                        for offer in r["offers"]:
                             if obj["price"] > float(offer["priceWithTaxes"]):
                                 obj["price"] = float(offer["priceWithTaxes"])
                                 obj["country"] = int(offer["country_id"])
                                 obj["amount"] = int(offer["amount"])
                                 obj["offer_id"] = int(offer["id"])
                                 obj["citizen_id"] = int(offer["citizen_id"])
-                            elif obj["price"] == float(offer["priceWithTaxes"]) \
-                                    and obj["amount"] < int(offer["amount"]):
+                            elif obj["price"] == float(offer["priceWithTaxes"]) and obj["amount"] < int(offer["amount"]):
                                 obj["country"] = int(offer["country_id"])
                                 obj["amount"] = int(offer["amount"])
                                 obj["offer_id"] = int(offer["id"])
