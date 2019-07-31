@@ -737,7 +737,7 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(csrf_token=self.token, citizen_email=email, citizen_password=password, remember='on')
         return self.post("{}/login".format(self.url), data=data)
 
-    def _post_messages_alert(self, notification_ids: list) -> Response:
+    def _post_messages_alert(self, notification_ids: List[int]) -> Response:
         data = {"_token": self.token, "delete_alerts[]": notification_ids, "deleteAllAlerts": "1", "delete": "Delete"}
         return self.post("{}/main/messages-alerts/1".format(self.url), data=data)
 
