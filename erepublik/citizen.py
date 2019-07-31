@@ -541,8 +541,15 @@ class Citizen(classes.CitizenAPI):
                         def_allies = battle.defender.deployed + [battle.defender.id]
                         all_allies = inv_allies + def_allies
                         if self.details.current_country not in all_allies:
-                            self._travel(battle.defender.id, self.get_country_travel_region(battle.defender.id))
-                            side = battle.defender.id
+                            if self.details.current_country in battle.invader.allies:
+                                allies = battle.invader.deployed
+                                side = battle.invader.id
+                            else:
+                                allies = battle.defender.deployed
+                                side = battle.defender.id
+
+                            self.travel_to_battle(battle.id, allies)
+
                         else:
                             if self.details.current_country in inv_allies:
                                 side = battle.invader.id
@@ -675,14 +682,16 @@ class Citizen(classes.CitizenAPI):
 
                 if travel_needed:
                     if battle.is_rw:
-                        self._travel(battle.defender.id, self.get_country_travel_region(battle.defender.id))
-                    elif self.details.current_country not in battle.invader.allies:
-                        self.travel(battle_id=battle.id)
+                        country_ids_to_travel = [battle.defender.id]
+                    elif self.details.current_country in battle.invader.allies:
+                        country_ids_to_travel = battle.invader.deployed + [battle.invader.id]
                         side_id = battle.invader.id
                     else:
-                        self._travel(battle.defender.id, self.get_country_travel_region(battle.defender.id))
+                        country_ids_to_travel = battle.defender.deployed + [battle.defender.id]
                         side_id = battle.defender.id
 
+                    if not self.travel_to_battle(battle_id, country_ids_to_travel):
+                        break
                 self.fight(battle_id, side_id, battle.is_air)
                 self.travel_to_residence()
                 self.collect_weekly_reward()
@@ -903,7 +912,8 @@ class Citizen(classes.CitizenAPI):
             if wam_list:
                 wam_holding = self.my_companies.holdings.get(wam_holding_id)
                 if not self.details.current_region == wam_holding['region_id']:
-                    self.travel(holding_id=wam_holding_id, region_id=wam_holding['region_id'])
+                    if not self.travel_to_region(wam_holding['region_id']):
+                        return False
             response = self._post_economy_work("production", wam=wam_list, employ=employee_companies).json()
             self.reporter.report_action("WORK_WAM_EMPLOYEES", response)
             if response.get("status"):
@@ -966,15 +976,8 @@ class Citizen(classes.CitizenAPI):
             self.post_market_offer(industry=self.available_industries[kind], amount=int(amount),
                                    quality=int(quality), price=price)
 
-    def travel_to_residence(self):
-        self.update_citizen_info()
-        res_r = self.details.residence_region
-        if self.details.residence_country and res_r and not res_r == self.details.current_region:
-            self._travel(self.details.residence_country, self.details.residence_region)
-
     def get_country_travel_region(self, country_id: int) -> int:
-        r = self.get_travel_regions(country_id=country_id).json()
-        regions = r.get("regions")
+        regions = self.get_travel_regions(country_id=country_id)
         regs = []
         if regions:
             for region in regions.values():
@@ -985,50 +988,98 @@ class Citizen(classes.CitizenAPI):
         else:
             return 0
 
-    def travel(self, holding_id=0, battle_id=0, region_id=0):
-        r = self.get_travel_regions(holding_id, battle_id, region_id)
-        regions = r.json()["regions"]
-        closest_region = 99999
-        country_id = int(r.json()["preselectCountryId"])
-        region_id = int(r.json()["preselectRegionId"])
-        if not any((region_id, country_id)):
-            for rid, info in regions.items():
-                if info.get("distanceInKm", 99999) < closest_region:
-                    closest_region = info.get("distanceInKm")
-                    country_id = info.get("countryId")
-                    region_id = rid
-        self._travel(country_id, region_id)
+    def _update_citizen_location(self, country_id: int, region_id: int):
+        self.details.current_region = region_id
+        self.details.current_country = country_id
+
+    def travel_to_residence(self):
+        self.update_citizen_info()
+        res_r = self.details.residence_region
+        if self.details.residence_country and res_r and not res_r == self.details.current_region:
+            self._travel(self.details.residence_country, self.details.residence_region)
+
+    def travel_to_region(self, region_id: int) -> bool:
+        data = self._post_travel_data(region_id=region_id).json()
+        if data.get('alreadyInRegion'):
+            return True
+        else:
+            r = self._travel(data.get('preselectCountryId'), region_id).json()
+            return r.get('message', '') == 'success'
+
+    def travel_to_country(self, country_id: int) -> bool:
+        data = self._post_travel_data(country_id=country_id, check="getCountryRegions").json()
+
+        regs = []
+        if data.get('regions'):
+            for region in data.get('regions').values():
+                if region['countryId'] == country_id:  # Is not occupied by other country
+                    regs.append((region['id'], region['distanceInKm']))
+        if regs:
+            region_id = min(regs, key=lambda _: int(_[1]))[0]
+            r = self._travel(country_id, region_id).json()
+            return r.get('message', '') == 'success'
+        else:
+            return False
+
+    def travel_to_holding(self, holding_id: int) -> bool:
+        data = self._post_travel_data(holding_id=holding_id).json()
+        if data.get('alreadyInRegion'):
+            return True
+        else:
+            r = self._travel(data.get('preselectCountryId'), data.get('preselectRegionId')).json()
+            return r.get('message', '') == 'success'
+
+    def travel_to_battle(self, battle_id: int, *allowed_countries: List[int]) -> bool:
+        data = self._post_travel_data(battle_id=battle_id).json()
+
+        regs = []
+        if data.get('regions'):
+            for region in data.get('regions').values():
+                if region['countryId'] in allowed_countries:  # Is not occupied by other country
+                    regs.append((region['distanceInKm'], region['id'], region['countryId']))
+        if regs:
+            reg = min(regs, key=lambda _: int(_[0]))
+            region_id = reg[1]
+            country_id = reg[2]
+            r = self._travel(country_id, region_id).json()
+            return r.get('message', '') == 'success'
+        else:
+            return False
 
     def _travel(self, country_id: int, region_id: int = 0) -> Response:
         data = {
             "toCountryId": country_id,
             "inRegionId": region_id,
-            "battleId": 0,
         }
         return self._post_travel("moveAction", **data)
 
-    def get_travel_regions(self, holding_id: int = 0, battle_id: int = 0, region_id: int = 0,
-                           country_id: int = 0) -> Response:
-        data = {
-            "holdingId": holding_id,
-            "battleId": battle_id,
-            "regionId": region_id,
-        }
-        data.update(countryId=country_id)
-        return self._post_travel_data(**data)
+    def get_travel_regions(self, holding_id: int = 1, battle_id: int = 0,
+                           country_id: int = 0) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
+        d = self._post_travel_data(holdingId=holding_id, battleId=battle_id, regionId=0, countryId=country_id).json()
+        return d.get('regions', [])
+
+    def get_travel_countries(self, holding_id: int = 1, battle_id: int = 0,
+                             region_id: int = 0) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
+        d = self._post_travel_data(holdingId=holding_id, battleId=battle_id,
+                                   regionId=region_id).json()
+
+        return [cid['id'] for cid in d['countries'].values() if cid['currentRegions']]
 
     def parse_notifications(self, page: int = 1) -> list:
-        response = self.get_message_alerts(page)
-        notifications = re.findall(r"<p class=\"smallpadded\">(.*?)</p>", response.text, re.M | re.I | re.S)
-        return notifications
+        community = self._get_notifications_ajax_community(page).json()
+        system = self._get_notifications_ajax_system(page).json()
+        return community['alertsList'] + system['alertsList']
 
     def delete_notifications(self):
-        def notification_ids(html):
-            return re.findall(r"id=\"delete_alert_(\d+)\"", html)
+        response = self._get_notifications_ajax_community().json()
+        while response['totalAlerts']:
+            self._post_messages_alert([_['id'] for _ in response['alertList']])
+            response = self._get_notifications_ajax_community().json()
 
-        response = self.get_message_alerts()
-        while notification_ids(response.text):
-            response = self._post_messages_alert(notification_ids(response.text))
+        response = self._get_notifications_ajax_system().json()
+        while response['totalAlerts']:
+            self._post_messages_alert([_['id'] for _ in response['alertList']])
+            response = self._get_notifications_ajax_system().json()
 
     def collect_weekly_reward(self):
         self.update_weekly_challenge()
@@ -1065,15 +1116,17 @@ class Citizen(classes.CitizenAPI):
                  "foodRaw": dict(q1=item_data.copy()), "weaponRaw": dict(q1=item_data.copy()),
                  "houseRaw": dict(q1=item_data.copy()), "airplaneRaw": dict(q1=item_data.copy())}
 
-        countries = [country_id] if country_id else self.countries
+        if country_id:
+            countries = [country_id]
+        else:
+            good_countries = self.get_travel_countries()
+            countries = [cid for cid in self.countries.keys() if cid in good_countries]
         if product not in self.available_industries:
             self.write_log("Industry '{}' not implemented".format(product))
-            return ret
+            raise IndexError("Industry '{}' not implemented".format(product))
 
         start_dt = self.now
         for country in countries:
-            if not country_id and not self.get_country_travel_region(country):
-                continue
             for industry in [product] or items:
                 for q in [quality] if quality else range(1, 8):
                     if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
