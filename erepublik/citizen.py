@@ -630,7 +630,7 @@ class Citizen(classes.CitizenAPI):
             ret_battles.append(battle_id)
 
         ret_battles += cs_battles_air + cs_battles_ground + deployed_battles_air + deployed_battles_ground + \
-            ally_battles_air + ally_battles_ground + other_battles_air + other_battles_ground
+                       ally_battles_air + ally_battles_ground + other_battles_air + other_battles_ground
         return ret_battles
 
     @property
@@ -1099,7 +1099,6 @@ class Citizen(classes.CitizenAPI):
             self._post_delete_message([msg_id])
 
     def get_market_offers(self, country_id: int = None, product: str = None, quality: int = None) -> dict:
-        ret = dict()
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
         if product in raw_short_names:
@@ -1210,7 +1209,7 @@ class Citizen(classes.CitizenAPI):
                                     value="New amount {o.cc}cc, {o.gold}g".format(o=self.details))
         return not response.json().get("error", False)
 
-    def activate_dmg_booster(self, battle_id: int) -> None:
+    def activate_dmg_booster(self, battle_id: int):
         if self.config.boosters:
             duration = 0
             if self.boosters.get("100_damageBoosters_5_600", 0) > 0:
@@ -1253,7 +1252,7 @@ class Citizen(classes.CitizenAPI):
                 self.sleep(5)
 
     def reject_money_donations(self) -> int:
-        r = self.get_message_alerts()
+        r = self._get_notifications_ajax_system()
         count = 0
         donation_ids = re.findall(r"erepublik.functions.acceptRejectDonation\(\"reject\", (\d+)\)", r.text)
         while donation_ids:
@@ -1261,7 +1260,7 @@ class Citizen(classes.CitizenAPI):
                 self._get_money_donation_reject(int(don_id))
                 count += 1
                 self.sleep(5)
-            r = self.get_message_alerts()
+            r = self._get_notifications_ajax_system()
             donation_ids = re.findall(r"erepublik.functions.acceptRejectDonation\(\"reject\", (\d+)\)", r.text)
         return count
 
@@ -1617,8 +1616,8 @@ class Citizen(classes.CitizenAPI):
         ret = {}
         r = self._get_military_unit_data(mu_id)
 
-        for page in range(1, int(r.json()["panelContents"]["pages"]) + 1):
-            r = self._get_military_unit_data(mu_id, page)
+        for page in range(int(r.json()["panelContents"]["pages"])):
+            r = self._get_military_unit_data(mu_id, currentPage=page + 1)
             for user in r.json()["panelContents"]["members"]:
                 if not user["isDead"]:
                     ret.update({user["citizenId"]: user["name"]})
