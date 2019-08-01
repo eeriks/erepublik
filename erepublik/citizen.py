@@ -5,7 +5,7 @@ import sys
 import threading
 import time
 from json import loads, dumps
-from typing import Dict, List, Tuple, Any, Union, Mapping
+from typing import Dict, List, Tuple, Any, Union
 
 import requests
 from requests import Response, RequestException
@@ -18,9 +18,9 @@ class Citizen(classes.CitizenAPI):
 
     division = 0
 
-    all_battles: Dict[int, classes.Battle] = dict()
-    countries: Dict[int, Dict[str, Union[str, List[int]]]] = dict()
-    __last_war_update_data = {}
+    all_battles: Dict[int, classes.Battle] = None
+    countries: Dict[int, Dict[str, Union[str, List[int]]]] = None
+    __last_war_update_data = None
     __last_full_update: datetime.datetime = utils.now().min
 
     active_fs: bool = False
@@ -44,8 +44,8 @@ class Citizen(classes.CitizenAPI):
     work_units = 0
     ot_points = 0
 
-    tg_contract = {}
-    promos = {}
+    tg_contract = None
+    promos = None
 
     eday = 0
 
@@ -293,7 +293,7 @@ class Citizen(classes.CitizenAPI):
             html = self.r.text
         ugly_js = re.search(r"promotions: (\[{?.*}?]),\s+", html).group(1)
         promos = loads(utils.normalize_html_json(ugly_js))
-        self.promos = {k: v for k, v in self.promos.items() if v > self.now}
+        self.promos = {k: v for k, v in (self.promos.items() if self.promos else {}) if v > self.now}
         send_mail = False
         for promo in promos:
             promo_name = promo.get("id")
@@ -443,8 +443,9 @@ class Citizen(classes.CitizenAPI):
             self.update_citizen_info()
 
         resp_json = self._get_military_campaigns().json()
-        self.all_battles = {}
         if resp_json.get("countries"):
+            self.all_battles = {}
+            self.countries = {}
             for c_id, c_data in resp_json.get("countries").items():
                 if int(c_id) not in self.countries:
                     self.countries.update({
@@ -807,7 +808,7 @@ class Citizen(classes.CitizenAPI):
         r = self._get_training_grounds_json()
         tg_json = r.json()
         self.details.gold = tg_json["page_details"]["gold"]
-        self.tg_contract.update({"free_train": tg_json["hasFreeTrain"]})
+        self.tg_contract = {"free_train": tg_json["hasFreeTrain"]}
         if tg_json["contracts"]:
             self.tg_contract.update(**tg_json["contracts"][0])
 

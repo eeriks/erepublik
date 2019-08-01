@@ -26,11 +26,13 @@ class ErepublikNetworkException(Exception):
 class MyCompanies:
     work_units: int = 0
     next_ot_time: datetime.datetime
-    holdings: Dict[int, Dict] = dict()
-    companies: Dict[int, Dict] = dict()
+    holdings: Dict[int, Dict] = None
+    companies: Dict[int, Dict] = None
     ff_lockdown: int = 0
 
     def __init__(self):
+        self.holdings = dict()
+        self.companies = dict()
         self.next_ot_time = utils.now()
 
     def prepare_holdings(self, holdings: dict):
@@ -970,8 +972,8 @@ class MyJSONEncoder(JSONEncoder):
 class BattleSide:
     id: int
     points: int
-    deployed: List[int] = list()
-    allies: List[int] = list()
+    deployed: List[int] = None
+    allies: List[int] = None
 
     def __init__(self, country_id: int, points: int, allies: List[int], deployed: List[int]):
         self.id = country_id
@@ -983,8 +985,8 @@ class BattleSide:
 class BattleDivision:
     end: datetime.datetime
     epic: bool
-    dom_pts: Dict[str, int] = dict()
-    wall: Dict[str, Union[int, float]] = dict()
+    dom_pts: Dict[str, int] = None
+    wall: Dict[str, Union[int, float]] = None
 
     @property
     def div_end(self) -> bool:
@@ -993,8 +995,8 @@ class BattleDivision:
     def __init__(self, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int, wall_for: int, wall_dom: float):
         self.end = end
         self.epic = epic
-        self.dom_pts.update({"inv": inv_pts, "def": def_pts})
-        self.wall.update({"for": wall_for, "dom": wall_dom})
+        self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
+        self.wall = dict({"for": wall_for, "dom": wall_dom})
 
 
 class Battle(object):
@@ -1006,13 +1008,13 @@ class Battle(object):
     start: datetime.datetime = None
     invader: BattleSide = None
     defender: BattleSide = None
-    div: Dict[int, BattleDivision] = dict()
+    div: Dict[int, BattleDivision] = None
 
     @property
     def is_air(self) -> bool:
         return not bool(self.zone_id % 4)
 
-    def __init__(self, battle: dict):
+    def __init__(self, battle: Dict[str, Any]):
         self.id = int(battle.get('id', 0))
         self.war_id = int(battle.get('war_id', 0))
         self.zone_id = int(battle.get('zone_id', 0))
@@ -1029,6 +1031,7 @@ class Battle(object):
                                    [row.get('id') for row in battle.get('def', {}).get('ally_list')],
                                    [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']])
 
+        self.div = {}
         for div, data in battle.get('div', {}).items():
             div = int(div)
             if data.get('end'):
