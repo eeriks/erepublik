@@ -771,9 +771,9 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def _post_travel_data(self, **kwargs) -> Response:
         return self.post("{}/main/travelData".format(self.url), data=dict(_token=self.token, **kwargs))
 
-    def _post_wars_attack_region(self, war: int, region: int) -> Response:
-        data = dict(_token=self.token)
-        return self.post("{}/wars/attack-region/{}/{}".format(self.url, war, region), data=data)
+    def _post_wars_attack_region(self, war_id: int, region_id: int, region_name: str) -> Response:
+        data = {'_token': self.token, 'warId': war_id, 'regionName': region_name, 'regionNameConfirm': region_name}
+        return self.post('{}/wars/attack-region/{}/{}'.format(self.url, war_id, region_id), data=data)
 
     def _post_weekly_challenge_reward(self, reward_id: int) -> Response:
         data = dict(_token=self.token, rewardId=reward_id)
