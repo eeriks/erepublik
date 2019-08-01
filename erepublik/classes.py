@@ -752,6 +752,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
                     type="damage", leftPage=1, rightPage=1, _token=self.token)
         return self.post("{}/military/battle-console".format(self.url, battle_id), data=data)
 
+    def _post_military_deploy_bomb(self, battle_id: int, bomb_id: int) -> Response:
+        data = dict(battleId=battle_id, bombId=bomb_id, _token=self.token)
+        return self.post("{}/military/deploy-bomb".format(self.url), data=data)
+
     def _post_military_fight_air(self, battle_id: int, side_id: int) -> Response:
         data = dict(sideId=side_id, battleId=battle_id, _token=self.token)
         return self.post("{}/military/fight-shoooot/{}".format(self.url, battle_id), data=data)

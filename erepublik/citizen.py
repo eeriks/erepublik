@@ -759,6 +759,10 @@ class Citizen(classes.CitizenAPI):
 
         return hits, err, damage
 
+    def deploy_bomb(self, battle_id: int, bomb_id: int):
+        r = self._post_military_deploy_bomb(battle_id, bomb_id).json()
+        return not r.get('error')
+
     def work_ot(self):
         # I"m not checking for 1h cooldown. Beware of nightshift work, if calling more than once every 60min
         self.update_job_info()
