@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import re
 import sys
 import threading
@@ -1116,14 +1117,15 @@ class Citizen(classes.CitizenAPI):
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
         if product:
-            if product not in self.available_industries:
+            if product not in self.available_industries and product not in raw_short_names:
                 self.write_log("Industry '{}' not implemented".format(product))
-                raise IndexError("Industry '{}' not implemented".format(product))
+                raise classes.ErepublikException("Industry '{}' not implemented".format(product))
             elif product in raw_short_names:
                 quality = 1
                 product = raw_short_names.get(product)
-        else:
-            product = []
+            product = [product]
+        elif quality:
+            raise classes.ErepublikException("Quality without product not allowed")
 
         item_data = dict(price=999999., country=0, amount=0, offer_id=0, citizen_id=0)
 
@@ -1140,41 +1142,39 @@ class Citizen(classes.CitizenAPI):
             countries = [country_id]
         else:
             good_countries = self.get_travel_countries()
-            countries = [cid for cid in self.countries.keys() if cid in good_countries]
+            countries = {cid for cid in self.countries.keys() if cid in good_countries}
 
         start_dt = self.now
-        for country in countries:
-            for industry in product or items:
-                for q in [quality] if quality else range(1, 8):
-                    if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
-                        break
+        iterable = [countries, product or items, [quality] if quality else range(1, 8)]
+        for country, industry, q in itertools.product(*iterable):
+            if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
+                continue
 
-                    str_q = "q%i" % q
+            str_q = "q%i" % q
 
-                    data = {'country': country, 'industry': self.available_industries[industry], 'quality': q}
-                    r = self._post_economy_marketplace(**data).json()
-                    obj = items[industry][str_q]
-                    if not r.get("error", False):
-                        for offer in r["offers"]:
-                            if obj["price"] > float(offer["priceWithTaxes"]):
-                                obj["price"] = float(offer["priceWithTaxes"])
-                                obj["country"] = int(offer["country_id"])
-                                obj["amount"] = int(offer["amount"])
-                                obj["offer_id"] = int(offer["id"])
-                                obj["citizen_id"] = int(offer["citizen_id"])
-                            elif obj["price"] == float(offer["priceWithTaxes"]) and obj["amount"] < int(offer["amount"]):
-                                obj["country"] = int(offer["country_id"])
-                                obj["amount"] = int(offer["amount"])
-                                obj["offer_id"] = int(offer["id"])
+            r = self._post_economy_marketplace(country, self.available_industries[industry], q).json()
+            obj = items[industry][str_q]
+            if not r.get("error", False):
+                for offer in r["offers"]:
+                    if obj["price"] > float(offer["priceWithTaxes"]):
+                        obj["price"] = float(offer["priceWithTaxes"])
+                        obj["country"] = int(offer["country_id"])
+                        obj["amount"] = int(offer["amount"])
+                        obj["offer_id"] = int(offer["id"])
+                        obj["citizen_id"] = int(offer["citizen_id"])
+                    elif obj["price"] == float(offer["priceWithTaxes"]) and obj["amount"] < int(offer["amount"]):
+                        obj["country"] = int(offer["country_id"])
+                        obj["amount"] = int(offer["amount"])
+                        obj["offer_id"] = int(offer["id"])
         self.write_log("Scraped market in {}!".format(self.now - start_dt))
 
         if quality:
-            ret = items[product]["q%i" % quality]
+            ret = items[product[0]]["q%i" % quality]
         elif product:
-            if product in raw_short_names.values():
-                ret = items[product]["q1"]
+            if product[0] in raw_short_names.values():
+                ret = items[product[0]]["q1"]
             else:
-                ret = items[product]
+                ret = items[product[0]]
         else:
             ret = items
         return ret
