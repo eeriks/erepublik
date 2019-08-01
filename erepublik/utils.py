@@ -11,12 +11,11 @@ from collections import deque
 from decimal import Decimal
 from json import JSONEncoder
 from pathlib import Path
-from typing import Union, Dict, Any, List
+from typing import Union, Any, List, NoReturn, Mapping
 
 import pytz
 import requests
 from requests import Response
-
 
 __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz",
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
@@ -85,6 +84,19 @@ COUNTRIES = {1: 'Romania', 9: 'Brazil', 10: 'Italy', 11: 'France', 12: 'Germany'
              82: 'Cyprus', 83: 'Belarus', 84: 'New Zealand', 164: 'Saudi Arabia', 165: 'Egypt',
              166: 'United Arab Emirates', 167: 'Albania', 168: 'Georgia', 169: 'Armenia', 170: 'Nigeria', 171: 'Cuba'}
 
+COUNTRY_LINK = {1: 'Romania', 9: 'Brazil', 11: 'France', 12: 'Germany', 13: 'Hungary', 82: 'Cyprus', 168: 'Georgia',
+                15: 'Spain', 23: 'Canada', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 80: 'Montenegro', 24: 'USA',
+                29: 'United-Kingdom', 50: 'Australia', 47: 'South-Korea',171: 'Cuba', 79: 'Republic-of-Macedonia-FYROM',
+                30: 'Switzerland', 31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech-Republic', 35: 'Poland',
+                36: 'Slovakia', 37: 'Norway', 38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria',
+                43: 'Turkey', 44: 'Greece', 45: 'Japan', 48: 'India', 49: 'Indonesia', 78: 'Colombia', 68: 'Singapore',
+                51: 'South Africa', 52: 'Republic-of-Moldova', 53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran',
+                57: 'Pakistan', 58: 'Israel', 59: 'Thailand', 61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia',
+                66: 'Malaysia', 67: 'Philippines', 70: 'Estonia', 165: 'Egypt', 14: 'China', 77: 'Peru', 10: 'Italy',
+                71: 'Latvia', 72: 'Lithuania', 73: 'North-Korea', 74: 'Uruguay', 75: 'Paraguay', 76: 'Bolivia',
+                81: 'Republic-of-China-Taiwan', 166: 'United-Arab-Emirates', 167: 'Albania', 69: 'Bosnia-Herzegovina',
+                169: 'Armenia', 83: 'Belarus', 84: 'New-Zealand', 164: 'Saudi-Arabia', 170: 'Nigeria', }
+
 
 class MyJSONEncoder(JSONEncoder):
     def default(self, o):
@@ -107,18 +119,22 @@ class MyJSONEncoder(JSONEncoder):
         return super().default(o)
 
 
-def now():
+def now() -> datetime.datetime:
     return datetime.datetime.now(erep_tz).replace(microsecond=0)
 
 
-def localize_timestamp(timestamp: int):
+def localize_timestamp(timestamp: int) -> datetime.datetime:
     return datetime.datetime.fromtimestamp(timestamp, erep_tz)
 
 
-def localize_dt(dt: Union[datetime.date, datetime.datetime]):
-    if isinstance(dt, datetime.date):
-        dt = datetime.datetime.combine(dt, datetime.time(0, 0, 0))
-    return erep_tz.localize(dt)
+def localize_dt(dt: Union[datetime.date, datetime.datetime]) -> datetime.datetime:
+    try:
+        try:
+            return erep_tz.localize(dt)
+        except AttributeError:
+            return erep_tz.localize(datetime.datetime.combine(dt, datetime.time(0, 0, 0)))
+    except ValueError:
+        return dt.astimezone(erep_tz)
 
 
 def good_timedelta(dt: datetime.datetime, td: datetime.timedelta) -> datetime.datetime:
@@ -237,7 +253,7 @@ def write_request(response: requests.Response, is_error: bool = False):
                 "mimetype": "application/json" if ext == "json" else "text/html"}
 
 
-def send_email(name: str, content: List[Any], player=None, local_vars: Dict[Any, Any] = None,
+def send_email(name: str, content: List[Any], player=None, local_vars: Mapping[Any, Any] = None,
                promo: bool = False, captcha: bool = False):
     if local_vars is None:
         local_vars = {}
@@ -322,11 +338,11 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     send_email(name, bugtrace, citizen, local_vars=trace)
 
 
-def report_promo(kind: str, time_untill: datetime.datetime):
+def report_promo(kind: str, time_untill: datetime.datetime) -> NoReturn:
     requests.post('https://api.erep.lv/promos/add/', data=dict(kind=kind, time_untill=time_untill))
 
 
-def slugify(value, allow_unicode=False):
+def slugify(value, allow_unicode=False) -> str:
     """
     Function copied from Django2.2.1 django.utils.text.slugify
     Convert to ASCII if 'allow_unicode' is False. Convert spaces to hyphens.

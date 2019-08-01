@@ -5,7 +5,7 @@ import sys
 import threading
 import time
 from json import loads, dumps
-from typing import Dict, List, Tuple, Any, Union
+from typing import Dict, List, Tuple, Any, Union, Mapping
 
 import requests
 from requests import Response, RequestException
@@ -21,9 +21,9 @@ class Citizen(classes.CitizenAPI):
     all_battles: Dict[int, classes.Battle] = dict()
     countries: Dict[int, Dict[str, Union[str, List[int]]]] = dict()
     __last_war_update_data = {}
-    __last_full_update: datetime.datetime
+    __last_full_update: datetime.datetime = utils.now().min
 
-    active_fs = False
+    active_fs: bool = False
 
     food = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
     inventory = {"used": 0, "total": 0}
@@ -1669,18 +1669,45 @@ class Citizen(classes.CitizenAPI):
                 for resident in resp["widgets"]["residents"]["residents"]:
                     self.add_friend(resident["citizenId"])
 
-    def schedule_attack(self, war_id: int, region_id: int, at_time: datetime) -> None:
+    def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime) -> None:
         if at_time:
             self.sleep(utils.get_sleep_seconds(at_time))
         self.get_csrf_token()
-        self._launch_battle(war_id, region_id)
+        self.launch_attack(war_id, region_id, region_name)
 
-    def get_active_wars_with_regions(self):
-        self._get_country_military(self.countries.get(self.details.citizen_id)["name"])
-        raise NotImplementedError
+    def get_active_wars(self, country_id: int = None) -> List[int]:
+        r = self._get_country_military(utils.COUNTRY_LINK.get(country_id or self.details.citizenship))
+        all_war_ids = re.findall(r'//www\.erepublik\.com/en/wars/show/(\d+)"', r.text)
+        return [int(wid) for wid in all_war_ids]
 
-    def _launch_battle(self, war_id: int, region_id: int) -> Response:
-        return self._post_wars_attack_region(war_id, region_id)
+    def get_war_status(self, war_id: int) -> Dict[str, Union[bool, Dict[int, str]]]:
+        r = self._get_wars_show(war_id)
+        html = r.text
+        ret = {}
+        reg_re = re.compile(fr'data-war-id="{war_id}" data-region-id="(\d+)" data-region-name="([- \w]+)"')
+        if reg_re.findall(html):
+            ret.update(regions={}, can_attack=True)
+            for reg in reg_re.findall(html):
+                ret["regions"].update({str(reg[0]): reg[1]})
+        elif re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)" '
+                       r'class="join" title="Join"><span>Join</span></a>', html):
+            battle_id = re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)" '
+                                  r'class="join" title="Join"><span>Join</span></a>', html).group(1)
+            ret.update(can_attack=False, battle_id=battle_id)
+        else:
+            ret.update(can_attack=False)
+        return ret
+
+    def get_last_battle_of_war_end_time(self, war_id: int) -> datetime:
+        r = self._get_wars_show(war_id)
+        html = r.text
+        last_battle_id = int(re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)">', html).group(1))
+        console = self._post_military_battle_console(last_battle_id, 'warList', 1).json()
+        battle = console.get('list')[0]
+        return utils.localize_dt(datetime.datetime.strptime(battle.get('result').get('end'), "%Y-%m-%d %H:%M:%S"))
+
+    def launch_attack(self, war_id: int, region_id: int, region_name: str):
+        self._post_wars_attack_region(war_id, region_id, region_name)
 
     def state_update_repeater(self):
         try:

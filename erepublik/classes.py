@@ -5,7 +5,7 @@ import random
 import time
 from collections import deque
 from json import JSONDecodeError, loads, JSONEncoder
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Mapping, Iterable
 
 from requests import Response, Session
 
@@ -41,7 +41,7 @@ class MyCompanies:
         template = dict(id=0, num_factories=0, region_id=0, companies=[])
 
         for holding_id, holding in holdings.items():
-            tmp: Dict[str, Union[List[Any], Any]] = {}
+            tmp: Dict[str, Union[Iterable[Any], Any]] = {}
             for key in template:
                 if key == 'companies':
                     tmp.update({key: []})
@@ -470,7 +470,7 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def _get_citizen_daily_assistant(self) -> Response:
         return self.get("{}/main/citizenDailyAssistant".format(self.url))
 
-    def _get_city_data_residents(self, city: int, page: int = 1, params: Dict[str, Any] = None) -> Response:
+    def _get_city_data_residents(self, city: int, page: int = 1, params: Mapping[str, Any] = None) -> Response:
         if params is None:
             params = {}
         return self.get("{}/main/city-data/{}/residents".format(self.url, city), params={"currentPage": page, **params})
@@ -548,6 +548,9 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
 
     def _get_weekly_challenge_data(self) -> Response:
         return self.get("{}/main/weekly-challenge-data".format(self.url))
+
+    def _get_wars_show(self, war_id: int) -> Response:
+        return self.get("{}/wars/show/{}".format(self.url, war_id))
 
     def _post_activate_battle_effect(self, battle: int, kind: str, citizen_id: int) -> Response:
         data = dict(battleId=battle, citizenId=citizen_id, type=kind, _token=self.token)
@@ -747,10 +750,14 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
                     citizen_subject=subject, _token=self.token, citizen_message=body)
         return self.post("{}/main/messages-compose/{}}".format(self.url, url_pk), data=data)
 
-    def _post_military_battle_console(self, battle_id: int, round_id: int, division: int) -> Response:
-        data = dict(battleId=battle_id, zoneId=round_id, action="battleStatistics", round=round_id, division=division,
-                    type="damage", leftPage=1, rightPage=1, _token=self.token)
-        return self.post("{}/military/battle-console".format(self.url, battle_id), data=data)
+    def _post_military_battle_console(self, battle_id: int, action: str, page: int = 1, **kwargs) -> Response:
+        data = dict(battleId=battle_id, action=action, _token=self.token)
+        if action == "battleStatistics":
+            data.update(round=kwargs["round_id"], zoneId=kwargs["round_id"], leftPage=page, rightPage=page,
+                        division=kwargs["division"], type=kwargs.get("type", 'damage'),)
+        elif action == "warList":
+            data.update(page=page)
+        return self.post("{}/military/battle-console".format(self.url), data=data)
 
     def _post_military_deploy_bomb(self, battle_id: int, bomb_id: int) -> Response:
         data = dict(battleId=battle_id, bombId=bomb_id, _token=self.token)
