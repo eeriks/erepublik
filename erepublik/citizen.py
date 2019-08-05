@@ -1356,7 +1356,7 @@ class Citizen(classes.CitizenAPI):
 
         if count > 0 and not force_fight:
             if self.my_companies.ff_lockdown and self.details.pp > 75:
-                if count - self.my_companies.ff_lockdown > 0:
+                if self.energy.food_fights - self.my_companies.ff_lockdown < count:
                     log_msg = ("Fight count modified (old count: {} | FF: {} | "
                                "WAM ff_lockdown: {} | New count: {})").format(
                         count, self.energy.food_fights, self.my_companies.ff_lockdown,
@@ -1368,9 +1368,12 @@ class Citizen(classes.CitizenAPI):
                     log_msg = "Not fighting because WAM needs {} food fights".format(self.my_companies.ff_lockdown)
 
             if self.max_time_till_full_ff > self.time_till_week_change:
-                max_count = int((self.time_till_week_change - self.time_till_full_ff).total_seconds()) // 60
-                log_msg = "End for Weekly challenge is near ({} | {})".format(max_count, count)
-                count = count if max_count > count else max_count
+                max_count = int((self.time_till_week_change -
+                                 self.time_till_full_ff).total_seconds()) // 360 * self.energy.interval
+                log_msg = "End for Weekly challenge is near (Recoverable until WC end {}hp | want to do {}hits)".format(
+                    max_count, count)
+                max_usable_energy = max_count - self.energy.limit * 2
+                count = count if max_usable_energy > count * 10 else max_usable_energy // 10
 
         if not silent:
             self.write_log(log_msg, False)
