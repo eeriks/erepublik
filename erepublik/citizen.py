@@ -1897,3 +1897,7 @@ class Citizen(classes.CitizenAPI):
 
     def to_json(self, indent: bool = False) -> str:
         return dumps(self.__dict__, cls=utils.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+
+    def get_game_token_offers(self):
+        r = self._post_economy_game_tokens_market('retrieve').json()
+        return {v.get('id'): dict(amount=v.get('amount'), price=v.get('price')) for v in r.get("topOffers")}
