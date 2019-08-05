@@ -256,7 +256,7 @@ class Citizen(classes.CitizenAPI):
                 continue
         if data:
 
-            msgs = ["{count} ✕ {kind}, totaling {} {currency}\n"
+            msgs = ["{count} x {kind}, totaling {} {currency}\n"
                     "{about}".format(d["count"] * d["reward"], **d) for d in data.values()]
 
             self.write_log("Found awards: {}".format("\n".join(msgs)))
@@ -1872,7 +1872,7 @@ class Citizen(classes.CitizenAPI):
 
     def write_on_country_wall(self, message: str) -> bool:
         self._get_main()
-        post_to_wall_as = re.findall(r"""id="post_to_country_as".*?<option value="(\d?)">.*?</option>.*</select>""",
+        post_to_wall_as = re.findall(r'id="post_to_country_as".*?<option value="(\d?)">.*?</option>.*</select>',
                                      self.r.text, re.S | re.M)
         r = self._post_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
         return r.json()

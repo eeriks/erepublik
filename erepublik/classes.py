@@ -1042,7 +1042,7 @@ class Battle(object):
             if data.get('end'):
                 end = datetime.datetime.fromtimestamp(data.get('end'), tz=utils.erep_tz)
             else:
-                end = datetime.datetime.max
+                end = utils.localize_dt(utils.good_timedelta(datetime.datetime.max, datetime.timedelta(days=1)))
 
             battle_div = BattleDivision(
                 end=end, epic=data.get('epic_type') in [1, 5],
