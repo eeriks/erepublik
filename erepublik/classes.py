@@ -650,6 +650,11 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(_token=self.token, personalOffers=int(personal), page=page, currencyId=currency)
         return self.post("{}/economy/exchange/retrieve/".format(self.url), data=data)
 
+    def _post_economy_game_tokens_market(self, action: str) -> Response:
+        assert action in ['retrieve', ]
+        data = dict(_token=self.token, action=action)
+        return self.post("{}/economy/gameTokensMarketAjax".format(self.url), data=data)
+
     def _post_economy_job_market_apply(self, citizen: int, salary: int) -> Response:
         data = dict(_token=self.token, citizenId=citizen, salary=salary)
         return self.post("{}/economy/job-market-apply".format(self.url), data=data)
