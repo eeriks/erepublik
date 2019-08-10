@@ -1290,8 +1290,8 @@ class Citizen(classes.CitizenAPI):
     def should_travel_to_fight(self) -> bool:
         ret = False
         if self.config.always_travel:
-            return True
-        if self.should_do_levelup:  # Do levelup
+            ret = True
+        elif self.should_do_levelup:  # Do levelup
             ret = True
         elif self.config.all_in and self.energy.available > self.energy.limit * 2 - self.energy.interval * 3:
             ret = True
@@ -1313,7 +1313,7 @@ class Citizen(classes.CitizenAPI):
         if self.is_levelup_reachable:
             log_msg = "Level up"
             if self.should_do_levelup:
-                count = (self.energy.limit * 3) // 10
+                count = (self.energy.available + self.energy.limit) // 10
                 force_fight = True
             else:
                 self.write_log("Waiting for fully recovered energy before leveling up.", False)
@@ -1440,14 +1440,8 @@ class Citizen(classes.CitizenAPI):
         If Energy limit >= xp till levelup * 10
         :return: bool
         """
-        if self.energy.limit - self.energy.interval <= self.energy.recoverable:
-            if self.is_levelup_reachable:
-                # 45xp till levelup, 50hp/6min, 500+500/500 energy = 500+450 >= 1000
-                # 40xp till levelup, 50hp/6min, 450+500/500 energy = 500+400 >= 950
-                # 25xp till levelup, 50hp/6min, 300+500/500 energy = 500+250 >= 800
-                # 25xp till levelup, 50hp/6min, 300+200/500 energy = 500+250 >= 500
-                return self.energy.limit + self.details.xp_till_level_up * 10 <= self.energy.available
-        return False
+        return (self.energy.recovered >= self.details.xp_till_level_up * 10 and  # can reach next level
+                self.energy.recoverable + 2 * self.energy.interval >= self.energy.limit)  # can do max amount of dmg
 
     def get_article_comments(self, article_id: int = 2645676, page_id: int = 1) -> Response:
         return self._post_article_comments(article_id, page_id)
