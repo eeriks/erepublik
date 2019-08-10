@@ -755,7 +755,7 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         url_pk = 0 if len(citizens) > 1 else str(citizens[0])
         data = dict(citizen_name=",".join([str(x) for x in citizens]),
                     citizen_subject=subject, _token=self.token, citizen_message=body)
-        return self.post("{}/main/messages-compose/{}}".format(self.url, url_pk), data=data)
+        return self.post("{}/main/messages-compose/{}".format(self.url, url_pk), data=data)
 
     def _post_military_battle_console(self, battle_id: int, action: str, page: int = 1, **kwargs) -> Response:
         data = dict(battleId=battle_id, action=action, _token=self.token)
