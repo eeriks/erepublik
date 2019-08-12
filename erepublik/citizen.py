@@ -1895,3 +1895,13 @@ class Citizen(classes.CitizenAPI):
     def get_game_token_offers(self):
         r = self._post_economy_game_tokens_market('retrieve').json()
         return {v.get('id'): dict(amount=v.get('amount'), price=v.get('price')) for v in r.get("topOffers")}
+
+    def fetch_organisation_account(self, org_id: int):
+        r = self._get_economy_citizen_accounts(org_id)
+        table = re.search(r'(<table class="holder racc" .*</table>)', r.text, re.I | re.M | re.S)
+        if table:
+            account = re.findall(r'>(\d+.\d+)<', table.group(1))
+            if account:
+                return {"gold": account[0], "cc": account[1], 'ok': True}
+
+        return {"gold": 0, "cc": 0, 'ok': False}

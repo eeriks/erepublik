@@ -480,6 +480,9 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def _get_country_military(self, country: str) -> Response:
         return self.get("{}/country/military/{}".format(self.url, country))
 
+    def _get_economy_citizen_accounts(self, organisation_id: int) -> Response:
+        return self.get("{}/economy/citizen-accounts/{}".format(self.url, organisation_id))
+
     def _get_economy_inventory_items(self) -> Response:
         return self.get("{}/economy/inventory-items/".format(self.url))
 
