@@ -1900,7 +1900,7 @@ class Citizen(classes.CitizenAPI):
         r = self._get_economy_citizen_accounts(org_id)
         table = re.search(r'(<table class="holder racc" .*</table>)', r.text, re.I | re.M | re.S)
         if table:
-            account = re.findall(r'>(\d+.\d+)<', table.group(1))
+            account = re.findall(r'>\s*(\d+.\d+)\s*</td>', table.group(1))
             if account:
                 return {"gold": account[0], "cc": account[1], 'ok': True}
 
