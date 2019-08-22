@@ -345,9 +345,8 @@ class Citizen(classes.CitizenAPI):
         self.details.xp = citizen.get("currentExperiencePoints", 0)
         self.details.daily_task_done = citizen.get("dailyTasksDone", False)
         self.details.daily_task_reward = citizen.get("hasReward", False)
-        # if citizen.get("dailyOrderDone", False) and not citizen.get("hasDailyOrderReward", False):
-        #     self.post_military_group_missions(self.token)
-        #     self.get_citizen_daily_assistant()
+        if citizen.get("dailyOrderDone", False) and not citizen.get("hasDailyOrderReward", False):
+            self._post_military_group_missions()
 
         self.details.next_pp.sort()
         for id_, skill in citizen.get("mySkills", {}).items():
