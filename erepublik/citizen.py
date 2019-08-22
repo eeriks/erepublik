@@ -463,27 +463,23 @@ class Citizen(classes.CitizenAPI):
         """
         self.update_citizen_info()
         self.update_inventory()
-        if self.details.xp_till_level_up > (self.energy.recovered - 50) // 10:
-            if self.food["total"] > self.energy.interval:
-                if self.energy.limit - self.energy.recovered > self.energy.interval or not self.energy.recoverable % 2:
-                    self._eat("blue")
-                else:
-                    self.write_log("I don't want to eat right now!")
+        if self.food["total"] > self.energy.interval:
+            if self.energy.limit - self.energy.recovered > self.energy.interval or not self.energy.recoverable % 2:
+                self._eat("blue")
             else:
-                self.write_log("I'm out of food! But I'll try to buy some!\n{}".format(self.food))
-                self.buy_food()
-                self.update_inventory()
-                if self.food["total"] > self.energy.interval:
-                    self.eat()
-                else:
-                    self.write_log("I failed to buy food")
+                self.write_log("I don't want to eat right now!")
         else:
-            self.write_log("I'm not allowed to eat because I have levelup coming up!")
+            self.write_log("I'm out of food! But I'll try to buy some!\n{}".format(self.food))
+            self.buy_food()
+            self.update_inventory()
+            if self.food["total"] > self.energy.interval:
+                self.eat()
+            else:
+                self.write_log("I failed to buy food")
         self.write_log(self.health_info)
 
     def eat_ebs(self):
         self.write_log("Eating energy bar")
-        self.update_citizen_info()
         if self.energy.recoverable:
             self._eat("blue")
         self._eat("orange")
