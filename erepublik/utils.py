@@ -7,22 +7,17 @@ import sys
 import time
 import traceback
 import unicodedata
-from collections import deque
-from decimal import Decimal
-from json import JSONEncoder
 from pathlib import Path
 from typing import Union, Any, List, NoReturn, Mapping
 
 import pytz
 import requests
-from requests import Response
 
 __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz",
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
            "send_email", "normalize_html_json", "process_error", ]
-
 
 FOOD_ENERGY = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID = "7b92e19"
@@ -86,7 +81,8 @@ COUNTRIES = {1: 'Romania', 9: 'Brazil', 10: 'Italy', 11: 'France', 12: 'Germany'
 
 COUNTRY_LINK = {1: 'Romania', 9: 'Brazil', 11: 'France', 12: 'Germany', 13: 'Hungary', 82: 'Cyprus', 168: 'Georgia',
                 15: 'Spain', 23: 'Canada', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 80: 'Montenegro', 24: 'USA',
-                29: 'United-Kingdom', 50: 'Australia', 47: 'South-Korea',171: 'Cuba', 79: 'Republic-of-Macedonia-FYROM',
+                29: 'United-Kingdom', 50: 'Australia', 47: 'South-Korea', 171: 'Cuba',
+                79: 'Republic-of-Macedonia-FYROM',
                 30: 'Switzerland', 31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech-Republic', 35: 'Poland',
                 36: 'Slovakia', 37: 'Norway', 38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria',
                 43: 'Turkey', 44: 'Greece', 45: 'Japan', 48: 'India', 49: 'Indonesia', 78: 'Colombia', 68: 'Singapore',
@@ -96,27 +92,6 @@ COUNTRY_LINK = {1: 'Romania', 9: 'Brazil', 11: 'France', 12: 'Germany', 13: 'Hun
                 71: 'Latvia', 72: 'Lithuania', 73: 'North-Korea', 74: 'Uruguay', 75: 'Paraguay', 76: 'Bolivia',
                 81: 'Republic-of-China-Taiwan', 166: 'United-Arab-Emirates', 167: 'Albania', 69: 'Bosnia-Herzegovina',
                 169: 'Armenia', 83: 'Belarus', 84: 'New-Zealand', 164: 'Saudi-Arabia', 170: 'Nigeria', }
-
-
-class MyJSONEncoder(JSONEncoder):
-    def default(self, o):
-        if isinstance(o, Decimal):
-            return float("{:.02f}".format(o))
-        elif isinstance(o, datetime.datetime):
-            return dict(__type__='datetime', year=o.year, month=o.month, day=o.day, hour=o.hour, minute=o.minute,
-                        second=o.second, microsecond=o.microsecond)
-        elif isinstance(o, datetime.date):
-            return dict(__type__='date', year=o.year, month=o.month, day=o.day)
-        elif isinstance(o, datetime.timedelta):
-            return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
-                        microseconds=o.microseconds, total_seconds=o.total_seconds())
-        elif isinstance(o, Response):
-            return dict(headers=o.headers.__dict__, url=o.url, text=o.text)
-        elif hasattr(o, '__dict__'):
-            return o.__dict__
-        elif isinstance(o, deque):
-            return list(o)
-        return super().default(o)
 
 
 def now() -> datetime.datetime:
@@ -296,6 +271,7 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Mapping[A
     if local_vars:
         if "state_thread" in local_vars:
             local_vars.pop('state_thread', None)
+        from erepublik.classes import MyJSONEncoder
         files.append(('file', ("local_vars.json", json.dumps(local_vars, indent=2,
                                                              cls=MyJSONEncoder, sort_keys=True), "application/json")))
     if isinstance(player, Citizen):
