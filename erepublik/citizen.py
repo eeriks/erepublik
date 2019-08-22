@@ -1142,7 +1142,7 @@ class Citizen(classes.CitizenAPI):
             countries = [country_id]
         else:
             good_countries = self.get_travel_countries()
-            countries = {cid for cid in self.countries.keys() if cid in good_countries}
+            countries = {cid for cid in utils.COUNTRIES.keys() if cid in good_countries}
 
         start_dt = self.now
         iterable = [countries, product or items, [quality] if quality else range(1, 8)]
