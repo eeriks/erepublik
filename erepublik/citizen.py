@@ -724,8 +724,7 @@ class Citizen(classes.CitizenAPI):
 
     def fight(self, battle_id: int, side_id: int, is_air: bool = False, count: int = None):
         if not is_air and self.config.boosters:
-            inventory = self.update_inventory()
-            self.activate_dmg_booster(battle_id)
+            self.activate_dmg_booster()
         data = dict(sideId=side_id, battleId=battle_id)
         error_count = 0
         ok_to_fight = True
@@ -822,10 +821,9 @@ class Citizen(classes.CitizenAPI):
         else:
             self._eat("blue")
             if self.energy.food_fights < 1:
-                large = max(self.energy.reference_time, self.now)
-                small = min(self.energy.reference_time, self.now)
-                self.write_log("I don't have energy to work. Will sleep for {}s".format((large - small).seconds))
-                self.sleep(int((large - small).total_seconds()))
+                seconds = (self.energy.reference_time - self.now).total_seconds()
+                self.write_log("I don't have energy to work. Will sleep for {}s".format(seconds))
+                self.sleep(seconds)
                 self._eat("blue")
             self.work()
 
@@ -991,7 +989,7 @@ class Citizen(classes.CitizenAPI):
 
     def sell_produced_product(self, kind: str, quality: int = 1, amount: int = 0):
         if not amount:
-            inv_resp = self.update_inventory()
+            inv_resp = self._get_economy_inventory_items().json()
             category = "rawMaterials" if kind.endswith("Raw") else "finalProducts"
             item = "{}_{}".format(self.available_industries[kind], quality)
             amount = inv_resp.get("inventoryItems").get(category).get("items").get(item).get("amount", 0)
@@ -1761,19 +1759,17 @@ class Citizen(classes.CitizenAPI):
     def check_house_durability(self) -> Dict[int, datetime.datetime]:
         ret = {}
         inv = self.update_inventory()
-        if "activeEnhancements" in inv.get("inventoryItems", {}):
-            active = inv.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {})
-            for q in range(1, 6):
-                if "4_%i_active" % q in active:
-                    till = utils.good_timedelta(self.now, datetime.timedelta(
-                        seconds=active["4_%i_active" % q]["active"]["time_left"]))
-                    ret.update({q: till})
+        active = inv["items"]['active']
+        for q in range(1, 6):
+            if f"House Q{q}" in active:
+                till = utils.good_timedelta(self.now, datetime.timedelta(seconds=active[f"House Q{q}"]))
+                ret.update({q: till})
         return ret
 
     def buy_and_activate_house(self, q: int) -> Dict[int, datetime.datetime]:
         inventory = self.update_inventory()
         ok_to_activate = False
-        if not inventory.get("inventoryItems").get("finalProducts", {}).get("items", {}).get("4_{}".format(q)):
+        if not inventory["items"]["final"].get("House Q{}".format(q)):
             offers = []
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
