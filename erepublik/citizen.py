@@ -28,18 +28,14 @@ class Citizen(classes.CitizenAPI):
     food = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
     inventory = {"used": 0, "total": 0}
     boosters = {
-        "100_damageBoosters_5_7200": 0,  # 2h × 60min × 60sec, +50%
-        "100_damageBoosters_5_28800": 0,  # 8h × 60min × 60sec, +50%
-        "100_damageBoosters_5_86400": 0,  # 1d × 24h × 60min × 60sec, +50%
-        "100_speedBoosters_1_180": 0,  # 3min × 60sec, ×2 kills
-        "100_speedBoosters_2_600": 0,  # 10min × 60sec, ×5 kills
-        "100_catchupBoosters_30_60": 0,  # 60sec, +30%
+        100: {
+        }, 50: {
+        }
     }
 
-    candies_normal = 0
-    candies_double = 0
-    candies_small = 0
-    tickets = 0
+    eb_normal = 0
+    eb_double = 0
+    eb_small = 0
 
     work_units = 0
     ot_points = 0
@@ -82,6 +78,8 @@ class Citizen(classes.CitizenAPI):
             utils.write_silent_log(*args, **kwargs)
 
     def sleep(self, seconds: int):
+        if seconds < 0:
+            seconds = 0
         if self.config.interactive:
             utils.interactive_sleep(seconds)
         else:
@@ -390,36 +388,65 @@ class Citizen(classes.CitizenAPI):
             self.my_companies.update_holding_companies()
 
     def update_inventory(self) -> dict:
+        self.food.update({"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0})
+        self.eb_small = 0
         j = self._get_economy_inventory_items().json()
+        active_items = {}
+        for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
+            active_items.update({item['name']: item['active']['time_left']})
+        final_items = {}
+
+        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
+            name = item['name']
+            if item.get('type') == 'damageBoosters':
+                if item['quality'] == 5:
+                    self.boosters[50].update({item['duration']: item['amount']})
+                elif item['quality'] == 10:
+                    self.boosters[100].update({item['duration']: item['amount']})
+                delta = item['duration']
+                if delta // 3600:
+                    name += f" {delta // 3600}h"
+                if delta // 60 % 60:
+                    name += f" {delta // 60 % 60}m"
+                if delta % 60:
+                    name += f" {delta % 60}s"
+            elif item['industryId'] == 1:
+                amount = item['amount']
+                q = item['quality']
+                if 1 <= q <= 7:
+                    self.food.update({f"q{q}": item['amount']})
+                else:
+                    if q == 10:
+                        self.eb_normal = amount
+                    elif q == 11:
+                        self.eb_double = amount
+                    elif q == 13:
+                        self.eb_small += amount
+                    elif q == 14:
+                        self.eb_small += amount
+
+            elif item['industryId'] == 3 and item['quality'] == 5:
+                self.ot_points = item['amount']
+
+            elif item['industryId'] == 4 and item['quality'] == 100:
+                self.ot_points = item['amount']
+
+            if item['amount']:
+                final_items.update({name: item['amount']})
+
+        raw_materials = {}
+        for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
+            name = item['name']
+            if item['isPartial']:
+                continue
+            if item['amount']:
+                raw_materials.update({name: item['amount']})
 
         self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
                                "total": j.get("inventoryStatus").get("totalStorage")})
-        final = j.get("inventoryItems").get("finalProducts").get("items")
-        self.food.update({
-            "q1": final.get("1_1", {"amount": 0}).get("amount", 0),
-            "q2": final.get("1_2", {"amount": 0}).get("amount", 0),
-            "q3": final.get("1_3", {"amount": 0}).get("amount", 0),
-            "q4": final.get("1_4", {"amount": 0}).get("amount", 0),
-            "q5": final.get("1_5", {"amount": 0}).get("amount", 0),
-            "q6": final.get("1_6", {"amount": 0}).get("amount", 0),
-            "q7": final.get("1_7", {"amount": 0}).get("amount", 0),
-        })
-        self.boosters.update({
-            "100_damageBoosters_5_7200": final.get("100_damageBoosters_5_7200", {"amount": 0}).get("amount", 0),
-            "100_damageBoosters_5_28800": final.get("100_damageBoosters_5_28800", {"amount": 0}).get("amount", 0),
-            "100_damageBoosters_5_86400": final.get("100_damageBoosters_5_86400", {"amount": 0}).get("amount", 0),
-            "100_speedBoosters_1_180": final.get("100_speedBoosters_1_180", {"amount": 0}).get("amount", 0),
-            "100_speedBoosters_2_600": final.get("100_speedBoosters_2_600", {"amount": 0}).get("amount", 0),
-            "100_catchupBoosters_30_60": final.get("100_catchupBoosters_30_60", {"amount": 0}).get("amount", 0),
-        })
-        self.candies_normal = final.get("1_10", {"amount": 0}).get("amount", 0)
-        self.candies_double = final.get("1_11", {"amount": 0}).get("amount", 0)
-        self.candies_small = final.get("1_12", {"amount": 0}).get("amount", 0)
-        self.ot_points = final.get("4_100", {"amount": 0}).get("amount", 0)
-        self.tickets = final.get("3_5", {"amount": 0}).get("amount", 0)
-
+        inventory = dict(items=dict(active=active_items, final=final_items, raw=raw_materials), status=self.inventory)
         self.food["total"] = sum([self.food[q] * utils.FOOD_ENERGY[q] for q in utils.FOOD_ENERGY])
-        return j
+        return inventory
 
     def update_weekly_challenge(self):
         data = self._get_weekly_challenge_data().json()
@@ -499,11 +526,11 @@ class Citizen(classes.CitizenAPI):
             if "q{}".format(q) in self.food:
                 self.food["q{}".format(q)] -= amount
             elif q == "10":
-                self.candies_normal -= amount
+                self.eb_normal -= amount
             elif q == "11":
-                self.candies_double -= amount
+                self.eb_double -= amount
             elif q == "12":
-                self.candies_small -= amount
+                self.eb_small -= amount
         return response
 
     @property
@@ -696,6 +723,9 @@ class Citizen(classes.CitizenAPI):
                 break
 
     def fight(self, battle_id: int, side_id: int, is_air: bool = False, count: int = None):
+        if not is_air and self.config.boosters:
+            inventory = self.update_inventory()
+            self.activate_dmg_booster(battle_id)
         data = dict(sideId=side_id, battleId=battle_id)
         error_count = 0
         ok_to_fight = True
@@ -1224,18 +1254,17 @@ class Citizen(classes.CitizenAPI):
                                     value="New amount {o.cc}cc, {o.gold}g".format(o=self.details))
         return not response.json().get("error", False)
 
-    def activate_dmg_booster(self, battle_id: int):
+    def activate_dmg_booster(self):
         if self.config.boosters:
-            duration = 0
-            if self.boosters.get("100_damageBoosters_5_600", 0) > 0:
-                duration = 600
-            elif self.boosters.get("100_damageBoosters_5_7200", 0) > 1:
-                duration = 7200
-            elif self.boosters.get("100_damageBoosters_5_28800", 0) > 2:
-                duration = 28800
-            elif self.boosters.get("100_damageBoosters_5_86400", 0) > 2:
-                duration = 86400
-            self._post_fight_activate_booster(battle_id, 5, duration, "damage")
+            inventory = self.update_inventory()
+            if not ("+100% Damage" in inventory['items']['active'] or "+50% Damage" in inventory['items']['active']):
+                duration = 0
+                for length, amount in self.boosters[50].items():
+                    if amount > 1:
+                        duration = length
+                        break
+                if duration:
+                    self._post_economy_activate_booster(5, duration, "damage")
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
         return self._post_activate_battle_effect(battle_id, kind, self.details.citizen_id)
@@ -1726,34 +1755,7 @@ class Citizen(classes.CitizenAPI):
         self.reporter.send_state_update(**data)
 
     def send_inventory_update(self):
-        j = self.update_inventory()
-        active_items = {}
-        for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
-            active_items.update({item['name']: item['active']['time_left']})
-        final_items = {}
-
-        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
-            name = item['name']
-            if item.get('type') == 'damageBoosters':
-                delta = item['duration']
-                if delta // 3600:
-                    name += f" {delta // 3600}h"
-                if delta // 60 % 60:
-                    name += f" {delta // 60 % 60}m"
-                if delta % 60:
-                    name += f" {delta % 60}s"
-            if item['amount']:
-                final_items.update({name: item['amount']})
-
-        raw_materials = {}
-        for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
-            name = item['name']
-            if item['isPartial']:
-                continue
-            if item['amount']:
-                raw_materials.update({name: item['amount']})
-
-        to_report = dict(items=dict(active=active_items, final=final_items, raw=raw_materials), status=self.inventory)
+        to_report = self.update_inventory()
         self.reporter.report_action("INVENTORY", json_val=to_report)
 
     def check_house_durability(self) -> Dict[int, datetime.datetime]:
@@ -1885,7 +1887,7 @@ class Citizen(classes.CitizenAPI):
         return ret
 
     def to_json(self, indent: bool = False) -> str:
-        return dumps(self.__dict__, cls=utils.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+        return dumps(self.__dict__, cls=classes.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
 
     def get_game_token_offers(self):
         r = self._post_economy_game_tokens_market('retrieve').json()
@@ -1900,3 +1902,38 @@ class Citizen(classes.CitizenAPI):
                 return {"gold": account[0], "cc": account[1], 'ok': True}
 
         return {"gold": 0, "cc": 0, 'ok': False}
+
+    def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
+                                 booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> float:
+        if not rang or strength or elite is None:
+            r = self._get_citizen_profile(self.details.citizen_id).json()
+            if not rang:
+                rang = r['military']['militaryData']['ground']['rankNumber']
+            if not strength:
+                strength = r['military']['militaryData']['ground']['strength']
+            if elite is None:
+                elite = r['citizenAttributes']['level'] > 100
+        if ne:
+            tp = True
+
+        dmg = int(10 * (1 + strength / 400) * (1 + rang / 5) * 3)
+        booster = 1.5 if booster_50 else 2 if booster_100 else 1
+        elite = 1.1 if elite else 1
+        dmg = int(dmg * booster * elite)
+        legend = 1 if (not tp or rang < 70) else 1 + (rang - 69) / 10
+        dmg = int(dmg * legend)
+        return dmg * (1.1 if ne else 1)
+
+    def get_air_hit_dmg_value(self, rang: int = None, elite: bool = None, ne: bool = False,
+                              weapon: bool = False) -> float:
+        if not rang or elite is None:
+            r = self._get_citizen_profile(self.details.citizen_id).json()
+            if not rang:
+                rang = r['military']['militaryData']['air']['rankNumber']
+            if elite is None:
+                elite = r['citizenAttributes']['level'] > 100
+
+        dmg = int(10 * (1 + rang / 5) * (1.2 if weapon else 1))
+        elite = 1.1 if elite else 1
+        dmg = int(dmg * elite)
+        return dmg * (1.1 if ne else 1.)

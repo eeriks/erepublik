@@ -620,6 +620,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(_token=self.token, buttonColor=color)
         return self.post("{}/main/eat".format(self.url), params=data)
 
+    def _post_economy_activate_booster(self, quality: int, duration: int, kind: str) -> Response:
+        data = dict(type=kind, quality=quality, duration=duration, fromInventory=True)
+        return self.post("{}/economy/activateBooster".format(self.url), data=data)
+
     def _post_economy_activate_house(self, quality: int) -> Response:
         data = {"action": "activate", "quality": quality, "type": "house", "_token": self.token}
         return self.post("{}/economy/activateHouse".format(self.url), data=data)
