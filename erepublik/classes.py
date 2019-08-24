@@ -1045,7 +1045,7 @@ class Battle(object):
 
         self.div = {}
         for div, data in battle.get('div', {}).items():
-            div = int(div)
+            div = int(data.get('div'))
             if data.get('end'):
                 end = datetime.datetime.fromtimestamp(data.get('end'), tz=utils.erep_tz)
             else:
