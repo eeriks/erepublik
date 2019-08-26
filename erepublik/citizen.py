@@ -90,7 +90,10 @@ class Citizen(classes.CitizenAPI):
 
     @property
     def __dict__(self):
-        ret = super().__dict__.copy()
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
         ret.pop('reporter', None)
         ret.pop('stop_threads', None)
         ret.pop('_Citizen__last_war_update_data', None)
