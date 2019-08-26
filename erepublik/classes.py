@@ -156,6 +156,14 @@ class MyCompanies:
 
         raise ErepublikException("Wrong function call")
 
+    @property
+    def __dict__(self):
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
+
 
 class SlowRequests(Session):
     last_time: datetime.datetime
@@ -285,33 +293,13 @@ class Config:
     def wt(self):
         return self.work and self.train
 
+    @property
     def __dict__(self) -> Dict[str, Union[bool, str, List[str]]]:
-        return dict(
-            email=self.email,
-            password=self.password,
-            work=self.work,
-            train=self.train,
-            wam=self.wam,
-            auto_sell=self.auto_sell,
-            auto_sell_all=self.auto_sell_all,
-            employees=self.employees,
-            fight=self.fight,
-            air=self.air,
-            ground=self.ground,
-            all_in=self.all_in,
-            next_energy=self.next_energy,
-            boosters=self.boosters,
-            travel_to_fight=self.travel_to_fight,
-            epic_hunt=self.epic_hunt,
-            epic_hunt_ebs=self.epic_hunt_ebs,
-            rw_def_side=self.rw_def_side,
-            interactive=self.interactive,
-            continuous_fighting=self.continuous_fighting,
-            auto_buy_raw=self.auto_buy_raw,
-            force_wam=self.force_wam,
-            sort_battles_time=self.sort_battles_time,
-            force_travel=self.force_travel,
-        )
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
 
 
 class Energy:
@@ -360,13 +348,11 @@ class Energy:
 
     @property
     def __dict__(self):
-        return dict(
-            limit=self.limit,
-            interval=self.interval,
-            recoverable=self.recoverable,
-            recovered=self.recovered,
-            reference_time=self.reference_time
-        )
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
 
 
 class Details(object):
@@ -412,6 +398,14 @@ class Details(object):
             next_level_up = (1 + (self.xp // 10)) * 10
         return next_level_up - self.xp
 
+    @property
+    def __dict__(self):
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
+
 
 class Politics:
     is_party_member: bool = False
@@ -421,6 +415,14 @@ class Politics:
     is_party_president: bool = False
     is_congressman: bool = False
     is_country_president: bool = False
+
+    @property
+    def __dict__(self):
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
 
 
 class House(object):
@@ -1006,6 +1008,14 @@ class BattleSide:
         self.allies = [int(ally) for ally in allies]
         self.deployed = [int(ally) for ally in deployed]
 
+    @property
+    def __dict__(self):
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
+
 
 class BattleDivision:
     end: datetime.datetime
@@ -1022,6 +1032,14 @@ class BattleDivision:
         self.epic = epic
         self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
         self.wall = dict({"for": wall_for, "dom": wall_dom})
+
+    @property
+    def __dict__(self):
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
 
 
 class Battle(object):
@@ -1082,6 +1100,14 @@ class Battle(object):
         return "Battle {} | {:>21.21}:{:<21.21} | Round {:2} | Start {}".format(
             self.id, utils.COUNTRIES[self.invader.id], utils.COUNTRIES[self.defender.id], self.zone_id, time_part
         )
+
+    @property
+    def __dict__(self):
+        ret = {}
+        for key in dir(self):
+            if not key.startswith('_'):
+                ret[key] = getattr(self, key)
+        return ret
 
 
 class EnergyToFight:
