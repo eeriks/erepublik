@@ -297,7 +297,7 @@ class Config:
     def __dict__(self) -> Dict[str, Union[bool, str, List[str]]]:
         ret = {}
         for key in dir(self):
-            if not key.startswith('_'):
+            if not key.startswith('_') and key not in ['email', 'password']:
                 ret[key] = getattr(self, key)
         return ret
 
