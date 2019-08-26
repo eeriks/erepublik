@@ -981,7 +981,7 @@ class MyJSONEncoder(JSONEncoder):
             return float("{:.02f}".format(o))
         elif isinstance(o, datetime.datetime):
             return dict(__type__='datetime', year=o.year, month=o.month, day=o.day, hour=o.hour, minute=o.minute,
-                        second=o.second, microsecond=o.microsecond)
+                        second=o.second, microsecond=o.microsecond, tzinfo=o.tzinfo.zone if o.tzinfo else None)
         elif isinstance(o, datetime.date):
             return dict(__type__='date', year=o.year, month=o.month, day=o.day)
         elif isinstance(o, datetime.timedelta):
