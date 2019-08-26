@@ -978,7 +978,8 @@ class Citizen(classes.CitizenAPI):
                             break
                     else:
                         return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
-
+            elif response.get("message") == "not_enough_health_food":
+                self.buy_food()
             else:
                 self.write_log("I was not able to wam and or employ because:\n{}".format(response))
         wam_count = self.my_companies.get_total_wam_count()
@@ -1210,7 +1211,7 @@ class Citizen(classes.CitizenAPI):
     def buy_food(self) -> None:
         self.update_money()
         hp_per_quality = {"q1": 2, "q2": 4, "q3": 6, "q4": 8, "q5": 10, "q6": 12, "q7": 20}
-        hp_needed = 24 * self.energy.interval * 10 - self.food["total"]
+        hp_needed = 48 * self.energy.interval * 10 - self.food["total"]
         local_offers = self.get_market_offers(country_id=self.details.current_country, product="food")
 
         cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1]["price"] / hp_per_quality[v[0]])[0]
@@ -1307,7 +1308,7 @@ class Citizen(classes.CitizenAPI):
         return count
 
     def _rw_choose_side(self, battle_id: int, side_id: int) -> Response:
-        return self._get_battlefield_choose_side(battle_id, side_id)
+        return self._post_battlefield_travel(side_id, battle_id)
 
     def should_travel_to_fight(self) -> bool:
         ret = False
