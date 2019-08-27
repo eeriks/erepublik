@@ -395,55 +395,58 @@ class Citizen(classes.CitizenAPI):
         self.eb_small = 0
         j = self._get_economy_inventory_items().json()
         active_items = {}
-        for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
-            active_items.update({item['name']: item['active']['time_left']})
+        if j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}):
+            for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
+                active_items.update({item['name']: item['active']['time_left']})
+
         final_items = {}
+        if j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}):
+            for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
+                name = item['name']
+                if item.get('type') == 'damageBoosters':
+                    if item['quality'] == 5:
+                        self.boosters[50].update({item['duration']: item['amount']})
+                    elif item['quality'] == 10:
+                        self.boosters[100].update({item['duration']: item['amount']})
+                    delta = item['duration']
+                    if delta // 3600:
+                        name += f" {delta // 3600}h"
+                    if delta // 60 % 60:
+                        name += f" {delta // 60 % 60}m"
+                    if delta % 60:
+                        name += f" {delta % 60}s"
+                elif item['industryId'] == 1:
+                    amount = item['amount']
+                    q = item['quality']
+                    if 1 <= q <= 7:
+                        self.food.update({f"q{q}": item['amount']})
+                    else:
+                        if q == 10:
+                            self.eb_normal = amount
+                        elif q == 11:
+                            self.eb_double = amount
+                        elif q == 13:
+                            self.eb_small += amount
+                        elif q == 14:
+                            self.eb_small += amount
 
-        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
-            name = item['name']
-            if item.get('type') == 'damageBoosters':
-                if item['quality'] == 5:
-                    self.boosters[50].update({item['duration']: item['amount']})
-                elif item['quality'] == 10:
-                    self.boosters[100].update({item['duration']: item['amount']})
-                delta = item['duration']
-                if delta // 3600:
-                    name += f" {delta // 3600}h"
-                if delta // 60 % 60:
-                    name += f" {delta // 60 % 60}m"
-                if delta % 60:
-                    name += f" {delta % 60}s"
-            elif item['industryId'] == 1:
-                amount = item['amount']
-                q = item['quality']
-                if 1 <= q <= 7:
-                    self.food.update({f"q{q}": item['amount']})
-                else:
-                    if q == 10:
-                        self.eb_normal = amount
-                    elif q == 11:
-                        self.eb_double = amount
-                    elif q == 13:
-                        self.eb_small += amount
-                    elif q == 14:
-                        self.eb_small += amount
+                elif item['industryId'] == 3 and item['quality'] == 5:
+                    self.ot_points = item['amount']
 
-            elif item['industryId'] == 3 and item['quality'] == 5:
-                self.ot_points = item['amount']
+                elif item['industryId'] == 4 and item['quality'] == 100:
+                    self.ot_points = item['amount']
 
-            elif item['industryId'] == 4 and item['quality'] == 100:
-                self.ot_points = item['amount']
-
-            if item['amount']:
-                final_items.update({name: item['amount']})
+                if item['amount']:
+                    final_items.update({name: item['amount']})
 
         raw_materials = {}
-        for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
-            name = item['name']
-            if item['isPartial']:
-                continue
-            if item['amount']:
-                raw_materials.update({name: item['amount']})
+        if j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}):
+            for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
+                name = item['name']
+                if item['isPartial']:
+                    continue
+                if item['amount']:
+                    raw_materials.update({name: item['amount']})
 
         self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
                                "total": j.get("inventoryStatus").get("totalStorage")})
