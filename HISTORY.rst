@@ -2,6 +2,15 @@
 History
 =======
 
+* Improved serialization to JSON
+* When failing to do WAM because of not enough food - buy food
+* Buy food buys 48h worth instead of 24h energy
+
+0.15.3 (2019-08-24)
+-------------------
+
+* Update after eRepublik changed campaign apis
+
 
 0.15.0 (2019-07-30)
 -------------------
