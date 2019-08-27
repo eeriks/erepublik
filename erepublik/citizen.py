@@ -1943,3 +1943,14 @@ class Citizen(classes.CitizenAPI):
         elite = 1.1 if elite else 1
         dmg = int(dmg * elite)
         return dmg * (1.1 if ne else 1.)
+
+    def endorse_article(self, article_id: int, amount: int) -> bool:
+        if amount in (5, 50, 100):
+            resp = self._post_main_donate_article(article_id, amount).json()
+            return not bool(resp.get('error'))
+        else:
+            return False
+
+    def vote_article(self, article_id: int) -> bool:
+        resp = self._post_main_vote_article(article_id).json()
+        return not bool(resp.get('error'))

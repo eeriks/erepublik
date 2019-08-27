@@ -800,6 +800,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(_token=self.token, check=check, **kwargs)
         return self.post("{}/main/travel".format(self.url), data=data)
 
+    def _post_main_vote_article(self, article_id: int) -> Response:
+        data = dict(_token=self.token, articleId=article_id)
+        return self.post("{}/main/vote-article".format(self.url), data=data)
+
     def _post_main_travel_data(self, **kwargs) -> Response:
         return self.post("{}/main/travelData".format(self.url), data=dict(_token=self.token, **kwargs))
 
