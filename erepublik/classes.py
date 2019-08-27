@@ -456,25 +456,25 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def get(self, url: str, **kwargs) -> Response:
         return self._req.get(url, **kwargs)
 
-    def _get_article_json(self, article_id: int) -> Response:
+    def _get_main_article_json(self, article_id: int) -> Response:
         return self.get("{}/main/articleJson/{}".format(self.url, article_id))
 
-    def _get_battlefield_choose_side(self, battle: int, side: int) -> Response:
+    def _get_military_battlefield_choose_side(self, battle: int, side: int) -> Response:
         return self.get("{}/military/battlefield-choose-side/{}/{}".format(self.url, battle, side))
 
     def _get_candidate_party(self, party_slug: str) -> Response:
         return self.post("{}/candidate/{}".format(self.url, party_slug))
 
-    def _get_citizen_hovercard(self, citizen: int) -> Response:
+    def _get_main_citizen_hovercard(self, citizen: int) -> Response:
         return self.get("{}/main/citizen-hovercard/{}".format(self.url, citizen))
 
-    def _get_citizen_profile(self, player_id: int) -> Response:
+    def _get_main_citizen_profile_json(self, player_id: int) -> Response:
         return self.get("{}/main/citizen-profile-json/{}".format(self.url, player_id))
 
-    def _get_citizen_daily_assistant(self) -> Response:
+    def _get_main_citizen_daily_assistant(self) -> Response:
         return self.get("{}/main/citizenDailyAssistant".format(self.url))
 
-    def _get_city_data_residents(self, city: int, page: int = 1, params: Mapping[str, Any] = None) -> Response:
+    def _get_main_city_data_residents(self, city: int, page: int = 1, params: Mapping[str, Any] = None) -> Response:
         if params is None:
             params = {}
         return self.get("{}/main/city-data/{}/residents".format(self.url, city), params={"currentPage": page, **params})
@@ -497,29 +497,29 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def _get_economy_my_market_offers(self) -> Response:
         return self.get("{}/economy/myMarketOffers".format(self.url))
 
-    def _get_job_data(self) -> Response:
+    def _get_main_job_data(self) -> Response:
         return self.get("{}/main/job-data".format(self.url))
 
-    def _get_leaderboards_damage_aircraft_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Response:
+    def _get_main_leaderboards_damage_aircraft_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Response:
         data = (country, weeks, mu)
         return self.get("{}/main/leaderboards-damage-aircraft-rankings/{}/{}/{}/0".format(self.url, *data))
 
-    def _get_leaderboards_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 0) -> Response:
+    def _get_main_leaderboards_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 0) -> Response:
         data = (country, weeks, mu, div)
         return self.get("{}/main/leaderboards-damage-rankings/{}/{}/{}/{}".format(self.url, *data))
 
-    def _get_leaderboards_kills_aircraft_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Response:
+    def _get_main_leaderboards_kills_aircraft_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Response:
         data = (country, weeks, mu)
         return self.get("{}/main/leaderboards-kills-aircraft-rankings/{}/{}/{}/0".format(self.url, *data))
 
-    def _get_leaderboards_kills_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 0) -> Response:
+    def _get_main_leaderboards_kills_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 0) -> Response:
         data = (country, weeks, mu, div)
         return self.get("{}/main/leaderboards-kills-rankings/{}/{}/{}/{}".format(self.url, *data))
 
     def _get_main(self) -> Response:
         return self.get(self.url)
 
-    def _get_messages(self, page: int = 1) -> Response:
+    def _get_main_messages_paginated(self, page: int = 1) -> Response:
         return self.get("{}/main/messages-paginated/{}".format(self.url, page))
 
     def _get_military_campaigns(self) -> Response:
@@ -533,62 +533,51 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         params = {"groupId": unit_id, "panel": "members", **kwargs}
         return self.get("{}/military/military-unit-data/".format(self.url), params=params)
 
-    def _get_money_donation_accept(self, donation_id: int) -> Response:
+    def _get_main_money_donation_accept(self, donation_id: int) -> Response:
         return self.get("{}/main/money-donation/accept/{}".format(self.url, donation_id), params={"_token": self.token})
 
-    def _get_money_donation_reject(self, donation_id: int) -> Response:
+    def _get_main_money_donation_reject(self, donation_id: int) -> Response:
         return self.get("{}/main/money-donation/reject/{}".format(self.url, donation_id), params={"_token": self.token})
 
-    def _get_notifications_ajax_community(self, page: int = 1) -> Response:
+    def _get_main_notifications_ajax_community(self, page: int = 1) -> Response:
         return self.get("{}/main/notificationsAjax/community/{}".format(self.url, page))
 
-    def _get_notifications_ajax_system(self, page: int = 1) -> Response:
+    def _get_main_notifications_ajax_system(self, page: int = 1) -> Response:
         return self.get("{}/main/notificationsAjax/system/{}".format(self.url, page))
 
-    def _get_notifications_ajax_report(self, page: int = 1) -> Response:
+    def _get_main_notifications_ajax_report(self, page: int = 1) -> Response:
         return self.get("{}/main/notificationsAjax/report/{}".format(self.url, page))
 
-    def _get_party_members(self, party: int) -> Response:
+    def _get_main_party_members(self, party: int) -> Response:
         return self.get("{}/main/party-members/{}".format(self.url, party))
 
-    def _get_rankings_parties(self, country: int) -> Response:
+    def _get_main_rankings_parties(self, country: int) -> Response:
         return self.get("{}/main/rankings-parties/1/{}".format(self.url, country))
 
-    def _get_training_grounds_json(self) -> Response:
+    def _get_main_training_grounds_json(self) -> Response:
         return self.get("{}/main/training-grounds-json".format(self.url))
 
-    def _get_weekly_challenge_data(self) -> Response:
+    def _get_main_weekly_challenge_data(self) -> Response:
         return self.get("{}/main/weekly-challenge-data".format(self.url))
 
     def _get_wars_show(self, war_id: int) -> Response:
         return self.get("{}/wars/show/{}".format(self.url, war_id))
 
-    def _post_activate_battle_effect(self, battle: int, kind: str, citizen_id: int) -> Response:
+    def _post_main_activate_battle_effect(self, battle: int, kind: str, citizen_id: int) -> Response:
         data = dict(battleId=battle, citizenId=citizen_id, type=kind, _token=self.token)
         return self.post("{}/main/fight-activateBattleEffect".format(self.url), data=data)
 
-    def _post_article_comments(self, article: int, page: int = 1) -> Response:
+    def _post_main_article_comments(self, article: int, page: int = 1) -> Response:
         data = dict(_token=self.token, articleId=article, page=page)
         if page:
             data.update({'page': page})
         return self.post("{}/main/articleComments".format(self.url), data=data)
 
-    def _post_article_comments_create(self, message: str, article: int, parent: int = 0) -> Response:
+    def _post_main_article_comments_create(self, message: str, article: int, parent: int = 0) -> Response:
         data = dict(_token=self.token, message=message, articleId=article)
         if parent:
             data.update({"parentId": parent})
         return self.post("{}/main/articleComments/create".format(self.url), data=data)
-
-    def _post_battle_console(self, battle: int, zone: int, round_id: int, division: int, page: int,
-                             damage: bool) -> Response:
-        data = dict(battleId=battle, zoneId=zone, action="battleStatistics", round=round_id, division=division,
-                    leftPage=page, rightPage=page, _token=self.token)
-        if damage:
-            data.update({"type": "damage"})
-        else:
-            data.update({"type": "kills"})
-
-        return self.post("{}/military/battle-console".format(self.url), data=data)
 
     def _post_battlefield_travel(self, side_id: int, battle_id: int) -> Response:
         data = dict(_token=self.token, sideCountryId=side_id, battleId=battle_id)
@@ -621,6 +610,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
 
     def _post_daily_task_reward(self) -> Response:
         return self.post("{}/main/daily-tasks-reward".format(self.url), data=dict(_token=self.token))
+
+    def _post_main_donate_article(self, article_id: int, amount: int) -> Response:
+        data = dict(_token=self.token, articleId=article_id, amount=amount)
+        return self.post("{}/main/donate-article".format(self.url), data=data)
 
     def _post_delete_message(self, msg_id: list) -> Response:
         data = {"_token": self.token, "delete_message[]": msg_id}
@@ -697,18 +690,17 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
                          data={"_token": self.token, "action_type": "resign"})
 
     def _post_economy_sell_company(self, factory: int, pin: int = None, sell: bool = True) -> Response:
-        url = "{}/economy/sell-company/{}".format(self.url, factory)
         data = dict(_token=self.token, pin="" if pin is None else pin)
         if sell:
             data.update({"sell": "sell"})
         else:
             data.update({"dissolve": factory})
-        return self.post(url, data=data, headers={"Referer": url})
+        return self.post("{}/economy/sell-company/{}".format(self.url, factory), data=data, headers={"Referer": url})
 
     def _post_economy_train(self, tg_ids: List[int]) -> Response:
         data: Dict[str, Union[int, str]] = {}
         if not tg_ids:
-            return self._get_training_grounds_json()
+            return self._get_main_training_grounds_json()
         else:
             for idx, tg_id in enumerate(tg_ids):
                 data["grounds[%i][id]" % idx] = tg_id
@@ -756,7 +748,7 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(_token=self.token, email=email, commit="Reset password")
         return self.post("{}/forgot-password".format(self.url), data=data)
 
-    def _post_fight_activate_booster(self, battle: int, quality: int, duration: int, kind: str) -> Response:
+    def _post_military_fight_activate_booster(self, battle: int, quality: int, duration: int, kind: str) -> Response:
         data = dict(type=kind, quality=quality, duration=duration, battleId=battle, _token=self.token)
         return self.post("{}/military/fight-activateBooster".format(self.url), data=data)
 
@@ -764,11 +756,11 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(csrf_token=self.token, citizen_email=email, citizen_password=password, remember='on')
         return self.post("{}/login".format(self.url), data=data)
 
-    def _post_messages_alert(self, notification_ids: List[int]) -> Response:
+    def _post_main_messages_alert(self, notification_ids: List[int]) -> Response:
         data = {"_token": self.token, "delete_alerts[]": notification_ids, "deleteAllAlerts": "1", "delete": "Delete"}
         return self.post("{}/main/messages-alerts/1".format(self.url), data=data)
 
-    def _post_messages_compose(self, subject: str, body: str, citizens: List[int]) -> Response:
+    def _post_main_messages_compose(self, subject: str, body: str, citizens: List[int]) -> Response:
         url_pk = 0 if len(citizens) > 1 else str(citizens[0])
         data = dict(citizen_name=",".join([str(x) for x in citizens]),
                     citizen_subject=subject, _token=self.token, citizen_message=body)
@@ -804,22 +796,22 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(action="check", _token=self.token)
         return self.post("{}/military/group-missions".format(self.url), data=data)
 
-    def _post_travel(self, check: str, **kwargs) -> Response:
+    def _post_main_travel(self, check: str, **kwargs) -> Response:
         data = dict(_token=self.token, check=check, **kwargs)
         return self.post("{}/main/travel".format(self.url), data=data)
 
-    def _post_travel_data(self, **kwargs) -> Response:
+    def _post_main_travel_data(self, **kwargs) -> Response:
         return self.post("{}/main/travelData".format(self.url), data=dict(_token=self.token, **kwargs))
 
     def _post_wars_attack_region(self, war_id: int, region_id: int, region_name: str) -> Response:
         data = {'_token': self.token, 'warId': war_id, 'regionName': region_name, 'regionNameConfirm': region_name}
         return self.post('{}/wars/attack-region/{}/{}'.format(self.url, war_id, region_id), data=data)
 
-    def _post_weekly_challenge_reward(self, reward_id: int) -> Response:
+    def _post_main_weekly_challenge_reward(self, reward_id: int) -> Response:
         data = dict(_token=self.token, rewardId=reward_id)
         return self.post("{}/main/weekly-challenge-collect-reward".format(self.url), data=data)
 
-    def _post_write_article(self, title: str, content: str, location: int, kind: int) -> Response:
+    def _post_main_write_article(self, title: str, content: str, location: int, kind: int) -> Response:
         data = dict(_token=self.token, article_name=title, article_body=content, article_location=location,
                     article_category=kind)
         return self.post("{}/main/write-article".format(self.url), data=data)
@@ -827,73 +819,73 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     # Wall Posts
     # ## Country
 
-    def _post_country_comment_retrieve(self, post_id: int) -> Response:
+    def _post_main_country_comment_retrieve(self, post_id: int) -> Response:
         data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/country-comment/retrieve/json".format(self.url), data=data)
 
-    def _post_country_comment_create(self, post_id: int, comment_message: str) -> Response:
+    def _post_main_country_comment_create(self, post_id: int, comment_message: str) -> Response:
         data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/country-comment/create/json".format(self.url), data=data)
 
-    def _post_country_post_create(self, body: str, post_as: int) -> Response:
+    def _post_main_country_post_create(self, body: str, post_as: int) -> Response:
         data = {"_token": self.token, "post_message": body, "post_as": post_as}
         return self.post("{}/main/country-post/create/json".format(self.url), data=data)
 
-    def _post_country_post_retrieve(self) -> Response:
+    def _post_main_country_post_retrieve(self) -> Response:
         data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/country-post/retrieve/json".format(self.url), data=data)
 
     # ## Military Unit
 
-    def _post_military_unit_comment_retrieve(self, post_id: int) -> Response:
+    def _post_main_military_unit_comment_retrieve(self, post_id: int) -> Response:
         data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/military-unit-comment/retrieve/json".format(self.url), data=data)
 
-    def _post_military_unit_comment_create(self, post_id: int, comment_message: str) -> Response:
+    def _post_main_military_unit_comment_create(self, post_id: int, comment_message: str) -> Response:
         data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/military-unit-comment/create/json".format(self.url), data=data)
 
-    def _post_military_unit_post_create(self, body: str, post_as: int) -> Response:
+    def _post_main_military_unit_post_create(self, body: str, post_as: int) -> Response:
         data = {"_token": self.token, "post_message": body, "post_as": post_as}
         return self.post("{}/main/military-unit-post/create/json".format(self.url), data=data)
 
-    def _post_military_unit_post_retrieve(self) -> Response:
+    def _post_main_military_unit_post_retrieve(self) -> Response:
         data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/military-unit-post/retrieve/json".format(self.url), data=data)
 
     # ## Party
 
-    def _post_party_comment_retrieve(self, post_id: int) -> Response:
+    def _post_main_party_comment_retrieve(self, post_id: int) -> Response:
         data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/party-comment/retrieve/json".format(self.url), data=data)
 
-    def _post_party_comment_create(self, post_id: int, comment_message: str) -> Response:
+    def _post_main_party_comment_create(self, post_id: int, comment_message: str) -> Response:
         data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/party-comment/create/json".format(self.url), data=data)
 
-    def _post_party_post_create(self, body: str) -> Response:
+    def _post_main_party_post_create(self, body: str) -> Response:
         data = {"_token": self.token, "post_message": body}
         return self.post("{}/main/party-post/create/json".format(self.url), data=data)
 
-    def _post_party_post_retrieve(self) -> Response:
+    def _post_main_party_post_retrieve(self) -> Response:
         data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/party-post/retrieve/json".format(self.url), data=data)
 
     # ## Friend's Wall
 
-    def _post_wall_comment_retrieve(self, post_id: int) -> Response:
+    def _post_main_wall_comment_retrieve(self, post_id: int) -> Response:
         data = {"_token": self.token, "postId": post_id}
         return self.post("{}/main/wall-comment/retrieve/json".format(self.url), data=data)
 
-    def _post_wall_comment_create(self, post_id: int, comment_message: str) -> Response:
+    def _post_main_wall_comment_create(self, post_id: int, comment_message: str) -> Response:
         data = {"_token": self.token, "postId": post_id, 'comment_message': comment_message}
         return self.post("{}/main/wall-comment/create/json".format(self.url), data=data)
 
-    def _post_wall_post_create(self, body: str) -> Response:
+    def _post_main_wall_post_create(self, body: str) -> Response:
         data = {"_token": self.token, "post_message": body}
         return self.post("{}/main/wall-post/create/json".format(self.url), data=data)
 
-    def _post_wall_post_retrieve(self) -> Response:
+    def _post_main_wall_post_retrieve(self) -> Response:
         data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/wall-post/retrieve/json".format(self.url), data=data)
 

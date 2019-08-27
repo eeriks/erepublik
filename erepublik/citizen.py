@@ -373,7 +373,7 @@ class Citizen(classes.CitizenAPI):
         return resp_data
 
     def update_job_info(self):
-        ot = self._get_job_data().json().get("overTime", {})
+        ot = self._get_main_job_data().json().get("overTime", {})
         if ot:
             self.my_companies.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
             self.ot_points = ot.get("points", 0)
@@ -455,7 +455,7 @@ class Citizen(classes.CitizenAPI):
         return inventory
 
     def update_weekly_challenge(self):
-        data = self._get_weekly_challenge_data().json()
+        data = self._get_main_weekly_challenge_data().json()
         self.details.pp = data.get("player", {}).get("prestigePoints", 0)
         self.details.next_pp = []
         for reward in data.get("rewards", {}).get("normal", {}):
@@ -463,7 +463,7 @@ class Citizen(classes.CitizenAPI):
             if status == "rewarded":
                 continue
             elif status == "completed":
-                self._post_weekly_challenge_reward(reward.get("id", 0))
+                self._post_main_weekly_challenge_reward(reward.get("id", 0))
             elif reward.get("icon", "") == "energy_booster":
                 pps = re.search(r"Reach (\d+) Prestige Points to unlock the following reward: \+1 Energy",
                                 reward.get("tooltip", ""))
@@ -834,7 +834,7 @@ class Citizen(classes.CitizenAPI):
             self.work()
 
     def train(self):
-        r = self._get_training_grounds_json()
+        r = self._get_main_training_grounds_json()
         tg_json = r.json()
         self.details.gold = tg_json["page_details"]["gold"]
         self.tg_contract = {"free_train": tg_json["hasFreeTrain"]}
@@ -1041,7 +1041,7 @@ class Citizen(classes.CitizenAPI):
         return True
 
     def travel_to_region(self, region_id: int) -> bool:
-        data = self._post_travel_data(region_id=region_id).json()
+        data = self._post_main_travel_data(region_id=region_id).json()
         if data.get('alreadyInRegion'):
             return True
         else:
@@ -1052,7 +1052,7 @@ class Citizen(classes.CitizenAPI):
             return False
 
     def travel_to_country(self, country_id: int) -> bool:
-        data = self._post_travel_data(countryId=country_id, check="getCountryRegions").json()
+        data = self._post_main_travel_data(countryId=country_id, check="getCountryRegions").json()
 
         regs = []
         if data.get('regions'):
@@ -1068,7 +1068,7 @@ class Citizen(classes.CitizenAPI):
         return False
 
     def travel_to_holding(self, holding_id: int) -> bool:
-        data = self._post_travel_data(holdingId=holding_id).json()
+        data = self._post_main_travel_data(holdingId=holding_id).json()
         if data.get('alreadyInRegion'):
             return True
         else:
@@ -1101,15 +1101,15 @@ class Citizen(classes.CitizenAPI):
             "toCountryId": country_id,
             "inRegionId": region_id,
         }
-        return self._post_travel("moveAction", **data)
+        return self._post_main_travel("moveAction", **data)
 
     def get_travel_regions(self, holding_id: int = 0, battle_id: int = 0, country_id: int = 0
                            ) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
-        d = self._post_travel_data(holdingId=holding_id, battleId=battle_id, countryId=country_id).json()
+        d = self._post_main_travel_data(holdingId=holding_id, battleId=battle_id, countryId=country_id).json()
         return d.get('regions', [])
 
     def get_travel_countries(self) -> List[int]:
-        response_json = self._post_travel_data().json()
+        response_json = self._post_main_travel_data().json()
         return_list = []
         for country_data in response_json['countries'].values():
             if country_data['currentRegions']:
@@ -1117,20 +1117,20 @@ class Citizen(classes.CitizenAPI):
         return return_list
 
     def parse_notifications(self, page: int = 1) -> list:
-        community = self._get_notifications_ajax_community(page).json()
-        system = self._get_notifications_ajax_system(page).json()
+        community = self._get_main_notifications_ajax_community(page).json()
+        system = self._get_main_notifications_ajax_system(page).json()
         return community['alertsList'] + system['alertsList']
 
     def delete_notifications(self):
-        response = self._get_notifications_ajax_community().json()
+        response = self._get_main_notifications_ajax_community().json()
         while response['totalAlerts']:
-            self._post_messages_alert([_['id'] for _ in response['alertList']])
-            response = self._get_notifications_ajax_community().json()
+            self._post_main_messages_alert([_['id'] for _ in response['alertList']])
+            response = self._get_main_notifications_ajax_community().json()
 
-        response = self._get_notifications_ajax_system().json()
+        response = self._get_main_notifications_ajax_system().json()
         while response['totalAlerts']:
-            self._post_messages_alert([_['id'] for _ in response['alertList']])
-            response = self._get_notifications_ajax_system().json()
+            self._post_main_messages_alert([_['id'] for _ in response['alertList']])
+            response = self._get_main_notifications_ajax_system().json()
 
     def collect_weekly_reward(self):
         self.update_weekly_challenge()
@@ -1272,10 +1272,10 @@ class Citizen(classes.CitizenAPI):
                     self._post_economy_activate_booster(5, duration, "damage")
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
-        return self._post_activate_battle_effect(battle_id, kind, self.details.citizen_id)
+        return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
 
     def activate_pp_booster(self, battle_id: int) -> Response:
-        return self._post_fight_activate_booster(battle_id, 1, 180, "prestige_points")
+        return self._post_military_fight_activate_booster(battle_id, 1, 180, "prestige_points")
 
     def donate_money(self, citizen_id: int = 1620414, amount: float = 0.0, currency: int = 62) -> Response:
         """ currency: gold = 62, cc = 1 """
@@ -1297,19 +1297,19 @@ class Citizen(classes.CitizenAPI):
         for notification in self.parse_notifications():
             don_id = re.search(r"erepublik.functions.acceptRejectDonation\(\"accept\", (\d+)\)", notification)
             if don_id:
-                self._get_money_donation_accept(int(don_id.group(1)))
+                self._get_main_money_donation_accept(int(don_id.group(1)))
                 self.sleep(5)
 
     def reject_money_donations(self) -> int:
-        r = self._get_notifications_ajax_system()
+        r = self._get_main_notifications_ajax_system()
         count = 0
         donation_ids = re.findall(r"erepublik.functions.acceptRejectDonation\(\"reject\", (\d+)\)", r.text)
         while donation_ids:
             for don_id in donation_ids:
-                self._get_money_donation_reject(int(don_id))
+                self._get_main_money_donation_reject(int(don_id))
                 count += 1
                 self.sleep(5)
-            r = self._get_notifications_ajax_system()
+            r = self._get_main_notifications_ajax_system()
             donation_ids = re.findall(r"erepublik.functions.acceptRejectDonation\(\"reject\", (\d+)\)", r.text)
         return count
 
@@ -1473,7 +1473,7 @@ class Citizen(classes.CitizenAPI):
                 self.energy.recoverable + 2 * self.energy.interval >= self.energy.limit)  # can do max amount of dmg
 
     def get_article_comments(self, article_id: int = 2645676, page_id: int = 1) -> Response:
-        return self._post_article_comments(article_id, page_id)
+        return self._post_main_article_comments(article_id, page_id)
 
     def comment_article(self, article_id: int = 2645676, msg: str = None) -> Response:
         if msg is None:
@@ -1486,14 +1486,14 @@ class Citizen(classes.CitizenAPI):
         return r
 
     def write_article_comment(self, message: str, article_id: int, parent_id: int = None) -> Response:
-        return self._post_article_comments_create(message, article_id, parent_id)
+        return self._post_main_article_comments_create(message, article_id, parent_id)
 
     def publish_article(self, title: str, content: str, kind: int) -> Response:
         kinds = {1: "First steps in eRepublik", 2: "Battle orders", 3: "Warfare analysis",
                  4: "Political debates and analysis", 5: "Financial business",
                  6: "Social interactions and entertainment"}
         if kind in kinds:
-            return self._post_write_article(title, content, self.details.citizenship, kind)
+            return self._post_main_write_article(title, content, self.details.citizenship, kind)
         else:
             raise classes.ErepublikException(
                 "Article kind must be one of:\n{}\n'{}' is not supported".format(
@@ -1621,7 +1621,7 @@ class Citizen(classes.CitizenAPI):
         return self._post_economy_job_market_apply(**data)
 
     def add_friend(self, player_id: int) -> Response:
-        resp = self._get_citizen_hovercard(player_id)
+        resp = self._get_main_citizen_hovercard(player_id)
         rjson = resp.json()
         if not any([rjson["isBanned"], rjson["isDead"], rjson["isFriend"], rjson["isOrg"], rjson["isSelf"]]):
             r = self._post_citizen_add_remove_friend(int(player_id), True)
@@ -1632,15 +1632,15 @@ class Citizen(classes.CitizenAPI):
     def get_country_parties(self, country_id: int = None) -> dict:
         if country_id is None:
             country_id = self.details.citizenship
-        r = self._get_rankings_parties(country_id)
+        r = self._get_main_rankings_parties(country_id)
         ret = {}
         for name, id_ in re.findall(r'<a class="dotted" title="([^"]+)" href="/en/party/[\w\d-]+-(\d+)/1">', r.text):
             ret.update({int(id_): name})
         return ret
 
-    def _get_party_members(self, party_id: int) -> Dict[int, str]:
+    def _get_main_party_members(self, party_id: int) -> Dict[int, str]:
         ret = {}
-        r = super()._get_party_members(party_id)
+        r = super()._get_main_party_members(party_id)
         for id_, name in re.findall(r'<a href="//www.erepublik.com/en/main/messages-compose/(\d+)" '
                                     r'title="([\w\d_ .]+)">', r.text):
             ret.update({id_: name})
@@ -1648,11 +1648,11 @@ class Citizen(classes.CitizenAPI):
 
     def get_country_mus(self, country_id: int) -> Dict[int, str]:
         ret = {}
-        r = self._get_leaderboards_damage_rankings(country_id)
+        r = self._get_main_leaderboards_damage_rankings(country_id)
         for data in r.json()["mu_filter"]:
             if data["id"]:
                 ret.update({data["id"]: data["name"]})
-        r = self._get_leaderboards_damage_aircraft_rankings(country_id)
+        r = self._get_main_leaderboards_damage_aircraft_rankings(country_id)
         for data in r.json()["mu_filter"]:
             if data["id"]:
                 ret.update({data["id"]: data["name"]})
@@ -1673,13 +1673,13 @@ class Citizen(classes.CitizenAPI):
         if ids is None:
             ids = [1620414, ]
         for player_id in ids:
-            self._post_messages_compose(subject, msg, [player_id])
+            self._post_main_messages_compose(subject, msg, [player_id])
 
     def add_every_player_as_friend(self):
         cities = []
         cities_dict = {}
         self.write_log("WARNING! This will take a lot of time.")
-        rj = self._post_travel_data(regionId=662, check="getCountryRegions").json()
+        rj = self._post_main_travel_data(regionId=662, check="getCountryRegions").json()
         for region_data in rj.get("regions", {}).values():
             cities.append(region_data['cityId'])
             cities_dict.update({region_data['cityId']: region_data['cityName']})
@@ -1687,11 +1687,11 @@ class Citizen(classes.CitizenAPI):
         cities.sort(key=int)
         for city_id in cities:
             self.write_log("Adding friends from {} (id: {})".format(cities_dict[city_id], city_id))
-            resp = self._get_city_data_residents(city_id).json()
+            resp = self._get_main_city_data_residents(city_id).json()
             for resident in resp["widgets"]["residents"]["residents"]:
                 self.add_friend(resident["citizenId"])
             for page in range(2, resp["widgets"]["residents"]["numResults"] // 10 + 2):
-                r = self._get_city_data_residents(city_id, page)
+                r = self._get_main_city_data_residents(city_id, page)
                 resp = r.json()
                 for resident in resp["widgets"]["residents"]["residents"]:
                     self.add_friend(resident["citizenId"])
@@ -1830,7 +1830,10 @@ class Citizen(classes.CitizenAPI):
         battle = self.all_battles.get(battle_id)
         if not battle:
             return {}
-        r = self._post_battle_console(battle_id, battle.zone_id, round_id, division, 1, True)
+
+        data = dict(zoneId=round_id, round=round_id, division=division, leftPage=1, rightPage=1, type="damage")
+
+        r = self._post_military_battle_console(battle_id, "battleStatistics", 1, **data)
         return {battle.invader.id: r.json().get(str(battle.invader.id)).get("fighterData"),
                 battle.defender.id: r.json().get(str(battle.defender.id)).get("fighterData")}
 
@@ -1868,7 +1871,7 @@ class Citizen(classes.CitizenAPI):
         self._get_main()
         post_to_wall_as = re.findall(r'id="post_to_country_as".*?<option value="(\d?)">.*?</option>.*</select>',
                                      self.r.text, re.S | re.M)
-        r = self._post_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
+        r = self._post_main_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
         return r.json()
 
     def report_error(self, msg: str = ""):
@@ -1909,7 +1912,7 @@ class Citizen(classes.CitizenAPI):
     def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
                                  booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> float:
         if not rang or strength or elite is None:
-            r = self._get_citizen_profile(self.details.citizen_id).json()
+            r = self._get_main_citizen_profile_json(self.details.citizen_id).json()
             if not rang:
                 rang = r['military']['militaryData']['ground']['rankNumber']
             if not strength:
@@ -1930,7 +1933,7 @@ class Citizen(classes.CitizenAPI):
     def get_air_hit_dmg_value(self, rang: int = None, elite: bool = None, ne: bool = False,
                               weapon: bool = False) -> float:
         if not rang or elite is None:
-            r = self._get_citizen_profile(self.details.citizen_id).json()
+            r = self._get_main_citizen_profile_json(self.details.citizen_id).json()
             if not rang:
                 rang = r['military']['militaryData']['air']['rankNumber']
             if elite is None:
