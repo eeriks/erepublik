@@ -579,11 +579,11 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
             data.update({"parentId": parent})
         return self.post("{}/main/articleComments/create".format(self.url), data=data)
 
-    def _post_battlefield_travel(self, side_id: int, battle_id: int) -> Response:
+    def _post_main_battlefield_travel(self, side_id: int, battle_id: int) -> Response:
         data = dict(_token=self.token, sideCountryId=side_id, battleId=battle_id)
         return self.post("{}/main/battlefieldTravel".format(self.url), data=data)
 
-    def _post_buy_gold_items(self, currency: str, item: str, amount: int) -> Response:
+    def _post_main_buy_gold_items(self, currency: str, item: str, amount: int) -> Response:
         data = dict(itemId=item, currency=currency, amount=amount, _token=self.token)
         return self.post("{}/main/buyGoldItems".format(self.url), data=data)
 
@@ -591,7 +591,7 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(_token=self.token, presentation=presentation)
         return self.post("{}/candidate-for-congress".format(self.url), data=data)
 
-    def _post_citizen_add_remove_friend(self, citizen: int, add: bool) -> Response:
+    def _post_main_citizen_add_remove_friend(self, citizen: int, add: bool) -> Response:
         data = dict(_token=self.token, citizenId=citizen, url="//www.erepublik.com/en/main/citizen-addRemoveFriend")
         if add:
             data.update({"action": "addFriend"})
@@ -599,16 +599,16 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
             data.update({"action": "removeFriend"})
         return self.post("{}/main/citizen-addRemoveFriend".format(self.url), data=data)
 
-    def _post_collect_anniversary_reward(self) -> Response:
+    def _post_main_collect_anniversary_reward(self) -> Response:
         return self.post("{}/main/collect-anniversary-reward".format(self.url), data={"_token": self.token})
 
-    def _post_country_donate(self, country: int, action: str, value: Union[int, float],
-                             quality: int = None) -> Response:
+    def _post_main_country_donate(self, country: int, action: str, value: Union[int, float],
+                                  quality: int = None) -> Response:
         json = dict(countryId=country, action=action, _token=self.token, value=value, quality=quality)
         return self.post("{}/main/country-donate".format(self.url), data=json,
                          headers={"Referer": "{}/country/economy/Latvia".format(self.url)})
 
-    def _post_daily_task_reward(self) -> Response:
+    def _post_main_daily_task_reward(self) -> Response:
         return self.post("{}/main/daily-tasks-reward".format(self.url), data=dict(_token=self.token))
 
     def _post_main_donate_article(self, article_id: int, amount: int) -> Response:

@@ -1138,7 +1138,7 @@ class Citizen(classes.CitizenAPI):
     def collect_daily_task(self) -> None:
         self.update_citizen_info()
         if self.details.daily_task_done and not self.details.daily_task_reward:
-            self._post_daily_task_reward()
+            self._post_main_daily_task_reward()
 
     def send_mail_to_owner(self) -> None:
         if not self.details.citizen_id == 1620414:
@@ -1314,7 +1314,7 @@ class Citizen(classes.CitizenAPI):
         return count
 
     def _rw_choose_side(self, battle_id: int, side_id: int) -> Response:
-        return self._post_battlefield_travel(side_id, battle_id)
+        return self._post_main_battlefield_travel(side_id, battle_id)
 
     def should_travel_to_fight(self) -> bool:
         ret = False
@@ -1594,7 +1594,7 @@ class Citizen(classes.CitizenAPI):
         return self.available_industries.get(industry_name, 0)
 
     def buy_tg_contract(self) -> Response:
-        ret = self._post_buy_gold_items('gold', "TrainingContract2", 1)
+        ret = self._post_main_buy_gold_items('gold', "TrainingContract2", 1)
         self.reporter.report_action("BUY_TG_CONTRACT", ret.json())
         return ret
 
@@ -1624,7 +1624,7 @@ class Citizen(classes.CitizenAPI):
         resp = self._get_main_citizen_hovercard(player_id)
         rjson = resp.json()
         if not any([rjson["isBanned"], rjson["isDead"], rjson["isFriend"], rjson["isOrg"], rjson["isSelf"]]):
-            r = self._post_citizen_add_remove_friend(int(player_id), True)
+            r = self._post_main_citizen_add_remove_friend(int(player_id), True)
             self.write_log("{:<64} (id:{:>11}) added as friend".format(rjson["name"], player_id))
             return r
         return resp
@@ -1824,7 +1824,7 @@ class Citizen(classes.CitizenAPI):
         return active_until
 
     def collect_anniversary_reward(self) -> Response:
-        return self._post_collect_anniversary_reward()
+        return self._post_main_collect_anniversary_reward()
 
     def get_battle_round_data(self, battle_id: int, round_id: int, division: int = None) -> dict:
         battle = self.all_battles.get(battle_id)
@@ -1844,7 +1844,7 @@ class Citizen(classes.CitizenAPI):
             return False
         data = dict(country=71, action='currency', value=amount)
         self.reporter.report_action("CONTRIBUTE_CC", data)
-        r = self._post_country_donate(**data)
+        r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
     def contribute_food_to_country(self, amount: int = 0, quality: int = 1) -> bool:
@@ -1854,7 +1854,7 @@ class Citizen(classes.CitizenAPI):
             return False
         data = dict(country=71, action='food', value=amount, quality=quality)
         self.reporter.report_action("CONTRIBUTE_FOOD", data)
-        r = self._post_country_donate(**data)
+        r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
     def contribute_gold_to_country(self, amount: int) -> bool:
@@ -1864,7 +1864,7 @@ class Citizen(classes.CitizenAPI):
             return False
         data = dict(country=71, action='gold', value=amount)
         self.reporter.report_action("CONTRIBUTE_GOLD", data)
-        r = self._post_country_donate(**data)
+        r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
     def write_on_country_wall(self, message: str) -> bool:
