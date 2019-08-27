@@ -1277,9 +1277,11 @@ class Citizen(classes.CitizenAPI):
     def activate_pp_booster(self, battle_id: int) -> Response:
         return self._post_military_fight_activate_booster(battle_id, 1, 180, "prestige_points")
 
-    def donate_money(self, citizen_id: int = 1620414, amount: float = 0.0, currency: int = 62) -> Response:
+    def donate_money(self, citizen_id: int = 1620414, amount: float = 0.0, currency: int = 62) -> bool:
         """ currency: gold = 62, cc = 1 """
-        return self._post_economy_donate_money_action(citizen_id, amount, currency)
+        resp = self._post_economy_donate_money_action(citizen_id, amount, currency)
+        r = re.search('You do not have enough money in your account to make this donation', resp.text)
+        return not bool(r)
 
     def donate_items(self, citizen_id: int = 1620414, amount: int = 0, industry_id: int = 1,
                      quality: int = 1) -> Response:
