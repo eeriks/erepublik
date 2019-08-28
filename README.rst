@@ -7,7 +7,7 @@ eRepublik script
         :target: https://pypi.python.org/pypi/erepublik
 
 .. image:: https://readthedocs.org/projects/erepublik_script/badge/?version=latest
-        :target: https://erepublik_script.readthedocs.io/en/latest/?badge=latest
+        :target: https://erepublik.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
@@ -15,7 +15,7 @@ Python package for automated eRepublik playing
 
 
 * Free software: MIT license
-* Documentation: https://erepublik.readthedocs.io.
+* Documentation: https://erepublik.readthedocs.io/en/latest/
 
 
 Features
