@@ -803,6 +803,8 @@ class Citizen(classes.CitizenAPI):
                 self.resign()
                 self.find_new_job()
             else:
+                if r.json().get('message') == 'employee':
+                    self.find_new_job()
                 self.reporter.report_action("WORK_OT", r.json())
         elif self.energy.food_fights < 1 and self.ot_points >= 24:
             self._eat("blue")
@@ -820,6 +822,8 @@ class Citizen(classes.CitizenAPI):
             js = response.json()
             good_msg = ["already_worked", "captcha"]
             if not js.get("status") and not js.get("message") in good_msg:
+                if js.get('message') == 'employee':
+                    self.find_new_job()
                 self.update_citizen_info()
                 self.work()
             else:
