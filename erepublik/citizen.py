@@ -1613,7 +1613,7 @@ class Citizen(classes.CitizenAPI):
         jobs = r.json().get("jobs")
         data = dict(citizen=0, salary=10)
         for posting in jobs:
-            salary = posting.get("netSalary")
+            salary = posting.get("salary")
             limit = posting.get("salaryLimit", 0)
             userid = posting.get("citizen").get("id")
 
