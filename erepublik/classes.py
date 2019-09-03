@@ -320,7 +320,7 @@ class Energy:
 
     @property
     def food_fights(self):
-        return (self.recoverable + self.recovered) // 10
+        return self.available // 10
 
     @property
     def reference_time(self):

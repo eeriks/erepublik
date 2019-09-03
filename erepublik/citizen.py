@@ -14,8 +14,6 @@ from erepublik import classes, utils
 
 
 class Citizen(classes.CitizenAPI):
-    url: str = "https://www.erepublik.com/en"
-
     division = 0
 
     all_battles: Dict[int, classes.Battle] = None
@@ -47,13 +45,12 @@ class Citizen(classes.CitizenAPI):
 
     r: requests.Response
     reporter: classes.Reporter
-    token = ""
     name = "Not logged in!"
     debug = False
     __registered = False
     logged_in = False
 
-    def __init__(self, email: str = "", password: str = ""):
+    def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
         super().__init__()
         self.commit_id = utils.COMMIT_ID
         self.config = classes.Config()
@@ -65,10 +62,14 @@ class Citizen(classes.CitizenAPI):
         self.my_companies = classes.MyCompanies()
         self.set_debug(True)
         self.reporter = classes.Reporter()
+        self.stop_threads = threading.Event()
+        if auto_login:
+            self.login()
+
+    def login(self):
         self.get_csrf_token()
         self.update_citizen_info()
-        self.reporter.do_init(self.name, email, self.details.citizen_id)
-        self.stop_threads = threading.Event()
+        self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)
         self.__last_full_update = utils.good_timedelta(self.now, - datetime.timedelta(minutes=5))
 
     def write_log(self, *args, **kwargs):
@@ -1324,8 +1325,6 @@ class Citizen(classes.CitizenAPI):
             ret = True
         elif self.should_do_levelup:  # Do levelup
             ret = True
-        elif self.config.all_in and self.energy.available > self.energy.limit * 2 - self.energy.interval * 3:
-            ret = True
         # Get to next Energy +1
         elif self.next_reachable_energy and self.config.next_energy:
             ret = True
@@ -1370,8 +1369,7 @@ class Citizen(classes.CitizenAPI):
             log_msg = "Fighting all-in. Doing %i hits" % count
 
         # All-in for AIR battles
-        elif all([self.config.air, self.config.all_in,
-                  self.energy.available >= self.energy.limit]):
+        elif all([self.config.air, self.config.all_in, self.energy.available >= self.energy.limit]):
             count = self.energy.food_fights
             log_msg = "Fighting all-in in AIR. Doing %i hits" % count
 
@@ -1384,18 +1382,17 @@ class Citizen(classes.CitizenAPI):
         elif self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
             count = self.energy.interval
             log_msg = "Fighting for 1h energy. Doing %i hits" % count
+            force_fight = True
 
         if count > 0 and not force_fight:
-            if self.my_companies.ff_lockdown and self.details.pp > 75:
-                if self.energy.food_fights - self.my_companies.ff_lockdown < count:
-                    log_msg = ("Fight count modified (old count: {} | FF: {} | "
-                               "WAM ff_lockdown: {} | New count: {})").format(
-                        count, self.energy.food_fights, self.my_companies.ff_lockdown,
-                        count - self.my_companies.ff_lockdown)
-                    count -= self.my_companies.ff_lockdown
-                else:
-                    count = 0
+            if self.energy.food_fights - self.my_companies.ff_lockdown < count and self.details.pp > 75:
+                log_msg = ("Fight count modified (old count: {} | FF: {} | "
+                           "WAM ff_lockdown: {} | New count: {})").format(
+                    count, self.energy.food_fights, self.my_companies.ff_lockdown,
+                    count - self.my_companies.ff_lockdown)
+                count -= self.my_companies.ff_lockdown
                 if count <= 0:
+                    count = 0
                     log_msg = "Not fighting because WAM needs {} food fights".format(self.my_companies.ff_lockdown)
 
             if self.max_time_till_full_ff > self.time_till_week_change:
