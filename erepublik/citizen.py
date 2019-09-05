@@ -93,7 +93,7 @@ class Citizen(classes.CitizenAPI):
     def __dict__(self):
         ret = {}
         for key in dir(self):
-            if not key.startswith('_'):
+            if not key.startswith('_') and not callable(getattr(self, key)):
                 ret[key] = getattr(self, key)
         ret.pop('reporter', None)
         ret.pop('stop_threads', None)

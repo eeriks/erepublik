@@ -17,9 +17,6 @@ class TestErepublik(unittest.TestCase):
         self.citizen = Citizen("email", "password", False)
         self.citizen.config.interactive = False
 
-    def test_000_something(self):
-        """Test something."""
-
     def test_should_do_levelup(self):
         self.citizen.energy.recovered = 1900
         self.citizen.energy.recoverable = 2940

@@ -695,7 +695,8 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
             data.update({"sell": "sell"})
         else:
             data.update({"dissolve": factory})
-        return self.post("{}/economy/sell-company/{}".format(self.url, factory), data=data, headers={"Referer": url})
+        return self.post("{}/economy/sell-company/{}".format(self.url, factory),
+                         data=data, headers={"Referer": self.url})
 
     def _post_economy_train(self, tg_ids: List[int]) -> Response:
         data: Dict[str, Union[int, str]] = {}
