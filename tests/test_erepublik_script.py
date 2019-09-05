@@ -71,7 +71,6 @@ class TestErepublik(unittest.TestCase):
 
         self.citizen.config.fight = True
 
-
         # Level up
         self.citizen.energy.limit = 3000
         self.citizen.details.xp = 24705
@@ -124,29 +123,6 @@ class TestErepublik(unittest.TestCase):
         self.citizen.energy.limit = 3000
         self.citizen.details.next_pp = [19250, 20000]
         self.citizen.config.next_energy = False
-
-        true = True
-        false = False
-        self.citizen.config.air = True
-        self.citizen.config.all_in = False
-        self.citizen.config.boosters = True
-        self.citizen.config.continuous_fighting = False
-        self.citizen.set_debug(True)
-        self.citizen.config.fight = True
-        self.citizen.config.ground = True
-        self.citizen.config.next_energy = True
-        self.citizen.config.rw_def_side = False
-        self.citizen.config.travel_to_fight = True
-        self.citizen.config.interactive = True
-
-        self.citizen.energy.limit = 1640
-        self.citizen.energy.recoverable = 1640
-        self.citizen.energy.recovered = 1640
-        self.citizen.energy.interval = 44
-        self.citizen.details.xp = 100975
-        self.citizen.details.next_pp = [8750, 9250, 10000]
-        self.citizen.my_companies.ff_lockdown = 9
-        self.assertEqual(self.citizen.should_fight(False), 328)
 
         # 1h worth of energy
         self.citizen.energy.recoverable = 2910

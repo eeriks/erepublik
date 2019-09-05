@@ -616,12 +616,19 @@ class Citizen(classes.CitizenAPI):
         ally_battles_ground: List[int] = []
         other_battles_air: List[int] = []
         other_battles_ground: List[int] = []
+
+        ret_battles = []
         for bid, battle in sorted(self.all_battles.items(), key=lambda b: b[1].start if sort_by_time else b[0],
                                   reverse=sort_by_time):
             battle_sides = [battle.invader.id, battle.defender.id]
 
+            # Previous battles
+            if self.__last_war_update_data.get("citizen_contribution"):
+                battle_id = self.__last_war_update_data.get("citizen_contribution")[0].get("battle_id", 0)
+                ret_battles.append(battle_id)
+
             # CS Battles
-            if self.details.citizenship in battle_sides:
+            elif self.details.citizenship in battle_sides:
                 if battle.is_air:
                     cs_battles_ground.append(battle.id)
                 else:
@@ -652,11 +659,6 @@ class Citizen(classes.CitizenAPI):
                     other_battles_ground.append(battle.id)
                 else:
                     other_battles_air.append(battle.id)
-
-        ret_battles = []
-        if self.__last_war_update_data.get("citizen_contribution"):
-            battle_id = self.__last_war_update_data.get("citizen_contribution")[0].get("battle_id", 0)
-            ret_battles.append(battle_id)
 
         ret_battles += (cs_battles_air + cs_battles_ground +
                         deployed_battles_air + deployed_battles_ground +
@@ -1389,11 +1391,10 @@ class Citizen(classes.CitizenAPI):
             force_fight = True
 
         if count > 0 and not force_fight:
-            if self.energy.food_fights - self.my_companies.ff_lockdown < count and self.details.pp > 75:
-                log_msg = ("Fight count modified (old count: {} | FF: {} | "
-                           "WAM ff_lockdown: {} | New count: {})").format(
-                    count, self.energy.food_fights, self.my_companies.ff_lockdown,
-                    count - self.my_companies.ff_lockdown)
+            if self.energy.food_fights - self.my_companies.ff_lockdown < count:
+                log_msg = (f"Fight count modified (old count: {count} | FF: {self.energy.food_fights} | "
+                           f"WAM ff_lockdown: {self.my_companies.ff_lockdown} |"
+                           f" New count: {count - self.my_companies.ff_lockdown})")
                 count -= self.my_companies.ff_lockdown
                 if count <= 0:
                     count = 0
