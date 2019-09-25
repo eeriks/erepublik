@@ -993,6 +993,7 @@ class Citizen(classes.CitizenAPI):
                         return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
             elif response.get("message") == "not_enough_health_food":
                 self.buy_food()
+                return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
             else:
                 self.write_log("I was not able to wam and or employ because:\n{}".format(response))
         wam_count = self.my_companies.get_total_wam_count()
