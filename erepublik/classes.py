@@ -61,7 +61,7 @@ class MyCompanies:
                         production=0, base_production=0, wam_enabled=False, can_work_as_manager=False,
                         preset_own_work=0, already_worked=False, can_assign_employees=False, preset_works=0,
                         todays_works=0, holding_company_id=None, is_assigned_to_holding=False,
-                        cannot_work_as_manager_reason=False)
+                        cannot_work_as_manager_reason=False, industry_id=0)
 
         for c_id, company in companies.items():
             tmp = {}
@@ -119,7 +119,10 @@ class MyCompanies:
         raw = []
         factory = []
         if holding_id in self.holdings:
-            for company_id in self.holdings.get(holding_id, {}).get('companies', []):
+            for company_id in sorted(self.holdings.get(holding_id, {}).get('companies', []),
+                                     key=lambda cid: (-self.companies[cid].get('is_raw'),  # True, False
+                                                      self.companies[cid].get('industry_id'),  # F W H A
+                                                      -self.companies[cid].get('quality'), )):  # 7, 6, .. 2, 1
                 company = self.companies.get(company_id, {})
                 wam_enabled = bool(company.get('wam_enabled', {}))
                 already_worked = not company.get('already_worked', {})
