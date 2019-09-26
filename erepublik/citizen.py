@@ -11,7 +11,6 @@ import requests
 from requests import Response, RequestException
 
 from erepublik import classes, utils
-from erepublik.classes import TelegramBot
 
 
 class Citizen(classes.CitizenAPI):
@@ -52,7 +51,7 @@ class Citizen(classes.CitizenAPI):
     logged_in = False
     telegram = None
 
-    def __init__(self, email: str = "", password: str = "", auto_login: bool = True, telegram: Dict[str, Any] = None):
+    def __init__(self, email: str = "", password: str = "", auto_login: bool = True, telegram: Dict[str, Union[str, int]] = None):
         super().__init__()
         self.commit_id = utils.COMMIT_ID
         self.config = classes.Config()
@@ -66,18 +65,18 @@ class Citizen(classes.CitizenAPI):
         self.reporter = classes.Reporter()
         self.stop_threads = threading.Event()
         if auto_login:
-            self.login()
+            self.login(telegram)
+
+    def login(self, telegram: Dict[str, Union[str, int]] = None):
+        self.get_csrf_token()
 
         if telegram is None:
-            self.telegram = TelegramBot(620981703, "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o", self.name)
+            self.telegram = classes.TelegramBot(620981703, "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o", self.name)
         else:
-            self.telegram = TelegramBot(telegram['chat_id'], telegram['token'])
-
-    def login(self):
-        self.get_csrf_token()
+            self.telegram = classes.TelegramBot(telegram['chat_id'], telegram['token'])
+        self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
         self.update_citizen_info()
         self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)
-        self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
         self.__last_full_update = utils.good_timedelta(self.now, - datetime.timedelta(minutes=5))
 
     def write_log(self, *args, **kwargs):
