@@ -5,9 +5,9 @@ import random
 import time
 from collections import deque
 from json import JSONDecodeError, loads, JSONEncoder
-from typing import Any, Dict, List, Union, Mapping, Iterable
+from typing import Any, Dict, List, Union, Mapping, Iterable, Tuple
 
-from requests import Response, Session
+from requests import Response, Session, post
 
 from erepublik import utils
 
@@ -122,7 +122,7 @@ class MyCompanies:
             for company_id in sorted(self.holdings.get(holding_id, {}).get('companies', []),
                                      key=lambda cid: (-self.companies[cid].get('is_raw'),  # True, False
                                                       self.companies[cid].get('industry_id'),  # F W H A
-                                                      -self.companies[cid].get('quality'), )):  # 7, 6, .. 2, 1
+                                                      -self.companies[cid].get('quality'),)):  # 7, 6, .. 2, 1
                 company = self.companies.get(company_id, {})
                 wam_enabled = bool(company.get('wam_enabled', {}))
                 already_worked = not company.get('already_worked', {})
@@ -335,7 +335,7 @@ class Energy:
 
     @property
     def is_recoverable_full(self):
-        return self.recoverable >= self.limit - self.interval
+        return self.recoverable >= self.limit - 5 * self.interval
 
     @property
     def is_recovered_full(self):
@@ -507,7 +507,8 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = (country, weeks, mu)
         return self.get("{}/main/leaderboards-damage-aircraft-rankings/{}/{}/{}/0".format(self.url, *data))
 
-    def _get_main_leaderboards_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 0) -> Response:
+    def _get_main_leaderboards_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0,
+                                               div: int = 0) -> Response:
         data = (country, weeks, mu, div)
         return self.get("{}/main/leaderboards-damage-rankings/{}/{}/{}/{}".format(self.url, *data))
 
@@ -515,7 +516,8 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = (country, weeks, mu)
         return self.get("{}/main/leaderboards-kills-aircraft-rankings/{}/{}/{}/0".format(self.url, *data))
 
-    def _get_main_leaderboards_kills_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 0) -> Response:
+    def _get_main_leaderboards_kills_rankings(self, country: int, weeks: int = 0, mu: int = 0,
+                                              div: int = 0) -> Response:
         data = (country, weeks, mu, div)
         return self.get("{}/main/leaderboards-kills-rankings/{}/{}/{}/{}".format(self.url, *data))
 
@@ -774,7 +776,7 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(battleId=battle_id, action=action, _token=self.token)
         if action == "battleStatistics":
             data.update(round=kwargs["round_id"], zoneId=kwargs["round_id"], leftPage=page, rightPage=page,
-                        division=kwargs["division"], type=kwargs.get("type", 'damage'),)
+                        division=kwargs["division"], type=kwargs.get("type", 'damage'), )
         elif action == "warList":
             data.update(page=page)
         return self.post("{}/military/battle-console".format(self.url), data=data)
@@ -1139,3 +1141,45 @@ class EnergyToFight:
         if 0 < new_energy < self.energy:
             self.energy = new_energy
         return self.energy
+
+
+class TelegramBot:
+    chat_id = 0
+    api_url = ""
+
+    def __init__(self, chat_id: int, token: str, player_name: str = ""):
+        self.chat_id = chat_id
+        self.api_url = "https://api.telegram.org/bot{}/sendMessage".format(token)
+        self.player_name = player_name
+
+    def send_message(self, message: str) -> bool:
+        if self.player_name:
+            message = f"Player *{self.player_name}*\n" + message
+        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+        return response.json().get('ok')
+
+    def report_free_bhs(self, battles: List[Tuple[int, int, int, int, datetime.timedelta]]):
+        battle_links = []
+        for battle_id, side_id, against_id, damage, time_left in battles:
+            total_seconds = int(time_left.total_seconds())
+            time_start = ""
+            hours, remainder = divmod(total_seconds, 3600)
+            if hours:
+                time_start = f"{hours}h "
+            minutes, seconds = divmod(remainder, 60)
+            time_start += f"{minutes:02}m {seconds:02}s"
+            damage = "{:,}".format(damage).replace(',', ' ')
+            battle_links.append(f"*{damage}*dmg bh for [{utils.COUNTRIES[side_id]} vs {utils.COUNTRIES[against_id]}]"
+                                f"(https://www.erepublik.com/en/military/battlefield/{battle_id}) "
+                                f"_time since start {time_start}_")
+        self.send_message("Free BHs:\n" + "\n".join(battle_links))
+
+    def report_full_energy(self, available: int, limit: int, interval: int):
+        message = ""
+        if self.player_name:
+            message = f"Player *{self.player_name}*\n"
+        message += f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
+        self.send_message(message)
+
+    def report_medal(self, msg):
+        self.send_message(f"New award: *{msg}*")

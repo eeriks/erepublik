@@ -11,6 +11,7 @@ import requests
 from requests import Response, RequestException
 
 from erepublik import classes, utils
+from erepublik.classes import TelegramBot
 
 
 class Citizen(classes.CitizenAPI):
@@ -49,8 +50,9 @@ class Citizen(classes.CitizenAPI):
     debug = False
     __registered = False
     logged_in = False
+    telegram = None
 
-    def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
+    def __init__(self, email: str = "", password: str = "", auto_login: bool = True, telegram: Dict[str, Any] = None):
         super().__init__()
         self.commit_id = utils.COMMIT_ID
         self.config = classes.Config()
@@ -65,6 +67,11 @@ class Citizen(classes.CitizenAPI):
         self.stop_threads = threading.Event()
         if auto_login:
             self.login()
+
+        if telegram is None:
+            self.telegram = TelegramBot(620981703, "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o", self.name)
+        else:
+            self.telegram = TelegramBot(telegram['chat_id'], telegram['token'])
 
     def login(self):
         self.get_csrf_token()
@@ -261,7 +268,9 @@ class Citizen(classes.CitizenAPI):
             msgs = ["{count} x {kind}, totaling {} {currency}\n"
                     "{about}".format(d["count"] * d["reward"], **d) for d in data.values()]
 
-            self.write_log("Found awards: {}".format("\n".join(msgs)))
+            msgs = "\n".join(msgs)
+            self.telegram.report_medal(msgs)
+            self.write_log("Found awards: {}".format(msgs))
             for info in data.values():
                 self.reporter.report_action("NEW_MEDAL", info)
 
@@ -270,6 +279,7 @@ class Citizen(classes.CitizenAPI):
             level = levelup.group(1)
             msg = "Level up! Current level {}".format(level)
             self.write_log(msg)
+            self.telegram.report_medal(f"Level *{level}*")
             self.reporter.report_action("LEVEL_UP", value=level)
 
     def update_all(self, force_update=False):
@@ -337,6 +347,8 @@ class Citizen(classes.CitizenAPI):
         self.energy.limit = citizen.get("energyToRecover", 0)
         self.energy.recovered = citizen.get("energy", 0)
         self.energy.recoverable = citizen.get("energyFromFoodRemaining", 0)
+        if self.energy.is_energy_full:
+            self.telegram.report_full_energy(self.energy.available, self.energy.limit, self.energy.interval)
 
         self.details.current_region = citizen.get("regionLocationId", 0)
         self.details.current_country = citizen.get("countryLocationId", 0)  # country where citizen is located
@@ -1740,6 +1752,7 @@ class Citizen(classes.CitizenAPI):
 
     def launch_attack(self, war_id: int, region_id: int, region_name: str):
         self._post_wars_attack_region(war_id, region_id, region_name)
+        self.telegram.send_message(f"Battle for *{region_name}* queued")
 
     def state_update_repeater(self):
         try:
@@ -1848,6 +1861,7 @@ class Citizen(classes.CitizenAPI):
         if self.details.cc < amount or amount < 20:
             return False
         data = dict(country=71, action='currency', value=amount)
+        self.telegram.send_message(f"Donated {amount}cc to {utils.COUNTRIES[71]}")
         self.reporter.report_action("CONTRIBUTE_CC", data)
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
