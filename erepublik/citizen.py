@@ -77,6 +77,7 @@ class Citizen(classes.CitizenAPI):
         self.get_csrf_token()
         self.update_citizen_info()
         self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)
+        self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
         self.__last_full_update = utils.good_timedelta(self.now, - datetime.timedelta(minutes=5))
 
     def write_log(self, *args, **kwargs):
