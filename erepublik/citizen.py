@@ -67,10 +67,6 @@ class Citizen(classes.CitizenAPI):
         self.stop_threads = threading.Event()
         if auto_login:
             self.login()
-        if self.config.telegram:
-            self.telegram.do_init(self.config.telegram_chat_id or 620981703,
-                                  self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
-                                  "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
 
     def login(self, telegram: Dict[str, Union[str, int]] = None):
         self.get_csrf_token()
@@ -78,6 +74,10 @@ class Citizen(classes.CitizenAPI):
         self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
         self.update_citizen_info()
         self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)
+        if self.config.telegram:
+            self.telegram.do_init(self.config.telegram_chat_id or 620981703,
+                                  self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
+                                  "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
         self.__last_full_update = utils.good_timedelta(self.now, - datetime.timedelta(minutes=5))
 
     def write_log(self, *args, **kwargs):
