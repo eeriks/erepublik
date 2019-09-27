@@ -291,6 +291,9 @@ class Config:
     force_wam = False
     sort_battles_time = True
     force_travel = False
+    telegram = True
+    telegram_chat_id = 0
+    telegram_token = ""
 
     @property
     def wt(self):

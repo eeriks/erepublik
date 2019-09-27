@@ -51,7 +51,7 @@ class Citizen(classes.CitizenAPI):
     logged_in = False
     telegram = None
 
-    def __init__(self, email: str = "", password: str = "", auto_login: bool = True, telegram: Dict[str, Union[str, int]] = None):
+    def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
         super().__init__()
         self.commit_id = utils.COMMIT_ID
         self.config = classes.Config()
@@ -67,10 +67,10 @@ class Citizen(classes.CitizenAPI):
         self.stop_threads = threading.Event()
         if auto_login:
             self.login()
-        if telegram is None:
-            self.telegram.do_init(620981703, "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o", self.name)
-        else:
-            self.telegram.do_init(telegram['chat_id'], telegram['token'])
+        if self.config.telegram:
+            self.telegram.do_init(self.config.telegram_chat_id or 620981703,
+                                  self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
+                                  "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
 
     def login(self, telegram: Dict[str, Union[str, int]] = None):
         self.get_csrf_token()
