@@ -68,7 +68,7 @@ class Citizen(classes.CitizenAPI):
         if auto_login:
             self.login()
 
-    def login(self, telegram: Dict[str, Union[str, int]] = None):
+    def login(self):
         self.get_csrf_token()
 
         self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
