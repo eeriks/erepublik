@@ -1162,12 +1162,12 @@ class TelegramBot:
             self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
 
     def send_message(self, message: str) -> bool:
-        if self.player_name:
-            message = f"Player *{self.player_name}*\n" + message
-        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         if not self.__initialized:
             self.__queue.append(message)
             return True
+        if self.player_name:
+            message = f"Player *{self.player_name}*\n" + message
+        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         return response.json().get('ok')
 
     def report_free_bhs(self, battles: List[Tuple[int, int, int, int, datetime.timedelta]]):
