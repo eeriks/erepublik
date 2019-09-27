@@ -63,17 +63,18 @@ class Citizen(classes.CitizenAPI):
         self.my_companies = classes.MyCompanies()
         self.set_debug(True)
         self.reporter = classes.Reporter()
+        self.telegram = classes.TelegramBot()
         self.stop_threads = threading.Event()
         if auto_login:
-            self.login(telegram)
+            self.login()
+        if telegram is None:
+            self.telegram.do_init(620981703, "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o", self.name)
+        else:
+            self.telegram.do_init(telegram['chat_id'], telegram['token'])
 
     def login(self, telegram: Dict[str, Union[str, int]] = None):
         self.get_csrf_token()
 
-        if telegram is None:
-            self.telegram = classes.TelegramBot(620981703, "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o", self.name)
-        else:
-            self.telegram = classes.TelegramBot(telegram['chat_id'], telegram['token'])
         self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
         self.update_citizen_info()
         self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)

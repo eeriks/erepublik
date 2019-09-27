@@ -1144,18 +1144,27 @@ class EnergyToFight:
 
 
 class TelegramBot:
+    __initialized = False
+    __queue: List[str] = []
     chat_id = 0
     api_url = ""
+    player_name = ""
 
-    def __init__(self, chat_id: int, token: str, player_name: str = ""):
+    def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id
         self.api_url = "https://api.telegram.org/bot{}/sendMessage".format(token)
         self.player_name = player_name
+        self.__initialized = True
+        if self.__queue:
+            self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
 
     def send_message(self, message: str) -> bool:
         if self.player_name:
             message = f"Player *{self.player_name}*\n" + message
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+        if not self.__initialized:
+            self.__queue.append(message)
+            return True
         return response.json().get('ok')
 
     def report_free_bhs(self, battles: List[Tuple[int, int, int, int, datetime.timedelta]]):
