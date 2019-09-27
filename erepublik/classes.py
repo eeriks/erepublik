@@ -982,6 +982,7 @@ class Reporter:
 
 class MyJSONEncoder(JSONEncoder):
     def default(self, o):
+        from erepublik.citizen import Citizen
         if isinstance(o, decimal.Decimal):
             return float("{:.02f}".format(o))
         elif isinstance(o, datetime.datetime):
@@ -998,6 +999,8 @@ class MyJSONEncoder(JSONEncoder):
             return o.__dict__
         elif isinstance(o, deque):
             return list(o)
+        elif isinstance(o, Citizen):
+            return o.to_json()
         return super().default(o)
 
 
