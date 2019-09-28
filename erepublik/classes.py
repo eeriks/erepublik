@@ -2,7 +2,9 @@ import datetime
 import decimal
 import hashlib
 import random
+import sys
 import time
+import traceback
 from collections import deque
 from json import JSONDecodeError, loads, JSONEncoder
 from typing import Any, Dict, List, Union, Mapping, Iterable, Tuple
@@ -1152,12 +1154,14 @@ class TelegramBot:
     chat_id = 0
     api_url = ""
     player_name = ""
+    __last_time: datetime.datetime = None
 
     def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id
         self.api_url = "https://api.telegram.org/bot{}/sendMessage".format(token)
         self.player_name = player_name
         self.__initialized = True
+        self.__last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
         if self.__queue:
             self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
 
@@ -1167,7 +1171,11 @@ class TelegramBot:
             return True
         if self.player_name:
             message = f"Player *{self.player_name}*\n" + message
+        if utils.good_timedelta(utils.now(), datetime.timedelta(seconds=-1)) <= self.__last_time:
+            tb = traceback.extract_stack()
+            message += "\n\n```\n{}\n```".format("\n".join([str(l) for l in tb]))
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+        self.__last_time = utils.now()
         return response.json().get('ok')
 
     def report_free_bhs(self, battles: List[Tuple[int, int, int, int, datetime.timedelta]]):
@@ -1187,10 +1195,7 @@ class TelegramBot:
         self.send_message("Free BHs:\n" + "\n".join(battle_links))
 
     def report_full_energy(self, available: int, limit: int, interval: int):
-        message = ""
-        if self.player_name:
-            message = f"Player *{self.player_name}*\n"
-        message += f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
+        message = f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
         self.send_message(message)
 
     def report_medal(self, msg):

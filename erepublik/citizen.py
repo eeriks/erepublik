@@ -508,8 +508,6 @@ class Citizen(classes.CitizenAPI):
         """
         Try to eat food
         """
-        self.update_citizen_info()
-        self.update_inventory()
         if self.food["total"] > self.energy.interval:
             if self.energy.limit - self.energy.recovered > self.energy.interval or not self.energy.recoverable % 2:
                 self._eat("blue")
@@ -518,7 +516,6 @@ class Citizen(classes.CitizenAPI):
         else:
             self.write_log("I'm out of food! But I'll try to buy some!\n{}".format(self.food))
             self.buy_food()
-            self.update_inventory()
             if self.food["total"] > self.energy.interval:
                 self.eat()
             else:
@@ -1235,8 +1232,7 @@ class Citizen(classes.CitizenAPI):
             ret = items
         return ret
 
-    def buy_food(self) -> None:
-        self.update_money()
+    def buy_food(self):
         hp_per_quality = {"q1": 2, "q2": 4, "q3": 6, "q4": 8, "q5": 10, "q6": 12, "q7": 20}
         hp_needed = 48 * self.energy.interval * 10 - self.food["total"]
         local_offers = self.get_market_offers(country_id=self.details.current_country, product="food")
@@ -1552,7 +1548,6 @@ class Citizen(classes.CitizenAPI):
     def get_raw_surplus(self) -> (float, float):
         frm = 0.00
         wrm = 0.00
-        self.update_companies()
         for cdata in sorted(self.my_companies.companies.values()):
             if cdata["industry_token"] == "FOOD":
                 raw = frm
