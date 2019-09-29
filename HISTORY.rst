@@ -2,10 +2,15 @@
 History
 =======
 
+
+0.16.0 (2019-09-29)
+-------------------
+
 * Telegram notification integration
 * Improved serialization to JSON
 * When failing to do WAM because of not enough food - buy food
 * Buy food buys 48h worth instead of 24h energy
+
 
 0.15.3 (2019-08-24)
 -------------------
@@ -24,6 +29,7 @@ History
 -------------------
 
 * Wall post comment endpoints updated with comment create endpoints.
+
 
 0.1.0 (2019-07-19)
 ------------------
