@@ -303,7 +303,7 @@ class Citizen(classes.CitizenAPI):
         """
         if html is None:
             self._get_main()
-            html = self.r.text
+            return
         ugly_js = re.search(r'"promotions":\s*(\[{?.*?}?])', html).group(1)
         promos = loads(utils.normalize_html_json(ugly_js))
         self.promos = {k: v for k, v in (self.promos.items() if self.promos else {}) if v > self.now}
@@ -552,7 +552,6 @@ class Citizen(classes.CitizenAPI):
 
     @property
     def health_info(self):
-        self.update_citizen_info()
         ret = "{}/{} + {}, {}hp/6m. {}xp until level up".format(
             self.energy.recovered,
             self.energy.limit,

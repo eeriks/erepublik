@@ -1173,7 +1173,7 @@ class TelegramBot:
             message = f"Player *{self.player_name}*\n" + message
         if utils.good_timedelta(utils.now(), datetime.timedelta(seconds=-1)) <= self.__last_time:
             tb = traceback.extract_stack()
-            message += "\n\n```\n{}\n```".format("\n".join([str(l) for l in tb]))
+            message += "\n\n```\n{}\n```".format("\n".join(['  File "{}", line {}, in {}\n'.format(l.filename, l.lineno, l.name) for l in tb]))
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         self.__last_time = utils.now()
         return response.json().get('ok')

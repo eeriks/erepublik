@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['pytz==2019.2', 'requests==2.22.0']
+requirements = ['pytz>=2019.2', 'requests>=2.22']
 
 setup_requirements = [ ]
 
@@ -41,7 +41,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/eeriks/erepublik_script',
+    url='https://github.com/eeriks/erepublik/t',
     version='0.15.3',
     zip_safe=False,
 )
