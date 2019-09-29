@@ -6,7 +6,7 @@ eRepublik script
 .. image:: https://img.shields.io/pypi/v/erepublik.svg
         :target: https://pypi.python.org/pypi/erepublik
 
-.. image:: https://readthedocs.org/projects/erepublik_script/badge/?version=latest
+.. image:: https://readthedocs.org/projects/erepublik/badge/?version=latest
         :target: https://erepublik.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
