@@ -13,9 +13,9 @@ with open('HISTORY.rst') as history_file:
 
 requirements = ['pytz>=2019.2', 'requests>=2.22']
 
-setup_requirements = [ ]
+setup_requirements = []
 
-test_requirements = [ ]
+test_requirements = []
 
 setup(
     author="Eriks Karls",

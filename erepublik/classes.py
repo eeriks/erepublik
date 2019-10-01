@@ -245,7 +245,6 @@ class SlowRequests(Session):
                     self._log_request(hist_resp.request.url, "REDIRECT")
                     self._log_response(hist_resp.request.url, hist_resp, redirect=True)
 
-            # TODO: Must thoroughly check response writing on windows systems
             file_data = {
                 "path": 'debug/requests',
                 "time": self.last_time.strftime('%Y-%m-%d_%H-%M-%S'),
@@ -1173,7 +1172,9 @@ class TelegramBot:
             message = f"Player *{self.player_name}*\n" + message
         if utils.good_timedelta(utils.now(), datetime.timedelta(seconds=-1)) <= self.__last_time:
             tb = traceback.extract_stack()
-            message += "\n\n```\n{}\n```".format("\n".join(['  File "{}", line {}, in {}\n'.format(l.filename, l.lineno, l.name) for l in tb]))
+            message += "\n\n```\n{}\n```".format(
+                "\n".join(['  File "{}", line {}, in {}'.format(l.filename, l.lineno, l.name) for l in tb])
+            )
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         self.__last_time = utils.now()
         return response.json().get('ok')
