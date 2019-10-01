@@ -79,9 +79,9 @@ class TestErepublik(unittest.TestCase):
         self.citizen.energy.recovered = 3000
         self.citizen.energy.recoverable = 2950
         self.citizen.energy.interval = 30
-        self.assertEqual(self.citizen.should_fight(), 895)
+        self.assertEqual(self.citizen.should_fight(), 900)
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 895)
+        self.assertEqual(self.citizen.should_fight(), 900)
         self.citizen.my_companies.ff_lockdown = 0
 
         # Level up reachable

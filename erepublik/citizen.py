@@ -1358,7 +1358,7 @@ class Citizen(classes.CitizenAPI):
         if self.is_levelup_reachable:
             log_msg = "Level up"
             if self.should_do_levelup:
-                count = (self.energy.available + self.energy.limit) // 10
+                count = (self.energy.limit * 3) // 10
                 force_fight = True
             else:
                 self.write_log("Waiting for fully recovered energy before leveling up.", False)
@@ -1409,13 +1409,12 @@ class Citizen(classes.CitizenAPI):
                     count = 0
                     log_msg = "Not fighting because WAM needs {} food fights".format(self.my_companies.ff_lockdown)
 
-            if self.max_time_till_full_ff > self.time_till_week_change:
-                max_count = int((self.time_till_week_change -
-                                 self.time_till_full_ff).total_seconds()) // 360 * self.energy.interval
-                log_msg = "End for Weekly challenge is near (Recoverable until WC end {}hp | want to do {}hits)".format(
-                    max_count, count)
-                max_usable_energy = max_count - self.energy.limit * 2
-                count = count if max_usable_energy > count * 10 else max_usable_energy // 10
+        if self.max_time_till_full_ff > self.time_till_week_change:
+            max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
+            log_msg = "End for Weekly challenge is near (Recoverable until WC end {}hp | want to do {}hits)".format(
+                max_count, count)
+            max_usable_energy = max_count - self.energy.limit * 2
+            count = count if max_usable_energy > count * 10 else max_usable_energy // 10
 
         if not silent:
             self.write_log(log_msg, False)
