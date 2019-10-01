@@ -787,7 +787,7 @@ class Citizen(classes.CitizenAPI):
         damage = 0
         err = False
         if j_resp.get("error"):
-            if j_resp.get("message") == "SHOOT_LOCKOUT":
+            if j_resp.get("message") == "SHOOT_LOCKOUT" or j_resp.get("message") == "ZONE_INACTIVE":
                 pass
             else:
                 if j_resp.get("message") == "UNKNOWN_SIDE":
@@ -796,6 +796,7 @@ class Citizen(classes.CitizenAPI):
         elif j_resp.get("message") == "ENEMY_KILLED":
             hits = (self.energy.recovered - j_resp["details"]["wellness"]) // 10
             self.energy.recovered = j_resp["details"]["wellness"]
+            self.details.xp = int(j_resp["details"]["points"])
             damage = j_resp["user"]["givenDamage"] * (1.1 if j_resp["oldEnemy"]["isNatural"] else 1)
         else:
             err = True
@@ -1248,6 +1249,7 @@ class Citizen(classes.CitizenAPI):
                         cost=amount * cheapest["price"], quality=cheapest_q, energy=amount * hp_per_quality[cheapest_q])
             self.reporter.report_action("BUY_FOOD", json_val=data)
             self.buy_from_market(cheapest["offer_id"], amount)
+            self.update_inventory()
         else:
             s = "Don't have enough money! Needed: {}cc, Have: {}cc".format(amount * cheapest["price"], self.details.cc)
             self.write_log(s)
@@ -1277,8 +1279,7 @@ class Citizen(classes.CitizenAPI):
 
     def activate_dmg_booster(self):
         if self.config.boosters:
-            inventory = self.update_inventory()
-            if not ("+100% Damage" in inventory['items']['active'] or "+50% Damage" in inventory['items']['active']):
+            if not self.get_active_ground_damage_booster():
                 duration = 0
                 for length, amount in self.boosters[50].items():
                     if amount > 1:
@@ -1286,6 +1287,15 @@ class Citizen(classes.CitizenAPI):
                         break
                 if duration:
                     self._post_economy_activate_booster(5, duration, "damage")
+
+    def get_active_ground_damage_booster(self):
+        inventory = self.update_inventory()
+        if "+100% Ground Damage Booster" in inventory['items']['active']:
+            return 100
+        elif "+50% Ground Damage Booster" in inventory['items']['active']:
+            return 50
+        else:
+            return 0
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
         return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
