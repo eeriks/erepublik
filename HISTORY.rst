@@ -2,6 +2,10 @@
 History
 =======
 
+* WC end fighting energy bugfix
+* More strict fighting limiting before week change
+* Improved and fixed ground damage booster usage
+
 
 0.16.0 (2019-09-29)
 -------------------

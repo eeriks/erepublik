@@ -1423,8 +1423,7 @@ class Citizen(classes.CitizenAPI):
             max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
             log_msg = "End for Weekly challenge is near (Recoverable until WC end {}hp | want to do {}hits)".format(
                 max_count, count)
-            max_usable_energy = max_count - self.energy.limit * 2
-            count = count if max_usable_energy > count * 10 else max_usable_energy // 10
+            count = count if max_count > count else max_count
 
         if not silent:
             self.write_log(log_msg, False)
