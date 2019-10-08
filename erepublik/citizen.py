@@ -1425,8 +1425,7 @@ class Citizen(classes.CitizenAPI):
                 max_count, count)
             count = count if max_count > count else max_count
 
-        if not silent:
-            self.write_log(log_msg, False)
+        self.write_log(log_msg, False)
 
         return count if count > 0 else 0
 
