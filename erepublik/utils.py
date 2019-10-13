@@ -332,3 +332,34 @@ def slugify(value, allow_unicode=False) -> str:
         value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
     value = re.sub(r'[^\w\s-]', '_', value).strip().lower()
     return re.sub(r'[-\s]+', '-', value)
+
+
+def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, booster: int = 0,
+                  weapon: int = 200) -> float:
+    dmg = int(10 * (1 + strength / 400) * (1 + rang / 5) * (1 + weapon / 100))
+    elite = 1.1 if elite else 1
+    booster_multiplier = (100 + booster) / 100
+    dmg = int(dmg * booster_multiplier * elite)
+    legend = 1 if (not tp or rang < 70) else 1 + (rang - 69) / 10
+    dmg = int(dmg * legend)
+    return dmg * (1.1 if ne else 1)
+
+
+def ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
+                         booster: int = 0, weapon_power: int = 200) -> float:
+    r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
+    rang = r['military']['militaryData']['ground']['rankNumber']
+    strength = r['military']['militaryData']['ground']['strength']
+    elite = r['citizenAttributes']['level'] > 100
+    if natural_enemy:
+        true_patriot = True
+
+    return calculate_hit(strength, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
+
+
+def air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0,
+                      weapon_power: int = 0) -> float:
+    r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
+    rang = r['military']['militaryData']['air']['rankNumber']
+    elite = r['citizenAttributes']['level'] > 100
+    return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)

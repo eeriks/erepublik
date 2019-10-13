@@ -585,8 +585,8 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
             data.update({"parentId": parent})
         return self.post("{}/main/articleComments/create".format(self.url), data=data)
 
-    def _post_main_battlefield_travel(self, side_id: int, battle_id: int) -> Response:
-        data = dict(_token=self.token, sideCountryId=side_id, battleId=battle_id)
+    def _post_main_battlefield_travel(self, **kwargs) -> Response:
+        data = dict(_token=self.token, **kwargs)
         return self.post("{}/main/battlefieldTravel".format(self.url), data=data)
 
     def _post_main_buy_gold_items(self, currency: str, item: str, amount: int) -> Response:
