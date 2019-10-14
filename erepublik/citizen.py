@@ -749,7 +749,7 @@ class Citizen(classes.CitizenAPI):
         total_damage = 0
         total_hits = 0
 
-        while ok_to_fight and error_count < 10:
+        while ok_to_fight and error_count < 10 and count > 0:
             while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
                 hits, error, damage = self._shoot(is_air, data)
                 count -= hits
@@ -1093,7 +1093,7 @@ class Citizen(classes.CitizenAPI):
                 return True
             return False
 
-    def travel_to_battle(self, battle_id: int, *allowed_countries: List[int]) -> bool:
+    def travel_to_battle(self, battle_id: int, allowed_countries: List[int]) -> bool:
         data = self.get_travel_regions(battle_id=battle_id)
 
         regs = []
