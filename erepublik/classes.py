@@ -161,13 +161,13 @@ class MyCompanies:
 
         raise ErepublikException("Wrong function call")
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class SlowRequests(Session):
@@ -297,13 +297,13 @@ class Config:
     def wt(self):
         return self.work and self.train
 
-    @property
-    def __dict__(self) -> Dict[str, Union[bool, str, List[str]]]:
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_') and key not in ['email', 'password']:
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self) -> Dict[str, Union[bool, str, List[str]]]:
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_') and key not in ['email', 'password']:
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class Energy:
@@ -350,13 +350,13 @@ class Energy:
     def available(self):
         return self.recovered + self.recoverable
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class Details(object):
@@ -402,13 +402,13 @@ class Details(object):
             next_level_up = (1 + (self.xp // 10)) * 10
         return next_level_up - self.xp
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class Politics:
@@ -420,13 +420,13 @@ class Politics:
     is_congressman: bool = False
     is_country_president: bool = False
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class House(object):
@@ -1014,13 +1014,13 @@ class BattleSide:
         self.allies = [int(ally) for ally in allies]
         self.deployed = [int(ally) for ally in deployed]
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class BattleDivision:
@@ -1039,13 +1039,13 @@ class BattleDivision:
         self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
         self.wall = dict({"for": wall_for, "dom": wall_dom})
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class Battle(object):
@@ -1107,13 +1107,13 @@ class Battle(object):
             self.id, utils.COUNTRIES[self.invader.id], utils.COUNTRIES[self.defender.id], self.zone_id, time_part
         )
 
-    @property
-    def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_'):
-                ret[key] = getattr(self, key)
-        return ret
+    # @property
+    # def __dict__(self):
+    #     ret = {}
+    #     for key in dir(self):
+    #         if not key.startswith('_'):
+    #             ret[key] = getattr(self, key)
+    #     return ret
 
 
 class EnergyToFight:

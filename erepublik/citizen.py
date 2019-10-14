@@ -99,14 +99,11 @@ class Citizen(classes.CitizenAPI):
 
     @property
     def __dict__(self):
-        ret = {}
-        for key in dir(self):
-            if not key.startswith('_') and not callable(getattr(self, key)):
-                ret[key] = getattr(self, key)
+        ret = super().__dict__
         ret.pop('reporter', None)
         ret.pop('stop_threads', None)
         ret.pop('_Citizen__last_war_update_data', None)
-        ret.update(all_battles=self.all_battles)
+        # ret.update(all_battles=self.all_battles)
 
         return ret
 
