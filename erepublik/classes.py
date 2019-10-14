@@ -2,7 +2,7 @@ import datetime
 import decimal
 import hashlib
 import random
-import sys
+import threading
 import time
 import traceback
 from collections import deque
@@ -1154,6 +1154,8 @@ class TelegramBot:
     api_url = ""
     player_name = ""
     __last_time: datetime.datetime = None
+    __next_time: datetime.datetime = None
+    __threads: List[threading.Thread] = []
 
     def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id
@@ -1168,16 +1170,16 @@ class TelegramBot:
         if not self.__initialized:
             self.__queue.append(message)
             return True
-        if self.player_name:
-            message = f"Player *{self.player_name}*\n" + message
-        if utils.good_timedelta(utils.now(), datetime.timedelta(seconds=-1)) <= self.__last_time:
-            tb = traceback.extract_stack()
-            message += "\n\n```\n{}\n```".format(
-                "\n".join(['  File "{}", line {}, in {}'.format(l.filename, l.lineno, l.name) for l in tb])
-            )
-        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
-        self.__last_time = utils.now()
-        return response.json().get('ok')
+        self.__queue.append(message)
+        self.__threads = [t for t in self.__threads if not t.is_alive()]
+        self.__next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
+        if not self.__threads:
+            name = "send_telegram".format(threading.active_count() - 1)
+            send_thread = threading.Thread(target=self.__send_messages, name=name)
+            send_thread.start()
+            self.__threads.append(send_thread)
+
+        return True
 
     def report_free_bhs(self, battles: List[Tuple[int, int, int, int, datetime.timedelta]]):
         battle_links = []
@@ -1201,3 +1203,17 @@ class TelegramBot:
 
     def report_medal(self, msg):
         self.send_message(f"New award: *{msg}*")
+
+    def __send_messages(self):
+        while self.__next_time > utils.now():
+            utils.silent_sleep(utils.get_sleep_seconds(self.__next_time))
+
+        message = "\n\n––––––––––––––––––––––\n\n".join(self.__queue)
+        if self.player_name:
+            message = f"Player *{self.player_name}*\n" + message
+        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+        self.__last_time = utils.now()
+        if response.json().get('ok'):
+            self.__queue = []
+            return True
+        return False
