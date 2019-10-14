@@ -297,6 +297,34 @@ class Config:
     def wt(self):
         return self.work and self.train
 
+    def reset(self):
+        self.work = True
+        self.train = True
+        self.wam = False
+        self.auto_sell = list()
+        self.auto_sell_all = False
+        self.employees = False
+        self.fight = False
+        self.air = False
+        self.ground = False
+        self.all_in = False
+        self.next_energy = False
+        self.boosters = False
+        self.travel_to_fight = False
+        self.always_travel = False
+        self.epic_hunt = False
+        self.epic_hunt_ebs = False
+        self.rw_def_side = False
+        self.interactive = True
+        self.continuous_fighting = False
+        self.auto_buy_raw = False
+        self.force_wam = False
+        self.sort_battles_time = True
+        self.force_travel = False
+        self.telegram = True
+        self.telegram_chat_id = 0
+        self.telegram_token = ""
+
     # @property
     # def __dict__(self) -> Dict[str, Union[bool, str, List[str]]]:
     #     ret = {}
@@ -1171,7 +1199,7 @@ class TelegramBot:
             self.__queue.append(message)
             return True
         self.__queue.append(message)
-        self.__threads = [t for t in self.__threads if not t.is_alive()]
+        self.__threads = [t for t in self.__threads if t.is_alive()]
         self.__next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
         if not self.__threads:
             name = "send_telegram".format(threading.active_count() - 1)

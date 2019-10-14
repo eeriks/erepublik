@@ -68,6 +68,14 @@ class Citizen(classes.CitizenAPI):
         if auto_login:
             self.login()
 
+    def config_setup(self, **kwargs):
+        self.config.reset()
+        for key, value in kwargs.items():
+            if hasattr(self.config, key):
+                setattr(self.config, key, value)
+            else:
+                self.write_log(f"Unknown config parameter! ({key}={value})")
+
     def login(self):
         self.get_csrf_token()
 
