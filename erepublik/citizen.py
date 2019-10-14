@@ -579,11 +579,13 @@ class Citizen(classes.CitizenAPI):
                         all_allies = inv_allies + def_allies
                         if self.details.current_country not in all_allies:
                             if self.details.current_country in battle.invader.allies:
+                                allies = battle.invader.deployed
                                 side = battle.invader.id
                             else:
+                                allies = battle.defender.deployed
                                 side = battle.defender.id
 
-                            self.travel_to_battle(battle.id, side)
+                            self.travel_to_battle(battle.id, allies)
 
                         else:
                             if self.details.current_country in inv_allies:
@@ -719,12 +721,17 @@ class Citizen(classes.CitizenAPI):
                     self.sleep(utils.get_sleep_seconds(battle.start))
 
                 if travel_needed:
-                    if self.details.current_country in battle.invader.allies:
+                    if battle.is_rw:
+                        country_ids_to_travel = [battle.defender.id]
+                    elif self.details.current_country in battle.invader.allies:
+                        country_ids_to_travel = battle.invader.deployed + [battle.invader.id]
                         side_id = battle.invader.id
                     else:
+                        country_ids_to_travel = battle.defender.deployed + [battle.defender.id]
                         side_id = battle.defender.id
 
-                    self.travel_to_battle(battle_id, side_id)
+                    if not self.travel_to_battle(battle_id, country_ids_to_travel):
+                        break
                 self.fight(battle_id, side_id, battle.is_air)
                 self.travel_to_residence()
                 self.collect_weekly_reward()
@@ -1086,13 +1093,23 @@ class Citizen(classes.CitizenAPI):
                 return True
             return False
 
-    def travel_to_battle(self, battle_id: int, side_id: int):
+    def travel_to_battle(self, battle_id: int, *allowed_countries: List[int]) -> bool:
         data = self.get_travel_regions(battle_id=battle_id)
 
-        travel_data = data.get('battleInfo', {}).get(str(side_id))
-        if not travel_data:
-            post_data = dict(battleId=battle_id, sideCountryId=side_id, **travel_data)
-            r = self._post_main_battlefield_travel(**post_data).json()
+        regs = []
+        if data:
+            for region in data.values():
+                if region['countryId'] in allowed_countries:  # Is not occupied by other country
+                    regs.append((region['distanceInKm'], region['id'], region['countryId']))
+        if regs:
+            reg = min(regs, key=lambda _: int(_[0]))
+            region_id = reg[1]
+            country_id = reg[2]
+            r = self._travel(country_id, region_id).json()
+            if r.get('message', '') == 'success':
+                self._update_citizen_location(country_id, region_id)
+                return True
+        return False
 
     def _travel(self, country_id: int, region_id: int = 0) -> Response:
         data = {
@@ -1334,7 +1351,7 @@ class Citizen(classes.CitizenAPI):
         elif self.next_reachable_energy and self.config.next_energy:
             ret = True
         # 1h worth of energy
-        elif self.energy.is_energy_full:
+        elif self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
             ret = True
         return ret
 
@@ -1910,11 +1927,40 @@ class Citizen(classes.CitizenAPI):
 
         return {"gold": 0, "cc": 0, 'ok': False}
 
-    def get_ground_hit_dmg_value(self, booster: int, tp: bool = True, ne: bool = False) -> float:
-        return utils.ground_hit_dmg_value(self.details.citizen_id, ne, tp, booster)
+    def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
+                                 booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> float:
+        if not rang or strength or elite is None:
+            r = self._get_main_citizen_profile_json(self.details.citizen_id).json()
+            if not rang:
+                rang = r['military']['militaryData']['ground']['rankNumber']
+            if not strength:
+                strength = r['military']['militaryData']['ground']['strength']
+            if elite is None:
+                elite = r['citizenAttributes']['level'] > 100
+        if ne:
+            tp = True
 
-    def get_air_hit_dmg_value(self, booster: int, tp: bool = True, ne: bool = False) -> float:
-        return utils.air_hit_dmg_value(self.details.citizen_id, ne, tp, booster, 0)
+        dmg = int(10 * (1 + strength / 400) * (1 + rang / 5) * 3)
+        booster = 1.5 if booster_50 else 2 if booster_100 else 1
+        elite = 1.1 if elite else 1
+        dmg = int(dmg * booster * elite)
+        legend = 1 if (not tp or rang < 70) else 1 + (rang - 69) / 10
+        dmg = int(dmg * legend)
+        return dmg * (1.1 if ne else 1)
+
+    def get_air_hit_dmg_value(self, rang: int = None, elite: bool = None, ne: bool = False,
+                              weapon: bool = False) -> float:
+        if not rang or elite is None:
+            r = self._get_main_citizen_profile_json(self.details.citizen_id).json()
+            if not rang:
+                rang = r['military']['militaryData']['air']['rankNumber']
+            if elite is None:
+                elite = r['citizenAttributes']['level'] > 100
+
+        dmg = int(10 * (1 + rang / 5) * (1.2 if weapon else 1))
+        elite = 1.1 if elite else 1
+        dmg = int(dmg * elite)
+        return dmg * (1.1 if ne else 1.)
 
     def endorse_article(self, article_id: int, amount: int) -> bool:
         if amount in (5, 50, 100):
