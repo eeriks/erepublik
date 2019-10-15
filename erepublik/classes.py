@@ -221,7 +221,10 @@ class SlowRequests(Session):
     def _log_request(self, url, method, data=None, json=None, params=None, **kwargs):
         if self.debug:
             args = {}
-            args.update({'kwargs': kwargs})
+            kwargs.pop('allow_redirects', None)
+            if kwargs:
+                args.update({'kwargs': kwargs})
+
             if data:
                 args.update({"data": data})
 

@@ -130,10 +130,6 @@ class Citizen(classes.CitizenAPI):
         """
         resp = self._req.get(self.url)
         self.r = resp
-        try:
-            self.update_citizen_info(resp.text)
-        except:
-            pass
         if self._errors_in_response(resp):
             self.get_csrf_token()
             return
@@ -149,6 +145,10 @@ class Citizen(classes.CitizenAPI):
             self._login()
         else:
             raise classes.ErepublikException("Something went wrong! Can't find token in page! Exiting!")
+        try:
+            self.update_citizen_info(resp.text)
+        except:
+            pass
 
     def _login(self):
         # MUST BE CALLED TROUGH self.get_csrf_token()
