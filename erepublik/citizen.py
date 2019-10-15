@@ -1314,11 +1314,20 @@ class Citizen(classes.CitizenAPI):
         r = re.search('You do not have enough money in your account to make this donation', resp.text)
         return not bool(r)
 
-    def donate_items(self, citizen_id: int = 1620414, amount: int = 0, industry_id: int = 1,
-                     quality: int = 1) -> Response:
+    def donate_items(self, citizen_id: int = 1620414, amount: int = 0, industry_id: int = 1, quality: int = 1) -> int:
+        if amount < 1:
+            return 0
         ind = {v: k for k, v in self.available_industries.items()}
         self.write_log("D,{},q{},{},{}".format(amount, quality, ind[industry_id], citizen_id))
-        return self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
+        response = self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
+        if re.search(rf"Successfully transferred {amount} item\(s\) to", response.text):
+            return amount
+        else:
+            if re.search(r"You do not have enough items in your inventory to make this donation", response.text):
+                return 0
+            available = re.search(rf"Cannot transfer the items because the user has only (\d+) free slots in (his|her) "
+                                  rf"storage.", response.text).group(1)
+            return self.donate_items(citizen_id, int(available), industry_id, quality)
 
     def candidate_for_congress(self, presentation: str = "") -> Response:
         return self._post_candidate_for_congress(presentation)
