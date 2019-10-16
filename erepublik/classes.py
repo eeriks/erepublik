@@ -1198,10 +1198,9 @@ class TelegramBot:
             self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
 
     def send_message(self, message: str) -> bool:
-        if not self.__initialized:
-            self.__queue.append(message)
-            return True
         self.__queue.append(message)
+        if not self.__initialized:
+            return True
         self.__threads = [t for t in self.__threads if t.is_alive()]
         self.__next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
         if not self.__threads:
