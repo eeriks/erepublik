@@ -1957,13 +1957,7 @@ class Citizen(classes.CitizenAPI):
         if ne:
             tp = True
 
-        dmg = int(10 * (1 + strength / 400) * (1 + rang / 5) * 3)
-        booster = 1.5 if booster_50 else 2 if booster_100 else 1
-        elite = 1.1 if elite else 1
-        dmg = int(dmg * booster * elite)
-        legend = 1 if (not tp or rang < 70) else 1 + (rang - 69) / 10
-        dmg = int(dmg * legend)
-        return dmg * (1.1 if ne else 1)
+        return utils.calculate_hit(strength, rang, tp, elite, ne, 50 if booster_50 else 100 if booster_100 else 0)
 
     def get_air_hit_dmg_value(self, rang: int = None, elite: bool = None, ne: bool = False,
                               weapon: bool = False) -> float:
@@ -1974,10 +1968,7 @@ class Citizen(classes.CitizenAPI):
             if elite is None:
                 elite = r['citizenAttributes']['level'] > 100
 
-        dmg = int(10 * (1 + rang / 5) * (1.2 if weapon else 1))
-        elite = 1.1 if elite else 1
-        dmg = int(dmg * elite)
-        return dmg * (1.1 if ne else 1.)
+        return utils.calculate_hit(0, rang, True, elite, ne, 0, 20 if weapon else 0)
 
     def endorse_article(self, article_id: int, amount: int) -> bool:
         if amount in (5, 50, 100):
