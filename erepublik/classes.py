@@ -1185,6 +1185,7 @@ class TelegramBot:
     api_url = ""
     player_name = ""
     __last_time: datetime.datetime = None
+    __last_full_energy_report: datetime.datetime = None
     __next_time: datetime.datetime = None
     __threads: List[threading.Thread] = []
 
@@ -1194,6 +1195,7 @@ class TelegramBot:
         self.player_name = player_name
         self.__initialized = True
         self.__last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
+        self.__last_full_energy_report = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-30))
         if self.__queue:
             self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
 
@@ -1228,8 +1230,10 @@ class TelegramBot:
         self.send_message("Free BHs:\n" + "\n".join(battle_links))
 
     def report_full_energy(self, available: int, limit: int, interval: int):
-        message = f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
-        self.send_message(message)
+        if (utils.now() - self.__last_full_energy_report).total_seconds() >= 30 * 60:
+            self.__last_full_energy_report = utils.now()
+            message = f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
+            self.send_message(message)
 
     def report_medal(self, msg):
         self.send_message(f"New award: *{msg}*")
