@@ -416,13 +416,23 @@ class Citizen(classes.CitizenAPI):
         active_items = {}
         if j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}):
             for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
-                active_items.update({item['name']: item['active']['time_left']})
+                if item.get('token'):
+                    kind = re.sub(r'_q\d\d*', "", item.get('token'))
+                else:
+                    kind = item.get('type')
+                if kind not in active_items:
+                    active_items[kind] = []
+                icon = item['icon'] if item['icon'] else ""
+                active_items[kind].append(
+                    dict(name=item.get("name"), time_left=item['active']['time_left'], icon=icon, kind=kind,
+                         quality=item.get("quality", 0))
+                )
 
         final_items = {}
-        if j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}):
-            for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
-                name = item['name']
-                if item.get('type') == 'damageBoosters':
+        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
+            name = item['name']
+            if item.get('type'):
+                if item.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
                     if item['quality'] == 5:
                         self.boosters[50].update({item['duration']: item['amount']})
                     elif item['quality'] == 10:
@@ -434,11 +444,13 @@ class Citizen(classes.CitizenAPI):
                         name += f" {delta // 60 % 60}m"
                     if delta % 60:
                         name += f" {delta % 60}s"
-                elif item['industryId'] == 1:
+                kind = item.get('type')
+            else:
+                if item['industryId'] == 1:
                     amount = item['amount']
                     q = item['quality']
                     if 1 <= q <= 7:
-                        self.food.update({f"q{q}": item['amount']})
+                        self.food.update({f"q{q}": amount})
                     else:
                         if q == 10:
                             self.eb_normal = amount
@@ -448,24 +460,41 @@ class Citizen(classes.CitizenAPI):
                             self.eb_small += amount
                         elif q == 14:
                             self.eb_small += amount
+                kind = re.sub(r'_q\d\d*', "", item.get('token'))
 
-                elif item['industryId'] == 3 and item['quality'] == 5:
-                    self.ot_points = item['amount']
+            if item.get('token', "") == "house_q100":
+                self.ot_points = item['amount']
 
-                elif item['industryId'] == 4 and item['quality'] == 100:
-                    self.ot_points = item['amount']
+            if kind not in final_items:
+                final_items[kind] = []
 
-                if item['amount']:
-                    final_items.update({name: item['amount']})
+            icon = item['icon'] if item['icon'] else ""
+            final_items[kind].append(dict(
+                kind=kind,
+                quality=item.get('quality', 0),
+                amount=item.get('amount', 0),
+                durability=item.get('durability', 0),
+                icon=icon,
+                name=name
+            ))
 
         raw_materials = {}
         if j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}):
             for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
-                name = item['name']
                 if item['isPartial']:
                     continue
-                if item['amount']:
-                    raw_materials.update({name: item['amount']})
+                kind = re.sub(r'_q\d\d*', "", item.get('token'))
+                if kind == "magnesium":
+                    kind = "raw_aircraft"
+                elif kind == "sand":
+                    kind = "raw_house"
+                if kind not in raw_materials:
+                    raw_materials[kind] = []
+                icon = item['icon'] if item['icon'].startswith('//www.erepublik.net/') else "//www.erepublik.net/" + item['icon']
+                raw_materials[kind].append(
+                    dict(name=item.get("name"), amount=item['amount'] + (item.get('underCostruction', 0) / 100),
+                         icon=icon)
+                )
 
         self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
                                "total": j.get("inventoryStatus").get("totalStorage")})
@@ -1295,12 +1324,11 @@ class Citizen(classes.CitizenAPI):
 
     def get_active_ground_damage_booster(self):
         inventory = self.update_inventory()
-        if "+100% Ground Damage Booster" in inventory['items']['active']:
-            return 100
-        elif "+50% Ground Damage Booster" in inventory['items']['active']:
-            return 50
-        else:
-            return 0
+        quality = 0
+        for booster in inventory['items']['active'].get('damageBoosters', []):
+            if booster.get('quality', 0) > quality:
+                quality = quality
+        return quality
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
         return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
@@ -1800,17 +1828,15 @@ class Citizen(classes.CitizenAPI):
     def check_house_durability(self) -> Dict[int, datetime.datetime]:
         ret = {}
         inv = self.update_inventory()
-        active = inv["items"]['active']
-        for q in range(1, 6):
-            if f"House Q{q}" in active:
-                till = utils.good_timedelta(self.now, datetime.timedelta(seconds=active[f"House Q{q}"]))
-                ret.update({q: till})
+        for active_house in [h for h in inv['items']['active'].get('house', [])]:
+            till = utils.good_timedelta(self.now, datetime.timedelta(seconds=active_house['time_left']))
+            ret.update({active_house.get('quality'): till})
         return ret
 
     def buy_and_activate_house(self, q: int) -> Dict[int, datetime.datetime]:
         inventory = self.update_inventory()
         ok_to_activate = False
-        if not inventory["items"]["final"].get("House Q{}".format(q)):
+        if not [h for h in inventory['items']['final'].get('house', []) if h['quality'] == q]:
             offers = []
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
