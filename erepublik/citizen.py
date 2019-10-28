@@ -210,6 +210,10 @@ class Citizen(classes.CitizenAPI):
         return response
 
     def post(self, url: str, data: dict = None, json: dict = None, **kwargs) -> Response:
+        if json is None:
+            json = {}
+        if data is None:
+            data = {}
         if (self.now - self._req.last_time).seconds >= 14 * 60:
             self.get_csrf_token()
             if "_token" in data:
@@ -224,7 +228,6 @@ class Citizen(classes.CitizenAPI):
             self.sleep(60)
             return self.post(url, data, json, **kwargs)
 
-        # response = super().post(url, data=data, json=json, **kwargs)
         try:
             resp_data = response.json()
             if (resp_data.get("error") or not resp_data.get("status")) and resp_data.get("message", "") == "captcha":
@@ -248,7 +251,7 @@ class Citizen(classes.CitizenAPI):
     def check_for_new_medals(self, html: str):
         new_medals = re.findall(r'(<div class="home_reward reward achievement">.*?<div class="bottom"></div>\s*</div>)',
                                 html, re.M | re.S | re.I)
-        data = {}
+        data: Dict[Tuple[str, Union[float, str]], Dict[str, Union[int, str, float]]] = {}
         for medal in new_medals:
             try:
                 info = re.search(r"<h3>New Achievement</h3>.*?<p.*?>(.*?)</p>.*?"
@@ -263,10 +266,11 @@ class Citizen(classes.CitizenAPI):
                     except ValueError:
                         reward = reward[:-1]
 
-                if title not in data:
-                    data[title] = {'about': about, 'kind': title, 'reward': reward, "count": 1, "currency": currency}
+                if (title, reward) not in data:
+                    data[(title, reward)] = {'about': about, 'kind': title, 'reward': reward, "count": 1,
+                                             "currency": currency}
                 else:
-                    data[title]['count'] += 1
+                    data[(title, reward)]['count'] += 1
             except AttributeError:
                 continue
         if data:
@@ -276,7 +280,7 @@ class Citizen(classes.CitizenAPI):
 
             msgs = "\n".join(msgs)
             self.telegram.report_medal(msgs)
-            self.write_log("Found awards: {}".format(msgs))
+            self.write_log("Found awards:\n{}".format(msgs))
             for info in data.values():
                 self.reporter.report_action("NEW_MEDAL", info)
 
@@ -1782,6 +1786,8 @@ class Citizen(classes.CitizenAPI):
             battle_id = re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)" '
                                   r'class="join" title="Join"><span>Join</span></a>', html).group(1)
             ret.update(can_attack=False, battle_id=battle_id)
+        elif re.search(r'This war is no longer active.', html):
+            ret.update(can_attack=False, ended=True)
         else:
             ret.update(can_attack=False)
         return ret

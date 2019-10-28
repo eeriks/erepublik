@@ -250,7 +250,7 @@ class SlowRequests(Session):
 
             file_data = {
                 "path": 'debug/requests',
-                "time": self.last_time.strftime('%Y-%m-%d_%H-%M-%S'),
+                "time": self.last_time.strftime('%Y/%m/%d/%H-%M-%S'),
                 "name": utils.slugify(url[len(Citizen.url):]),
                 "extra": "_REDIRECT" if redirect else ""
             }
