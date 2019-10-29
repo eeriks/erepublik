@@ -946,10 +946,6 @@ class Reporter:
         self._req.headers.update({"user-agent": "Bot reporter v2"})
         self.__registered: bool = False
 
-    @property
-    def __dict__(self):
-        return dict(allowed=self.allowed, __to_update=self.__to_update)
-
     def do_init(self, name: str = "", email: str = "", citizen_id: int = 0):
         self.name: str = name
         self.email: str = email
@@ -1184,18 +1180,23 @@ class TelegramBot:
     chat_id = 0
     api_url = ""
     player_name = ""
-    __last_time: datetime.datetime = None
-    __last_full_energy_report: datetime.datetime = None
-    __next_time: datetime.datetime = None
-    __threads: List[threading.Thread] = []
+    _last_time: datetime.datetime = None
+    _last_full_energy_report: datetime.datetime = None
+    _next_time: datetime.datetime = None
+    _threads: List[threading.Thread] = []
+
+    def __dict__(self):
+        ret = super().__dict__.copy()
+        ret.update(_threads=len(self._threads))
+        return ret
 
     def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id
         self.api_url = "https://api.telegram.org/bot{}/sendMessage".format(token)
         self.player_name = player_name
         self.__initialized = True
-        self.__last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
-        self.__last_full_energy_report = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-30))
+        self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
+        self._last_full_energy_report = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-30))
         if self.__queue:
             self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
 
@@ -1203,13 +1204,13 @@ class TelegramBot:
         self.__queue.append(message)
         if not self.__initialized:
             return True
-        self.__threads = [t for t in self.__threads if t.is_alive()]
-        self.__next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
-        if not self.__threads:
+        self._threads = [t for t in self._threads if t.is_alive()]
+        self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
+        if not self._threads:
             name = "send_telegram".format(threading.active_count() - 1)
             send_thread = threading.Thread(target=self.__send_messages, name=name)
             send_thread.start()
-            self.__threads.append(send_thread)
+            self._threads.append(send_thread)
 
         return True
 
@@ -1230,8 +1231,8 @@ class TelegramBot:
         self.send_message("Free BHs:\n" + "\n".join(battle_links))
 
     def report_full_energy(self, available: int, limit: int, interval: int):
-        if (utils.now() - self.__last_full_energy_report).total_seconds() >= 30 * 60:
-            self.__last_full_energy_report = utils.now()
+        if (utils.now() - self._last_full_energy_report).total_seconds() >= 30 * 60:
+            self._last_full_energy_report = utils.now()
             message = f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
             self.send_message(message)
 
@@ -1239,14 +1240,14 @@ class TelegramBot:
         self.send_message(f"New award: *{msg}*")
 
     def __send_messages(self):
-        while self.__next_time > utils.now():
-            utils.silent_sleep(utils.get_sleep_seconds(self.__next_time))
+        while self._next_time > utils.now():
+            utils.silent_sleep(utils.get_sleep_seconds(self._next_time))
 
         message = "\n\n––––––––––––––––––––––\n\n".join(self.__queue)
         if self.player_name:
             message = f"Player *{self.player_name}*\n" + message
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
-        self.__last_time = utils.now()
+        self._last_time = utils.now()
         if response.json().get('ok'):
             self.__queue = []
             return True
