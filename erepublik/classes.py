@@ -4,7 +4,6 @@ import hashlib
 import random
 import threading
 import time
-import traceback
 from collections import deque
 from json import JSONDecodeError, loads, JSONEncoder
 from typing import Any, Dict, List, Union, Mapping, Iterable, Tuple
@@ -202,7 +201,7 @@ class SlowRequests(Session):
     @property
     def __dict__(self):
         return dict(last_time=self.last_time, timeout=self.timeout, user_agent=self.headers['User-Agent'],
-                    request_log_name=self.request_log_name)
+                    request_log_name=self.request_log_name, debug=self.debug)
 
     def request(self, method, url, *args, **kwargs):
         self._slow_down_requests()
@@ -328,14 +327,6 @@ class Config:
         self.telegram_chat_id = 0
         self.telegram_token = ""
 
-    # @property
-    # def __dict__(self) -> Dict[str, Union[bool, str, List[str]]]:
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_') and key not in ['email', 'password']:
-    #             ret[key] = getattr(self, key)
-    #     return ret
-
 
 class Energy:
     limit = 500  # energyToRecover
@@ -381,14 +372,6 @@ class Energy:
     def available(self):
         return self.recovered + self.recoverable
 
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
-
 
 class Details(object):
     xp = 0
@@ -433,14 +416,6 @@ class Details(object):
             next_level_up = (1 + (self.xp // 10)) * 10
         return next_level_up - self.xp
 
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
-
 
 class Politics:
     is_party_member: bool = False
@@ -450,14 +425,6 @@ class Politics:
     is_party_president: bool = False
     is_congressman: bool = False
     is_country_president: bool = False
-
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
 
 
 class House(object):
@@ -940,6 +907,11 @@ class Reporter:
     key: str = ""
     allowed: bool = False
 
+    @property
+    def __dict__(self):
+        return dict(name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.allowed,
+                    queue=self.__to_update)
+
     def __init__(self):
         self._req = Session()
         self.url = "https://api.erep.lv"
@@ -1041,14 +1013,6 @@ class BattleSide:
         self.allies = [int(ally) for ally in allies]
         self.deployed = [int(ally) for ally in deployed]
 
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
-
 
 class BattleDivision:
     end: datetime.datetime
@@ -1065,14 +1029,6 @@ class BattleDivision:
         self.epic = epic
         self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
         self.wall = dict({"for": wall_for, "dom": wall_dom})
-
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
 
 
 class Battle(object):
@@ -1134,14 +1090,6 @@ class Battle(object):
             self.id, utils.COUNTRIES[self.invader.id], utils.COUNTRIES[self.defender.id], self.zone_id, time_part
         )
 
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
-
 
 class EnergyToFight:
     energy: int = 0
@@ -1186,9 +1134,9 @@ class TelegramBot:
     _threads: List[threading.Thread] = []
 
     def __dict__(self):
-        ret = super().__dict__.copy()
-        ret.update(_threads=len(self._threads))
-        return ret
+        return dict(chat_id=self.chat_id, api_url=self.api_url, player=self.player_name, last_time=self._last_time,
+                    next_time=self._next_time, queue=self.__queue, initialized=self.__initialized,
+                    has_threads=bool(len(self._threads)))
 
     def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id
@@ -1207,7 +1155,7 @@ class TelegramBot:
         self._threads = [t for t in self._threads if t.is_alive()]
         self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
         if not self._threads:
-            name = "send_telegram".format(threading.active_count() - 1)
+            name = "telegram_send"
             send_thread = threading.Thread(target=self.__send_messages, name=name)
             send_thread.start()
             self._threads.append(send_thread)
