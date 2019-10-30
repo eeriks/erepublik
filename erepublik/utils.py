@@ -13,11 +13,11 @@ from typing import Union, Any, List, NoReturn, Mapping
 import pytz
 import requests
 
-__all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz",
+__all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
-           "send_email", "normalize_html_json", "process_error", ]
+           "send_email", "normalize_html_json", "process_error", 'report_promo', 'calculate_hit']
 
 FOOD_ENERGY = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID = "7b92e19"

@@ -18,7 +18,7 @@ class ErepublikException(Exception):
         super().__init__(message)
 
 
-class ErepublikNetworkException(Exception):
+class ErepublikNetworkException(ErepublikException):
     def __init__(self, message, request):
         super().__init__(message)
         self.request = request
@@ -373,7 +373,7 @@ class Energy:
         return self.recovered + self.recoverable
 
 
-class Details(object):
+class Details:
     xp = 0
     cc = 0
     pp = 0
@@ -427,7 +427,7 @@ class Politics:
     is_country_president: bool = False
 
 
-class House(object):
+class House:
     quality = None
     unactivated_count = 0
     active_untill = utils.good_timedelta(utils.now(), -datetime.timedelta(days=1))
@@ -1031,7 +1031,7 @@ class BattleDivision:
         self.wall = dict({"for": wall_for, "dom": wall_dom})
 
 
-class Battle(object):
+class Battle:
     id: int = 0
     war_id: int = 0
     zone_id: int = 0
@@ -1086,9 +1086,10 @@ class Battle(object):
             time_part = "{}".format(now - self.start)
         else:
             time_part = "- {}".format(self.start - now)
-        return "Battle {} | {:>21.21}:{:<21.21} | Round {:2} | Start {}".format(
-            self.id, utils.COUNTRIES[self.invader.id], utils.COUNTRIES[self.defender.id], self.zone_id, time_part
-        )
+        return f"Battle {self.id} | " \
+               f"{utils.COUNTRIES[self.invader.id]:>21.21}:{utils.COUNTRIES[self.defender.id]:<21.21} | " \
+               f"Round {self.zone_id:2} | " \
+               f"Time since start {time_part}"
 
 
 class EnergyToFight:

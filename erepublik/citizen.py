@@ -1,35 +1,34 @@
-import datetime
-import itertools
 import re
 import sys
-import threading
-import time
-from json import loads, dumps
-from typing import Dict, List, Tuple, Any, Union
+from threading import Event
 
-import requests
+from itertools import product
+from datetime import datetime, timedelta
+from json import loads, dumps
+from time import sleep
+from typing import Dict, List, Tuple, Any, Union, Set
+
 from requests import Response, RequestException
 
-from erepublik import classes, utils
+from erepublik.classes import (CitizenAPI, Battle, Reporter, Config, Energy, Details, Politics, MyCompanies,
+                               TelegramBot, ErepublikException, BattleDivision, MyJSONEncoder)
+
+from erepublik.utils import *
 
 
-class Citizen(classes.CitizenAPI):
+class Citizen(CitizenAPI):
     division = 0
 
-    all_battles: Dict[int, classes.Battle] = None
+    all_battles: Dict[int, Battle] = None
     countries: Dict[int, Dict[str, Union[str, List[int]]]] = None
     __last_war_update_data = None
-    __last_full_update: datetime.datetime = utils.now().min
+    __last_full_update: datetime = now().min
 
     active_fs: bool = False
 
     food = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
     inventory = {"used": 0, "total": 0}
-    boosters = {
-        100: {
-        }, 50: {
-        }
-    }
+    boosters = {100: {}, 50: {}}
 
     eb_normal = 0
     eb_double = 0
@@ -43,28 +42,26 @@ class Citizen(classes.CitizenAPI):
 
     eday = 0
 
-    r: requests.Response
-    reporter: classes.Reporter
+    r: Response
     name = "Not logged in!"
     debug = False
     __registered = False
     logged_in = False
-    telegram = None
 
     def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
         super().__init__()
-        self.commit_id = utils.COMMIT_ID
-        self.config = classes.Config()
+        self.commit_id = COMMIT_ID
+        self.config = Config()
         self.config.email = email
         self.config.password = password
-        self.energy = classes.Energy()
-        self.details = classes.Details()
-        self.politics = classes.Politics()
-        self.my_companies = classes.MyCompanies()
+        self.energy = Energy()
+        self.details = Details()
+        self.politics = Politics()
+        self.my_companies = MyCompanies()
         self.set_debug(True)
-        self.reporter = classes.Reporter()
-        self.stop_threads = threading.Event()
-        self.telegram = classes.TelegramBot(stop_event=self.stop_threads)
+        self.reporter = Reporter()
+        self.stop_threads = Event()
+        self.telegram = TelegramBot(stop_event=self.stop_threads)
         if auto_login:
             self.login()
 
@@ -85,27 +82,26 @@ class Citizen(classes.CitizenAPI):
             self.telegram.do_init(self.config.telegram_chat_id or 620981703,
                                   self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
                                   "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
-        self.telegram.send_message("*Started* {:%F %T}".format(utils.now()))
-        self.__last_full_update = utils.good_timedelta(self.now, - datetime.timedelta(minutes=5))
+        self.telegram.send_message(f"*Started* {now():%F %T}")
+        self.__last_full_update = good_timedelta(self.now, - timedelta(minutes=5))
 
     def write_log(self, *args, **kwargs):
         if self.config.interactive:
-            utils.write_interactive_log(*args, **kwargs)
+            write_interactive_log(*args, **kwargs)
         else:
-            utils.write_silent_log(*args, **kwargs)
+            write_silent_log(*args, **kwargs)
 
     def sleep(self, seconds: int):
         if seconds < 0:
             seconds = 0
         if self.config.interactive:
-            utils.interactive_sleep(seconds)
+            interactive_sleep(seconds)
         else:
-            time.sleep(seconds)
+            sleep(seconds)
 
     def __str__(self) -> str:
-        return "Citizen {}".format(self.name)
+        return f"Citizen {self.name}"
 
-    @property
     def __dict__(self):
         ret = super().__dict__.copy()
         ret.pop('stop_threads', None)
@@ -142,7 +138,7 @@ class Citizen(classes.CitizenAPI):
             self.token = re_login_token.group(1)
             self._login()
         else:
-            raise classes.ErepublikException("Something went wrong! Can't find token in page! Exiting!")
+            raise ErepublikException("Something went wrong! Can't find token in page! Exiting!")
         try:
             self.update_citizen_info(resp.text)
         except:
@@ -153,7 +149,7 @@ class Citizen(classes.CitizenAPI):
         r = self._post_login(self.config.email, self.config.password)
         self.r = r
 
-        if r.url == "{}/login".format(self.url):
+        if r.url == f"{self.url}/login":
             self.write_log("Citizen email and/or password is incorrect!")
             raise KeyboardInterrupt
         else:
@@ -162,18 +158,18 @@ class Citizen(classes.CitizenAPI):
             self.name = re_name_id.group(2)
             self.details.citizen_id = re_name_id.group(1)
 
-            self.write_log("Logged in as: {}".format(self.name))
+            self.write_log(f"Logged in as: {self.name}")
             self.get_csrf_token()
             self.logged_in = True
 
-    def _errors_in_response(self, response: requests.Response):
+    def _errors_in_response(self, response: Response):
         if response.status_code >= 400:
             self.r = response
             if response.status_code >= 500:
                 self.write_log("eRepublik servers are having internal troubles. Sleeping for 5 minutes")
                 self.sleep(5 * 60)
             else:
-                raise classes.ErepublikException("HTTP {} error!".format(response.status_code))
+                raise ErepublikException(f"HTTP {response.status_code} error!")
         return bool(re.search(r'body id="error"|Internal Server Error|'
                               r'CSRF attack detected|meta http-equiv="refresh"|not_authenticated', response.text))
 
@@ -229,7 +225,7 @@ class Citizen(classes.CitizenAPI):
         try:
             resp_data = response.json()
             if (resp_data.get("error") or not resp_data.get("status")) and resp_data.get("message", "") == "captcha":
-                utils.send_email(self.name, [response.text, ], player=self, captcha=True)
+                send_email(self.name, [response.text, ], player=self, captcha=True)
         except:
             pass
 
@@ -278,21 +274,21 @@ class Citizen(classes.CitizenAPI):
 
             msgs = "\n".join(msgs)
             self.telegram.report_medal(msgs)
-            self.write_log("Found awards:\n{}".format(msgs))
+            self.write_log(f"Found awards:\n{msgs}")
             for info in data.values():
                 self.reporter.report_action("NEW_MEDAL", info)
 
         levelup = re.search(r"<p>Congratulations, you have reached experience <strong>level (\d+)</strong></p>", html)
         if levelup:
             level = levelup.group(1)
-            msg = "Level up! Current level {}".format(level)
+            msg = f"Level up! Current level {level}"
             self.write_log(msg)
             self.telegram.report_medal(f"Level *{level}*")
             self.reporter.report_action("LEVEL_UP", value=level)
 
     def update_all(self, force_update=False):
         # Do full update max every 5 min
-        if utils.good_timedelta(self.__last_full_update, datetime.timedelta(minutes=5)) > self.now and not force_update:
+        if good_timedelta(self.__last_full_update, timedelta(minutes=5)) > self.now and not force_update:
             return
         else:
             self.__last_full_update = self.now
@@ -312,12 +308,12 @@ class Citizen(classes.CitizenAPI):
             self._get_main()
             return
         ugly_js = re.search(r'"promotions":\s*(\[{?.*?}?])', html).group(1)
-        promos = loads(utils.normalize_html_json(ugly_js))
+        promos = loads(normalize_html_json(ugly_js))
         self.promos = {k: v for k, v in (self.promos.items() if self.promos else {}) if v > self.now}
         send_mail = False
         for promo in promos:
             promo_name = promo.get("id")
-            expire = utils.localize_timestamp(int(promo.get("expiresAt")))
+            expire = localize_timestamp(int(promo.get("expiresAt")))
             if promo_name not in self.promos:
                 send_mail = True
                 self.promos.update({promo_name: expire})
@@ -328,20 +324,19 @@ class Citizen(classes.CitizenAPI):
                     if self.details.gold >= 54:
                         self.buy_tg_contract()
                     else:
-                        self.write_log("Training ground contract active but don't have enough gold ({}g {}cc)".format(
-                            self.details.gold, self.details.cc
-                        ))
+                        self.write_log(f"Training ground contract active but "
+                                       f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
         if send_mail:
             active_promos = []
             for kind, time_until in self.promos.items():
                 active_promos.append(f"{kind} active until {time_until}")
-                utils.report_promo(kind, time_until)
-            utils.send_email(self.name, active_promos, player=self, promo=True)
+                report_promo(kind, time_until)
+            send_email(self.name, active_promos, player=self, promo=True)
 
         new_date = re.search(r"var new_date = '(\d*)';", html)
         if new_date:
             self.energy.set_reference_time(
-                utils.good_timedelta(self.now, datetime.timedelta(seconds=int(new_date.group(1))))
+                good_timedelta(self.now, timedelta(seconds=int(new_date.group(1))))
             )
 
         ugly_js = re.search(r"var erepublik = ({.*}),\s+", html).group(1)
@@ -379,7 +374,7 @@ class Citizen(classes.CitizenAPI):
             self.politics.is_party_member = True
             self.politics.party_id = party.get('party_id')
             self.politics.is_party_president = bool(party.get('is_party_president'))
-            self.politics.party_slug = "{}-{}".format(party.get("stripped_title"), party.get('party_id'))
+            self.politics.party_slug = f"{party.get('stripped_title')}-{party.get('party_id')}"
 
     def update_money(self, page: int = 0, currency: int = 62) -> Dict[str, Any]:
         """
@@ -396,7 +391,7 @@ class Citizen(classes.CitizenAPI):
     def update_job_info(self):
         ot = self._get_main_job_data().json().get("overTime", {})
         if ot:
-            self.my_companies.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
+            self.my_companies.next_ot_time = localize_timestamp(int(ot.get("nextOverTime", 0)))
             self.ot_points = ot.get("points", 0)
 
     def update_companies(self):
@@ -447,7 +442,7 @@ class Citizen(classes.CitizenAPI):
 
             if item.get('type'):
                 if item.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
-                    kind = "{}{}".format(item['type'], item['quality'])
+                    kind = f"{item['type']}{item['quality']}"
                     if item['quality'] == 5:
                         self.boosters[50].update({item['duration']: item['amount']})
                     elif item['quality'] == 10:
@@ -518,7 +513,7 @@ class Citizen(classes.CitizenAPI):
         self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
                                "total": j.get("inventoryStatus").get("totalStorage")})
         inventory = dict(items=dict(active=active_items, final=final_items, raw=raw_materials), status=self.inventory)
-        self.food["total"] = sum([self.food[q] * utils.FOOD_ENERGY[q] for q in utils.FOOD_ENERGY])
+        self.food["total"] = sum([self.food[q] * FOOD_ENERGY[q] for q in FOOD_ENERGY])
         return inventory
 
     def update_weekly_challenge(self):
@@ -555,7 +550,7 @@ class Citizen(classes.CitizenAPI):
             self.__last_war_update_data = resp_json
             if resp_json.get("battles"):
                 for battle_id, battle_data in resp_json.get("battles", {}).items():
-                    self.all_battles.update({int(battle_id): classes.Battle(battle_data)})
+                    self.all_battles.update({int(battle_id): Battle(battle_data)})
 
     def eat(self):
         """
@@ -567,7 +562,7 @@ class Citizen(classes.CitizenAPI):
             else:
                 self.write_log("I don't want to eat right now!")
         else:
-            self.write_log("I'm out of food! But I'll try to buy some!\n{}".format(self.food))
+            self.write_log(f"I'm out of food! But I'll try to buy some!\n{self.food}")
             self.buy_food()
             if self.food["total"] > self.energy.interval:
                 self.eat()
@@ -587,14 +582,14 @@ class Citizen(classes.CitizenAPI):
         r_json = response.json()
         next_recovery = r_json.get("food_remaining_reset").split(":")
         self.energy.set_reference_time(
-            utils.good_timedelta(self.now,
-                                 datetime.timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
+            good_timedelta(self.now,
+                                 timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
         )
         self.energy.recovered = r_json.get("health")
         self.energy.recoverable = r_json.get("food_remaining")
         for q, amount in r_json.get("units_consumed").items():
-            if "q{}".format(q) in self.food:
-                self.food["q{}".format(q)] -= amount
+            if f"q{q}" in self.food:
+                self.food[f"q{q}"] -= amount
             elif q == "10":
                 self.eb_normal -= amount
             elif q == "11":
@@ -605,29 +600,24 @@ class Citizen(classes.CitizenAPI):
 
     @property
     def health_info(self):
-        ret = "{}/{} + {}, {}hp/6m. {}xp until level up".format(
-            self.energy.recovered,
-            self.energy.limit,
-            self.energy.recoverable,
-            self.energy.interval,
-            self.details.xp_till_level_up
-        )
+        ret = f"{self.energy.recovered}/{self.energy.limit} + {self.energy.recoverable}, " \
+              f"{self.energy.interval}hp/6m. {self.details.xp_till_level_up}xp until level up"
         return ret
 
     @property
-    def now(self) -> datetime.datetime:
+    def now(self) -> datetime:
         """
         Returns aware datetime object localized to US/Pacific (eRepublik time)
         :return: datetime.datetime
         """
-        return utils.now()
+        return now()
 
     def check_epic_battles(self):
         active_fs = False
         for battle_id in self.sorted_battles(self.config.sort_battles_time):
             battle = self.all_battles.get(battle_id)
             if not battle.is_air:
-                my_div: classes.BattleDivision = battle.div.get(self.division)
+                my_div: BattleDivision = battle.div.get(self.division)
                 if my_div.epic and my_div.end > self.now:
                     if self.energy.food_fights > 50:
                         inv_allies = battle.invader.deployed + [battle.invader.id]
@@ -650,9 +640,8 @@ class Citizen(classes.CitizenAPI):
                                 side = battle.defender.id
                             else:
                                 self.write_log(
-                                    "Country {} not in all allies list ({}) and also not in inv allies ({}) nor def "
-                                    "allies ({})".format(self.details.current_country, all_allies,
-                                                         inv_allies, def_allies))
+                                    f"Country {self.details.current_country} not in all allies list ({all_allies}) and "
+                                    f"also not in inv allies ({inv_allies}) nor def allies ({def_allies})")
                                 break
                         error_count = 0
                         while self.energy.food_fights > 5 and error_count < 20:
@@ -737,6 +726,8 @@ class Citizen(classes.CitizenAPI):
             self.write_log("Checking for battles to fight in...")
             for battle_id in self.sorted_battles(self.config.sort_battles_time):
                 battle = self.all_battles.get(battle_id)
+                if not isinstance(battle, Battle):
+                    continue
                 div = 11 if battle.is_air else self.division
 
                 allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.id, battle.defender.id]
@@ -762,8 +753,7 @@ class Citizen(classes.CitizenAPI):
                     "inv": inv_points,
                     "travel": "(TRAVEL)" if travel_needed else "",
                 }
-                self.write_log("Battle {bid}, type: {air:6}, rw: {rw:5}, "
-                               "points: {def:4}:{inv:<4} {travel}".format(**kwargs))
+                self.write_log(battle)
 
                 points = def_points <= 1700 and inv_points <= 1700
                 b_type = battle.is_air and self.config.air or not battle.is_air and self.config.ground
@@ -774,7 +764,7 @@ class Citizen(classes.CitizenAPI):
                     continue
 
                 if battle.start > self.now:
-                    self.sleep(utils.get_sleep_seconds(battle.start))
+                    self.sleep(get_sleep_seconds(battle.start))
 
                 if travel_needed:
                     if battle.is_rw:
@@ -1034,7 +1024,7 @@ class Citizen(classes.CitizenAPI):
                                 self.sell_produced_product(kind, 1)
 
                             else:
-                                raise classes.ErepublikException("Unknown kind produced '{kind}'".format(kind=kind))
+                                raise ErepublikException("Unknown kind produced '{kind}'".format(kind=kind))
             elif self.config.auto_buy_raw and re.search(r"not_enough_[^_]*_raw", response.get("message")):
                 raw_kind = re.search(r"not_enough_(\w+)_raw", response.get("message"))
                 if raw_kind:
@@ -1074,7 +1064,7 @@ class Citizen(classes.CitizenAPI):
 
         if amount >= 1:
             lowest_price = self.get_market_offers(country_id=self.details.citizenship,
-                                                  product=kind, quality=int(quality))
+                                                  product_name=kind, quality=int(quality))
 
             if lowest_price["citizen_id"] == self.details.citizen_id:
                 price = lowest_price["price"]
@@ -1179,12 +1169,12 @@ class Citizen(classes.CitizenAPI):
         d = self._post_main_travel_data(holdingId=holding_id, battleId=battle_id, countryId=country_id).json()
         return d.get('regions', [])
 
-    def get_travel_countries(self) -> List[int]:
+    def get_travel_countries(self) -> Set[int]:
         response_json = self._post_main_travel_data().json()
-        return_list = []
+        return_list = {*[]}
         for country_data in response_json['countries'].values():
             if country_data['currentRegions']:
-                return_list.append(country_data['id'])
+                return_list.add(country_data['id'])
         return return_list
 
     def parse_notifications(self, page: int = 1) -> list:
@@ -1219,19 +1209,19 @@ class Citizen(classes.CitizenAPI):
                                r"id=\"delete_message_(\d+)\" name=\"delete_message\[]\">", self.r.text).group(1)
             self._post_delete_message([msg_id])
 
-    def get_market_offers(self, country_id: int = None, product: str = None, quality: int = None) -> dict:
+    def get_market_offers(self, country_id: int = None, product_name: str = None, quality: int = None) -> dict:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
-        if product:
-            if product not in self.available_industries and product not in raw_short_names:
-                self.write_log("Industry '{}' not implemented".format(product))
-                raise classes.ErepublikException("Industry '{}' not implemented".format(product))
-            elif product in raw_short_names:
+        if product_name:
+            if product_name not in self.available_industries and product_name not in raw_short_names:
+                self.write_log(f"Industry '{product_name}' not implemented")
+                raise ErepublikException(f"Industry '{product_name}' not implemented")
+            elif product_name in raw_short_names:
                 quality = 1
-                product = raw_short_names.get(product)
-            product = [product]
+                product_name = raw_short_names[product_name]
+            product_name = [product_name]
         elif quality:
-            raise classes.ErepublikException("Quality without product not allowed")
+            raise ErepublikException("Quality without product not allowed")
 
         item_data = dict(price=999999., country=0, amount=0, offer_id=0, citizen_id=0)
 
@@ -1247,19 +1237,16 @@ class Citizen(classes.CitizenAPI):
         if country_id:
             countries = [country_id]
         else:
-            good_countries = self.get_travel_countries()
-            countries = {cid for cid in utils.COUNTRIES.keys() if cid in good_countries}
+            countries = self.get_travel_countries()
 
         start_dt = self.now
-        iterable = [countries, product or items, [quality] if quality else range(1, 8)]
-        for country, industry, q in itertools.product(*iterable):
+        iterable = [countries, product_name or items, [quality] if quality else range(1, 8)]
+        for country, industry, q in product(*iterable):
             if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
                 continue
 
-            str_q = "q%i" % q
-
             r = self._post_economy_marketplace(country, self.available_industries[industry], q).json()
-            obj = items[industry][str_q]
+            obj = items[industry][f"q{q}"]
             if not r.get("error", False):
                 for offer in r["offers"]:
                     if obj["price"] > float(offer["priceWithTaxes"]):
@@ -1272,15 +1259,15 @@ class Citizen(classes.CitizenAPI):
                         obj["country"] = int(offer["country_id"])
                         obj["amount"] = int(offer["amount"])
                         obj["offer_id"] = int(offer["id"])
-        self.write_log("Scraped market in {}!".format(self.now - start_dt))
+        self.write_log(f"Scraped market in {self.now - start_dt}!")
 
         if quality:
-            ret = items[product[0]]["q%i" % quality]
-        elif product:
-            if product[0] in raw_short_names.values():
-                ret = items[product[0]]["q1"]
+            ret = items[product_name[0]]["q%i" % quality]
+        elif product_name:
+            if product_name[0] in raw_short_names.values():
+                ret = items[product_name[0]]["q1"]
             else:
-                ret = items[product[0]]
+                ret = items[product_name[0]]
         else:
             ret = items
         return ret
@@ -1288,7 +1275,7 @@ class Citizen(classes.CitizenAPI):
     def buy_food(self):
         hp_per_quality = {"q1": 2, "q2": 4, "q3": 6, "q4": 8, "q5": 10, "q6": 12, "q7": 20}
         hp_needed = 48 * self.energy.interval * 10 - self.food["total"]
-        local_offers = self.get_market_offers(country_id=self.details.current_country, product="food")
+        local_offers = self.get_market_offers(country_id=self.details.current_country, product_name="food")
 
         cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1]["price"] / hp_per_quality[v[0]])[0]
 
@@ -1304,7 +1291,7 @@ class Citizen(classes.CitizenAPI):
             self.buy_from_market(cheapest["offer_id"], amount)
             self.update_inventory()
         else:
-            s = "Don't have enough money! Needed: {}cc, Have: {}cc".format(amount * cheapest["price"], self.details.cc)
+            s = f"Don't have enough money! Needed: {amount * cheapest['price']}cc, Have: {self.details.cc}cc"
             self.write_log(s)
             self.reporter.report_action("BUY_FOOD", value=s)
 
@@ -1327,7 +1314,7 @@ class Citizen(classes.CitizenAPI):
         self.details.cc = float(response.json().get("ecash").get("value"))
         self.details.gold = float(response.json().get("gold").get("value"))
         self.reporter.report_action("BUY_GOLD", json_val=response.json(),
-                                    value="New amount {o.cc}cc, {o.gold}g".format(o=self.details))
+                                    value=f"New amount {self.details.cc}cc, {self.details.gold}g")
         return not response.json().get("error", False)
 
     def activate_dmg_booster(self):
@@ -1366,7 +1353,7 @@ class Citizen(classes.CitizenAPI):
         if amount < 1:
             return 0
         ind = {v: k for k, v in self.available_industries.items()}
-        self.write_log("D,{},q{},{},{}".format(amount, quality, ind[industry_id], citizen_id))
+        self.write_log(f"Donate: {amount:4d}q{quality} {ind[industry_id]} to {citizen_id}")
         response = self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
         if re.search(rf"Successfully transferred {amount} item\(s\) to", response.text):
             return amount
@@ -1479,12 +1466,12 @@ class Citizen(classes.CitizenAPI):
                 count -= self.my_companies.ff_lockdown
                 if count <= 0:
                     count = 0
-                    log_msg = "Not fighting because WAM needs {} food fights".format(self.my_companies.ff_lockdown)
+                    log_msg = f"Not fighting because WAM needs {self.my_companies.ff_lockdown} food fights"
 
         if self.max_time_till_full_ff > self.time_till_week_change:
             max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
-            log_msg = "End for Weekly challenge is near (Recoverable until WC end {}hp | want to do {}hits)".format(
-                max_count, count)
+            log_msg = ("End for Weekly challenge is near " 
+                       f"(Recoverable until WC end {max_count}hp | want to do {count}hits)")
             count = count if max_count > count else max_count
 
         self.write_log(log_msg, False)
@@ -1504,30 +1491,30 @@ class Citizen(classes.CitizenAPI):
         return max_pp - self.details.pp if max_pp else 0
 
     @property
-    def next_wc_start(self) -> datetime.datetime:
+    def next_wc_start(self) -> datetime:
         days = 1 - self.now.weekday() if 1 - self.now.weekday() > 0 else 1 - self.now.weekday() + 7
-        return utils.good_timedelta(self.now.replace(hour=0, minute=0, second=0, microsecond=0),
-                                    datetime.timedelta(days=days))
+        return good_timedelta(self.now.replace(hour=0, minute=0, second=0, microsecond=0),
+                                    timedelta(days=days))
 
     @property
-    def time_till_week_change(self) -> datetime.timedelta:
+    def time_till_week_change(self) -> timedelta:
         return self.next_wc_start - self.now
 
     @property
-    def time_till_full_ff(self) -> datetime.timedelta:
+    def time_till_full_ff(self) -> timedelta:
         energy = self.energy.recoverable + self.energy.recovered
         if energy >= self.energy.limit * 2:
-            return datetime.timedelta(0)
+            return timedelta(0)
         minutes_needed = round((self.energy.limit * 2 - energy) / self.energy.interval) * 6
-        return (self.energy.reference_time - self.now) + datetime.timedelta(minutes=minutes_needed)
+        return (self.energy.reference_time - self.now) + timedelta(minutes=minutes_needed)
 
     @property
-    def max_time_till_full_ff(self) -> datetime.timedelta:
+    def max_time_till_full_ff(self) -> timedelta:
         """
         Max required time for 0 to full energy (0/0 -> limit/limit) (last interval rounded up)
         :return:
         """
-        return datetime.timedelta(minutes=round((self.energy.limit * 2 / self.energy.interval) + 0.49) * 6)
+        return timedelta(minutes=round((self.energy.limit * 2 / self.energy.interval) + 0.49) * 6)
 
     @property
     def is_levelup_close(self) -> bool:
@@ -1577,7 +1564,7 @@ class Citizen(classes.CitizenAPI):
         if kind in kinds:
             return self._post_main_write_article(title, content, self.details.citizenship, kind)
         else:
-            raise classes.ErepublikException(
+            raise ErepublikException(
                 "Article kind must be one of:\n{}\n'{}' is not supported".format(
                     "\n".join(["{}: {}".format(k, v) for k, v in kinds.items()]),
                     kind
@@ -1586,7 +1573,7 @@ class Citizen(classes.CitizenAPI):
 
     def post_market_offer(self, industry: int, quality: int, amount: int, price: float) -> Response:
         if industry not in self.available_industries.values():
-            self.write_log("Trying to sell unsupported industry {}".format(industry))
+            self.write_log(f"Trying to sell unsupported industry {industry}")
 
         data = {
             "country": self.details.citizenship,
@@ -1706,7 +1693,7 @@ class Citizen(classes.CitizenAPI):
         rjson = resp.json()
         if not any([rjson["isBanned"], rjson["isDead"], rjson["isFriend"], rjson["isOrg"], rjson["isSelf"]]):
             r = self._post_main_citizen_add_remove_friend(int(player_id), True)
-            self.write_log("{:<64} (id:{:>11}) added as friend".format(rjson["name"], player_id))
+            self.write_log(f"{rjson['name']:<64} (id:{player_id:>11}) added as friend")
             return r
         return resp
 
@@ -1767,7 +1754,7 @@ class Citizen(classes.CitizenAPI):
 
         cities.sort(key=int)
         for city_id in cities:
-            self.write_log("Adding friends from {} (id: {})".format(cities_dict[city_id], city_id))
+            self.write_log(f"Adding friends from {cities_dict[city_id]} (id: {city_id})")
             resp = self._get_main_city_data_residents(city_id).json()
             for resident in resp["widgets"]["residents"]["residents"]:
                 self.add_friend(resident["citizenId"])
@@ -1777,14 +1764,14 @@ class Citizen(classes.CitizenAPI):
                 for resident in resp["widgets"]["residents"]["residents"]:
                     self.add_friend(resident["citizenId"])
 
-    def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime) -> None:
+    def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime):
         if at_time:
-            self.sleep(utils.get_sleep_seconds(at_time))
+            self.sleep(get_sleep_seconds(at_time))
         self.get_csrf_token()
         self.launch_attack(war_id, region_id, region_name)
 
     def get_active_wars(self, country_id: int = None) -> List[int]:
-        r = self._get_country_military(utils.COUNTRY_LINK.get(country_id or self.details.citizenship))
+        r = self._get_country_military(COUNTRY_LINK.get(country_id or self.details.citizenship))
         all_war_ids = re.findall(r'//www\.erepublik\.com/en/wars/show/(\d+)"', r.text)
         return [int(wid) for wid in all_war_ids]
 
@@ -1814,7 +1801,7 @@ class Citizen(classes.CitizenAPI):
         last_battle_id = int(re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)">', html).group(1))
         console = self._post_military_battle_console(last_battle_id, 'warList', 1).json()
         battle = console.get('list')[0]
-        return utils.localize_dt(datetime.datetime.strptime(battle.get('result').get('end'), "%Y-%m-%d %H:%M:%S"))
+        return localize_dt(datetime.strptime(battle.get('result').get('end'), "%Y-%m-%d %H:%M:%S"))
 
     def launch_attack(self, war_id: int, region_id: int, region_name: str):
         self._post_wars_attack_region(war_id, region_id, region_name)
@@ -1826,10 +1813,10 @@ class Citizen(classes.CitizenAPI):
             if start_time.minute <= 30:
                 start_time = start_time.replace(minute=30)
             else:
-                start_time = start_time.replace(minute=0)
+                start_time = good_timedelta(start_time.replace(minute=0), timedelta(hours=1))
             while not self.stop_threads.is_set():
                 self.update_citizen_info()
-                start_time = utils.good_timedelta(start_time, datetime.timedelta(minutes=30))
+                start_time = good_timedelta(start_time, timedelta(minutes=30))
                 self.send_state_update()
                 self.send_inventory_update()
                 sleep_seconds = (start_time - self.now).total_seconds()
@@ -1847,15 +1834,15 @@ class Citizen(classes.CitizenAPI):
         to_report = self.update_inventory()
         self.reporter.report_action("INVENTORY", json_val=to_report)
 
-    def check_house_durability(self) -> Dict[int, datetime.datetime]:
+    def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
         inv = self.update_inventory()
         for house_quality, active_house in inv['items']['active'].get('house', {}).items():
-            till = utils.good_timedelta(self.now, datetime.timedelta(seconds=active_house['time_left']))
+            till = good_timedelta(self.now, timedelta(seconds=active_house['time_left']))
             ret.update({house_quality: till})
         return ret
 
-    def buy_and_activate_house(self, q: int) -> Dict[int, datetime.datetime]:
+    def buy_and_activate_house(self, q: int) -> Dict[int, datetime]:
         inventory = self.update_inventory()
         ok_to_activate = False
         if not [h for h in inventory['items']['final'].get('house', []) if h['quality'] == q]:
@@ -1865,7 +1852,7 @@ class Citizen(classes.CitizenAPI):
                 countries.append(self.details.current_country)
             for country in countries:
                 offers += [self.get_market_offers(country, "house", q)]
-            global_cheapest = self.get_market_offers(product="house", quality=q)
+            global_cheapest = self.get_market_offers(product_name="house", quality=q)
             cheapest_offer = sorted(offers, key=lambda o: o["price"])[0]
             region = self.get_country_travel_region(global_cheapest['country'])
             if global_cheapest['price'] + 200 < cheapest_offer['price'] and region:
@@ -1874,7 +1861,7 @@ class Citizen(classes.CitizenAPI):
             else:
                 buy = self.buy_from_market(cheapest_offer['offer_id'], 1)
             if buy["error"]:
-                msg = "Unable to buy q{} house! \n{}".format(q, buy['message'])
+                msg = f"Unable to buy q{q} house! \n{buy['message']}"
                 self.write_log(msg)
             else:
                 ok_to_activate = True
@@ -1884,7 +1871,7 @@ class Citizen(classes.CitizenAPI):
             self.activate_house(q)
         return self.check_house_durability()
 
-    def renew_houses(self, forced: bool = False) -> Dict[int, datetime.datetime]:
+    def renew_houses(self, forced: bool = False) -> Dict[int, datetime]:
         """
         Renew all houses which endtime is in next 48h
         :param forced: if true - renew all houses
@@ -1892,17 +1879,17 @@ class Citizen(classes.CitizenAPI):
         """
         house_durability = self.check_house_durability()
         for q, active_till in house_durability.items():
-            if utils.good_timedelta(active_till, - datetime.timedelta(hours=48)) <= self.now or forced:
+            if good_timedelta(active_till, - timedelta(hours=48)) <= self.now or forced:
                 house_durability = self.buy_and_activate_house(q)
         self.travel_to_residence()
         return house_durability
 
-    def activate_house(self, quality: int) -> datetime.datetime:
+    def activate_house(self, quality: int) -> datetime:
         active_until = self.now
         r = self._post_economy_activate_house(quality)
         if r.json().get("status") and not r.json().get("error"):
             house = r.json()["inventoryItems"]["activeEnhancements"]["items"]["4_%i_active" % quality]
-            active_until = utils.good_timedelta(active_until, datetime.timedelta(seconds=house["active"]["time_left"]))
+            active_until = good_timedelta(active_until, timedelta(seconds=house["active"]["time_left"]))
         return active_until
 
     def collect_anniversary_reward(self) -> Response:
@@ -1925,7 +1912,7 @@ class Citizen(classes.CitizenAPI):
         if self.details.cc < amount or amount < 20:
             return False
         data = dict(country=71, action='currency', value=amount)
-        self.telegram.send_message(f"Donated {amount}cc to {utils.COUNTRIES[71]}")
+        self.telegram.send_message(f"Donated {amount}cc to {COUNTRIES[71]}")
         self.reporter.report_action("CONTRIBUTE_CC", data)
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
@@ -1958,7 +1945,7 @@ class Citizen(classes.CitizenAPI):
         return r.json()
 
     def report_error(self, msg: str = ""):
-        utils.process_error(msg, self.name, sys.exc_info(), self, self.commit_id, False)
+        process_error(msg, self.name, sys.exc_info(), self, self.commit_id, False)
 
     def get_battle_top_10(self, battle_id: int) -> Dict[int, List[Tuple[int, int]]]:
         battle = self.all_battles.get(battle_id)
@@ -1976,7 +1963,7 @@ class Citizen(classes.CitizenAPI):
         return ret
 
     def to_json(self, indent: bool = False) -> str:
-        return dumps(self.__dict__, cls=classes.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+        return dumps(self.__dict__, cls=MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
 
     def get_game_token_offers(self):
         r = self._post_economy_game_tokens_market('retrieve').json()
@@ -2005,7 +1992,7 @@ class Citizen(classes.CitizenAPI):
         if ne:
             tp = True
 
-        return utils.calculate_hit(strength, rang, tp, elite, ne, 50 if booster_50 else 100 if booster_100 else 0)
+        return calculate_hit(strength, rang, tp, elite, ne, 50 if booster_50 else 100 if booster_100 else 0)
 
     def get_air_hit_dmg_value(self, rang: int = None, elite: bool = None, ne: bool = False,
                               weapon: bool = False) -> float:
@@ -2016,7 +2003,7 @@ class Citizen(classes.CitizenAPI):
             if elite is None:
                 elite = r['citizenAttributes']['level'] > 100
 
-        return utils.calculate_hit(0, rang, True, elite, ne, 0, 20 if weapon else 0)
+        return calculate_hit(0, rang, True, elite, ne, 0, 20 if weapon else 0)
 
     def endorse_article(self, article_id: int, amount: int) -> bool:
         if amount in (5, 50, 100):
