@@ -63,8 +63,8 @@ class Citizen(classes.CitizenAPI):
         self.my_companies = classes.MyCompanies()
         self.set_debug(True)
         self.reporter = classes.Reporter()
-        self.telegram = classes.TelegramBot()
         self.stop_threads = threading.Event()
+        self.telegram = classes.TelegramBot(stop_event=self.stop_threads)
         if auto_login:
             self.login()
 

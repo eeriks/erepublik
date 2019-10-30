@@ -1128,10 +1128,14 @@ class TelegramBot:
     chat_id = 0
     api_url = ""
     player_name = ""
+    __thread_stopper: threading.Event = None
     _last_time: datetime.datetime = None
     _last_full_energy_report: datetime.datetime = None
     _next_time: datetime.datetime = None
     _threads: List[threading.Thread] = []
+
+    def __init__(self, stop_event: threading.Event = None):
+        self.__thread_stopper = threading.Event() if stop_event is None else stop_event
 
     def __dict__(self):
         return dict(chat_id=self.chat_id, api_url=self.api_url, player=self.player_name, last_time=self._last_time,
@@ -1189,7 +1193,9 @@ class TelegramBot:
 
     def __send_messages(self):
         while self._next_time > utils.now():
-            utils.silent_sleep(utils.get_sleep_seconds(self._next_time))
+            if self.__thread_stopper.is_set():
+                break
+            self.__thread_stopper.wait(utils.get_sleep_seconds(self._next_time))
 
         message = "\n\n––––––––––––––––––––––\n\n".join(self.__queue)
         if self.player_name:
