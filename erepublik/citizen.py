@@ -1845,7 +1845,7 @@ class Citizen(CitizenAPI):
     def buy_and_activate_house(self, q: int) -> Dict[int, datetime]:
         inventory = self.update_inventory()
         ok_to_activate = False
-        if not [h for h in inventory['items']['final'].get('house', []) if h['quality'] == q]:
+        if not inventory['items']['final'].get('house', {}).get(q, {}):
             offers = []
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
