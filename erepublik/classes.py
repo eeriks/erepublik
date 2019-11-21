@@ -1010,7 +1010,7 @@ class MyJSONEncoder(JSONEncoder):
             return dict(headers=o.headers.__dict__, url=o.url, text=o.text)
         elif hasattr(o, '__dict__'):
             return o.__dict__
-        elif isinstance(o, deque):
+        elif isinstance(o, (deque, set)):
             return list(o)
         elif isinstance(o, Citizen):
             return o.to_json()
