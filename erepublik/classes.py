@@ -898,6 +898,14 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/wall-post/retrieve/json".format(self.url), data=data)
 
+    # 12th anniversary endpoints
+    def _get_anniversary_quest_data(self) -> Response:
+        return self.get("{}/main/anniversaryQuestData".format(self.url))
+
+    def _post_map_rewards_unlock(self, node_id: int) -> Response:
+        data = {'nodeId': node_id, '_token': self.token}
+        return self.post("{}/main/map-rewards-unlock".format(self.url), data=data)
+
 
 class Reporter:
     __to_update: List[Dict[Any, Any]] = []
