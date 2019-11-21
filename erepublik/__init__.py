@@ -4,7 +4,7 @@
 
 __author__ = """Eriks Karls"""
 __email__ = 'eriks@72.lv'
-__version__ = '0.16.0'
+__version__ = '0.16.1'
 
 from erepublik import classes, utils
 from erepublik.citizen import Citizen
