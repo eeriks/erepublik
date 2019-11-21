@@ -2,6 +2,12 @@
 History
 =======
 
+
+0.17.0 (2019-11-21)
+-------------------
+
+* 12th anniversary's endpoints added
+* Telegram message queue optimisation
 * WC end fighting energy bugfix
 * More strict fighting limiting before week change
 * Improved and fixed ground damage booster usage
