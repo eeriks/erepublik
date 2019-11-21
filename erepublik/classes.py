@@ -906,6 +906,14 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = {'nodeId': node_id, '_token': self.token}
         return self.post("{}/main/map-rewards-unlock".format(self.url), data=data)
 
+    def _post_map_rewards_speedup(self, node_id: int, currency_amount: int) -> Response:
+        data = {'nodeId': node_id, '_token': self.token, "currencyCost": currency_amount}
+        return self.post("{}/main/map-rewards-speedup".format(self.url), data=data)
+
+    def _post_map_rewards_claim(self, node_id: int) -> Response:
+        data = {'nodeId': node_id, '_token': self.token}
+        return self.post("{}/main/map-rewards-claim".format(self.url), data=data)
+
 
 class Reporter:
     __to_update: List[Dict[Any, Any]] = []
@@ -1168,7 +1176,7 @@ class TelegramBot:
         self._threads = [t for t in self._threads if t.is_alive()]
         self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
         if not self._threads:
-            name = "telegram_send"
+            name = "telegram_{}send".format(f"{self.player_name}_" if self.player_name else "")
             send_thread = threading.Thread(target=self.__send_messages, name=name)
             send_thread.start()
             self._threads.append(send_thread)

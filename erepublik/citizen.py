@@ -82,7 +82,8 @@ class Citizen(CitizenAPI):
             self.telegram.do_init(self.config.telegram_chat_id or 620981703,
                                   self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
                                   "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
-        self.telegram.send_message(f"*Started* {now():%F %T}")
+            self.telegram.send_message(f"*Started* {now():%F %T}")
+
         self.__last_full_update = good_timedelta(self.now, - timedelta(minutes=5))
 
     def write_log(self, *args, **kwargs):
@@ -2015,3 +2016,16 @@ class Citizen(CitizenAPI):
     def vote_article(self, article_id: int) -> bool:
         resp = self._post_main_vote_article(article_id).json()
         return not bool(resp.get('error'))
+
+    def get_anniversary_quest_data(self):
+        return self._get_anniversary_quest_data().json()
+
+    def start_unlocking_map_quest_node(self, node_id: int):
+        return self._post_map_rewards_unlock(node_id)
+
+    def collect_map_quest_node(self, node_id: int):
+        return self._post_map_rewards_claim(node_id)
+
+    def speedup_map_quest_node(self, node_id: int):
+        node = self.get_anniversary_quest_data().get('cities', {}).get(str(node_id), {})
+        return self._post_map_rewards_speedup(node_id, node.get("skipCost", 0))
