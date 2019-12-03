@@ -666,7 +666,7 @@ class Citizen(CitizenAPI):
 
         self.active_fs = active_fs
 
-    def sorted_battles(self, sort_by_time: bool = False) -> List[int]:
+    def sorted_battles(self, sort_by_time: bool = True) -> List[int]:
         cs_battles_air: List[int] = []
         cs_battles_ground: List[int] = []
         deployed_battles_air: List[int] = []
