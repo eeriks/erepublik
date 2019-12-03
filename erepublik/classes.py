@@ -452,8 +452,8 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         """
         self._req = SlowRequests()
 
-    def post(self, url: str, *args, **kwargs) -> Response:
-        return self._req.post(url, *args, **kwargs)
+    def post(self, url: str, data=None, json=None, **kwargs) -> Response:
+        return self._req.post(url, data, json, **kwargs)
 
     def get(self, url: str, **kwargs) -> Response:
         return self._req.get(url, **kwargs)
@@ -463,6 +463,9 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
 
     def _get_military_battlefield_choose_side(self, battle: int, side: int) -> Response:
         return self.get("{}/military/battlefield-choose-side/{}/{}".format(self.url, battle, side))
+
+    def _get_military_show_weapons(self, battle: int) -> Response:
+        return self.get("{}/military/show-weapons".format(self.url), params={'_token': self.token, 'battleId': battle})
 
     def _get_candidate_party(self, party_slug: str) -> Response:
         return self.post("{}/candidate/{}".format(self.url, party_slug))
@@ -528,6 +531,9 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
 
     def _get_military_campaigns(self) -> Response:
         return self.get("{}/military/campaigns-new/".format(self.url))
+
+    def _get_military_campaigns_json_list(self) -> Response:
+        return self.get("{}/military/campaignsJson/list".format(self.url))
 
     def _get_military_show_weapons(self, battle_id: int) -> Response:
         params = {"_token": self.token, "battleId": battle_id}
@@ -757,6 +763,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(type=kind, quality=quality, duration=duration, battleId=battle, _token=self.token)
         return self.post("{}/military/fight-activateBooster".format(self.url), data=data)
 
+    def _post_military_change_weapon(self, battle: int, battle_zone: int, weapon_level: int,) -> Response:
+        data = dict(battleId=battle, _token=self.token, battleZoneId=battle_zone, customizationLevel=weapon_level)
+        return self.post("{}/military/change-weapon".format(self.url), data=data)
+
     def _post_login(self, email: str, password: str) -> Response:
         data = dict(csrf_token=self.token, citizen_email=email, citizen_password=password, remember='on')
         return self.post("{}/login".format(self.url), data=data)
@@ -789,12 +799,12 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(battleId=battle_id, bombId=bomb_id, _token=self.token)
         return self.post("{}/military/deploy-bomb".format(self.url), data=data)
 
-    def _post_military_fight_air(self, battle_id: int, side_id: int) -> Response:
-        data = dict(sideId=side_id, battleId=battle_id, _token=self.token)
+    def _post_military_fight_air(self, battle_id: int, side_id: int, zone_id: int) -> Response:
+        data = dict(sideId=side_id, battleId=battle_id, _token=self.token, battleZoneId=zone_id)
         return self.post("{}/military/fight-shoooot/{}".format(self.url, battle_id), data=data)
 
-    def _post_military_fight_ground(self, battle_id: int, side_id: int) -> Response:
-        data = dict(sideId=side_id, battleId=battle_id, _token=self.token)
+    def _post_military_fight_ground(self, battle_id: int, side_id: int, zone_id: int) -> Response:
+        data = dict(sideId=side_id, battleId=battle_id, _token=self.token, battleZoneId=zone_id)
         return self.post("{}/military/fight-shooot/{}".format(self.url, battle_id), data=data)
 
     def _post_military_group_missions(self) -> Response:
@@ -1035,16 +1045,25 @@ class BattleDivision:
     epic: bool
     dom_pts: Dict[str, int] = None
     wall: Dict[str, Union[int, float]] = None
+    battle_zone_id: int
+    def_medal: Dict[str, int]
+    inv_medal: Dict[str, int]
 
     @property
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(self, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int, wall_for: int, wall_dom: float):
+    def __init__(
+        self, div_id: int, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int,
+        wall_for: int, wall_dom: float, def_medal: Tuple[int, int], inv_medal: Tuple[int, int]
+    ):
+        self.battle_zone_id = div_id
         self.end = end
         self.epic = epic
         self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
         self.wall = dict({"for": wall_for, "dom": wall_dom})
+        self.def_medal = {"id": def_medal[0], "dmg": def_medal[1]}
+        self.inv_medal = {"id": inv_medal[0], "dmg": inv_medal[1]}
 
 
 class Battle:
@@ -1087,11 +1106,18 @@ class Battle:
             else:
                 end = utils.localize_dt(datetime.datetime.max - datetime.timedelta(days=1))
 
-            battle_div = BattleDivision(
-                end=end, epic=data.get('epic_type') in [1, 5],
-                inv_pts=data.get('dom_pts').get("inv"), def_pts=data.get('dom_pts').get("def"),
-                wall_for=data.get('wall').get("for"), wall_dom=data.get('wall').get("dom")
-            )
+            if not data['stats']['def']:
+                def_medal = (0, 0)
+            else:
+                def_medal = (data['stats']['def']['citizenId'], data['stats']['def']['damage'])
+            if not data['stats']['inv']:
+                inv_medal = (0, 0)
+            else:
+                inv_medal = (data['stats']['inv']['citizenId'], data['stats']['inv']['damage'])
+            battle_div = BattleDivision(end=end, epic=data.get('epic_type') in [1, 5], div_id=data.get('id'),
+                                        inv_pts=data.get('dom_pts').get("inv"), def_pts=data.get('dom_pts').get("def"),
+                                        wall_for=data.get('wall').get("for"), wall_dom=data.get('wall').get("dom"),
+                                        def_medal=def_medal, inv_medal=inv_medal)
 
             self.div.update({div: battle_div})
 

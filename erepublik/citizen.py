@@ -544,7 +544,7 @@ class Citizen(CitizenAPI):
         if not self.details.current_country:
             self.update_citizen_info()
 
-        resp_json = self._get_military_campaigns().json()
+        resp_json = self._get_military_campaigns_json_list().json()
         if resp_json.get("countries"):
             self.all_battles = {}
             self.countries = {}
@@ -653,8 +653,7 @@ class Citizen(CitizenAPI):
                                 break
                         error_count = 0
                         while self.energy.food_fights > 5 and error_count < 20:
-                            errors = self.fight(battle_id, side_id=side, is_air=False,
-                                                count=self.energy.food_fights - 5)
+                            errors = self.fight(battle_id, side_id=side, count=self.energy.food_fights - 5)
                             if errors:
                                 error_count += errors
                             if self.config.epic_hunt_ebs:
@@ -790,15 +789,17 @@ class Citizen(CitizenAPI):
 
                     if not self.travel_to_battle(battle_id, country_ids_to_travel):
                         break
-                self.fight(battle_id, side_id, battle.is_air)
+                self.fight(battle_id, side_id)
                 self.travel_to_residence()
                 self.collect_weekly_reward()
                 break
 
-    def fight(self, battle_id: int, side_id: int, is_air: bool = False, count: int = None):
-        if not is_air and self.config.boosters:
+    def fight(self, battle_id: int, side_id: int, count: int = None):
+        battle = self.all_battles[battle_id]
+        zone_id = battle.div[11 if battle.is_air else self.division].battle_zone_id
+        if not battle.is_air and self.config.boosters:
             self.activate_dmg_booster()
-        data = dict(sideId=side_id, battleId=battle_id)
+        self.set_default_weapon(battle_id)
         error_count = 0
         ok_to_fight = True
         if count is None:
@@ -809,7 +810,7 @@ class Citizen(CitizenAPI):
 
         while ok_to_fight and error_count < 10 and count > 0:
             while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
-                hits, error, damage = self._shoot(is_air, data)
+                hits, error, damage = self._shoot(battle.is_air, battle_id, side_id, zone_id)
                 count -= hits
                 total_hits += hits
                 total_damage += damage
@@ -821,15 +822,15 @@ class Citizen(CitizenAPI):
                     ok_to_fight = False
                     if total_damage:
                         self.reporter.report_action(json_val=dict(battle=battle_id, side=side_id, dmg=total_damage,
-                                                                  air=is_air, hits=total_hits), action="FIGHT")
+                                                                  air=battle.is_air, hits=total_hits), action="FIGHT")
         if error_count:
             return error_count
 
-    def _shoot(self, air: bool, data: dict):
+    def _shoot(self, air: bool, battle_id: int, side_id: int, zone_id: int):
         if air:
-            response = self._post_military_fight_air(data['battleId'], data['sideId'])
+            response = self._post_military_fight_air(battle_id, side_id, zone_id)
         else:
-            response = self._post_military_fight_ground(data['battleId'], data['sideId'])
+            response = self._post_military_fight_ground(battle_id, side_id, zone_id)
 
         if "Zone is not meant for " in response.text:
             self.sleep(5)
@@ -844,9 +845,11 @@ class Citizen(CitizenAPI):
         if j_resp.get("error"):
             if j_resp.get("message") == "SHOOT_LOCKOUT" or j_resp.get("message") == "ZONE_INACTIVE":
                 pass
+            elif j_resp.get("message") == "NOT_ENOUGH_WEAPONS":
+                self.set_default_weapon(battle_id)
             else:
                 if j_resp.get("message") == "UNKNOWN_SIDE":
-                    self._rw_choose_side(data["battleId"], data["sideId"])
+                    self._rw_choose_side(battle_id, side_id)
                 err = True
         elif j_resp.get("message") == "ENEMY_KILLED":
             hits = (self.energy.recovered - j_resp["details"]["wellness"]) // 10
@@ -2040,3 +2043,24 @@ class Citizen(CitizenAPI):
     def speedup_map_quest_node(self, node_id: int):
         node = self.get_anniversary_quest_data().get('cities', {}).get(str(node_id), {})
         return self._post_map_rewards_speedup(node_id, node.get("skipCost", 0))
+
+    def get_available_weapons(self, battle_id: int):
+        return self._get_military_show_weapons(battle_id).json()
+
+    def set_default_weapon(self, battle_id: int) -> int:
+        battle = self.all_battles[battle_id]
+        battle_zone = battle.div[11 if battle.is_air else self.division].battle_zone_id
+        available_weapons = self._get_military_show_weapons(battle_id).json()
+        weapon_quality = -1
+        if not battle.is_air:
+            for weapon in available_weapons:
+                if weapon['weaponId'] == 7 and weapon['weaponQuantity'] > 30:
+                    weapon_quality = 7
+                    break
+        return self.change_weapon(battle_id, weapon_quality)
+
+    def change_weapon(self, battle_id: int, weapon_quality: int) -> int:
+        battle = self.all_battles[battle_id]
+        battle_zone = battle.div[11 if battle.is_air else self.division].battle_zone_id
+        r = self._post_military_change_weapon(battle_id, battle_zone, weapon_quality)
+        return r.json().get('weaponInfluence')
