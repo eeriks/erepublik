@@ -374,7 +374,7 @@ class Citizen(CitizenAPI):
             self._post_military_group_missions()
 
         self.details.next_pp.sort()
-        for id_, skill in citizen.get("mySkills", {}).items():
+        for skill in citizen.get("mySkills", {}).values():
             self.details.mayhem_skills.update({int(skill["terrain_id"]): int(skill["skill_points"])})
 
         if citizen.get('party', []):
@@ -557,8 +557,8 @@ class Citizen(CitizenAPI):
                     self.countries[int(c_id)].update(allies=c_data.get("allies"))
             self.__last_war_update_data = resp_json
             if resp_json.get("battles"):
-                for battle_id, battle_data in resp_json.get("battles", {}).items():
-                    self.all_battles.update({int(battle_id): Battle(battle_data)})
+                for battle_data in resp_json.get("battles", {}).values():
+                    self.all_battles.update({battle_data.get('id'): Battle(battle_data)})
 
     def eat(self):
         """
@@ -677,8 +677,12 @@ class Citizen(CitizenAPI):
         other_battles_ground: List[int] = []
 
         ret_battles = []
-        for bid, battle in sorted(self.all_battles.items(), key=lambda b: b[1].start if sort_by_time else b[0],
-                                  reverse=sort_by_time):
+        if sort_by_time:
+            battle_list = sorted(self.all_battles.values(), key=lambda b: b.start)
+            battle_list.reverse()
+        else:
+            battle_list = sorted(self.all_battles.values(), key=lambda b: b.id)
+        for battle in battle_list:
             battle_sides = [battle.invader.id, battle.defender.id]
 
             # Previous battles
