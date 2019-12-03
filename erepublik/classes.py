@@ -904,6 +904,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = {"_token": self.token, "post_message": body}
         return self.post("{}/main/wall-post/create/json".format(self.url), data=data)
 
+    def _post_main_wall_post_automatic(self, **kwargs) -> Response:
+        kwargs.update(_token=self.token)
+        return self.post("{}/main/wall-post/create/json".format(self.url), data=kwargs)
+
     def _post_main_wall_post_retrieve(self) -> Response:
         data = {"_token": self.token, "page": 1, "switchedFrom": False}
         return self.post("{}/main/wall-post/retrieve/json".format(self.url), data=data)

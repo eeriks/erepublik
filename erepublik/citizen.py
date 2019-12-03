@@ -261,6 +261,9 @@ class Citizen(CitizenAPI):
                                  r"<div title=\"(.*?)\">", medal, re.M | re.S)
                 about = info.group(1).strip()
                 title = info.group(2).strip()
+                award_id = re.search(r'"wall_enable_alerts_(\d+)', medal)
+                if award_id:
+                    self._post_main_wall_post_automatic(**{'message': title, 'awardId': award_id.group(1)})
                 reward, currency = info.group(3).strip().split(" ")
                 while not isinstance(reward, float):
                     try:
@@ -1337,7 +1340,7 @@ class Citizen(CitizenAPI):
             if not self.get_active_ground_damage_booster():
                 duration = 0
                 for length, amount in self.boosters[50].items():
-                    if amount > 1:
+                    if amount > 2:
                         duration = length
                         break
                 if duration:
