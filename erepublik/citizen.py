@@ -164,6 +164,13 @@ class Citizen(CitizenAPI):
             self.logged_in = True
 
     def _errors_in_response(self, response: Response):
+        try:
+            j = response.json()
+            if j['error'] and j["message"] == 'Too many requests':
+                self.write_log("Made too many requests! Sleeping for 30 seconds.")
+                self.sleep(30)
+        except:
+            pass
         if response.status_code >= 400:
             self.r = response
             if response.status_code >= 500:
@@ -174,7 +181,7 @@ class Citizen(CitizenAPI):
         return bool(re.search(r'body id="error"|Internal Server Error|'
                               r'CSRF attack detected|meta http-equiv="refresh"|not_authenticated', response.text))
 
-    def get(self, url: str, *args, **kwargs) -> Response:
+    def get(self, url: str, **kwargs) -> Response:
         if (self.now - self._req.last_time).seconds >= 15 * 60:
             self.get_csrf_token()
             if "params" in kwargs:
@@ -188,7 +195,7 @@ class Citizen(CitizenAPI):
             except RequestException as e:
                 self.write_log("Network error while issuing GET request", e)
                 self.sleep(60)
-                return self.get(url, *args, **kwargs)
+                return self.get(url, **kwargs)
 
             try:
                 self.update_citizen_info(html=response.text)
@@ -221,7 +228,7 @@ class Citizen(CitizenAPI):
         except RequestException as e:
             self.write_log("Network error while issuing POST request", e)
             self.sleep(60)
-            return self.post(url, data, json, **kwargs)
+            return self.post(url, data=data, json=json, **kwargs)
 
         try:
             resp_data = response.json()
