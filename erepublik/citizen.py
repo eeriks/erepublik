@@ -26,9 +26,9 @@ class Citizen(CitizenAPI):
 
     active_fs: bool = False
 
-    food = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
-    inventory = {"used": 0, "total": 0}
-    boosters = {100: {}, 50: {}}
+    food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
+    inventory: Dict[str, int] = {"used": 0, "total": 0}
+    boosters: Dict[int, Dict[int, int]] = {100: {}, 50: {}}
 
     eb_normal = 0
     eb_double = 0

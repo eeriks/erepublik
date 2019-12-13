@@ -271,7 +271,7 @@ class Config:
     work = True
     train = True
     wam = False
-    auto_sell: List[str] = list()
+    auto_sell: List[str] = None
     auto_sell_all = False
     employees = False
     fight = False
@@ -294,6 +294,9 @@ class Config:
     telegram = True
     telegram_chat_id = 0
     telegram_token = ""
+
+    def __init__(self):
+        self.auto_sell = []
 
     @property
     def wt(self):
@@ -379,7 +382,7 @@ class Details:
     pp = 0
     pin = None
     gold = 0
-    next_pp: List[int] = []
+    next_pp: List[int] = None
     citizen_id = 0
     citizenship = 0
     current_region = 0
@@ -389,6 +392,9 @@ class Details:
     daily_task_done = False
     daily_task_reward = False
     mayhem_skills = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, }
+
+    def __init__(self):
+        self.next_pp = []
 
     @property
     def xp_till_level_up(self):
@@ -928,9 +934,19 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = {'nodeId': node_id, '_token': self.token}
         return self.post("{}/main/map-rewards-claim".format(self.url), data=data)
 
+    def _post_new_war(self, self_country_id: int, attack_country_id: int, debate: str = "") -> Response:
+        data = dict(requirments=1, _token=self.token, debate=debate,
+                    countryNameConfirm=utils.COUNTRY_LINK[attack_country_id])
+        return self.post("{}/{}/new-war".format(self.url, utils.COUNTRY_LINK[self_country_id]), data=data)
+
+    def _post_new_donation(self, country_id: int, amount: int, org_name: str, debate: str = "") -> Response:
+        data = dict(requirments=1, _token=self.token, debate=debate, currency=1, value=amount, commit='Propose',
+                    type_name=org_name)
+        return self.post("{}/{}/new-donation".format(self.url, utils.COUNTRY_LINK[country_id]), data=data)
+
 
 class Reporter:
-    __to_update: List[Dict[Any, Any]] = []
+    __to_update: List[Dict[Any, Any]] = None
     name: str = ""
     email: str = ""
     citizen_id: int = 0
@@ -946,6 +962,7 @@ class Reporter:
         self._req = Session()
         self.url = "https://api.erep.lv"
         self._req.headers.update({"user-agent": "Bot reporter v2"})
+        self.__to_update = []
         self.__registered: bool = False
 
     def do_init(self, name: str = "", email: str = "", citizen_id: int = 0):
@@ -1047,8 +1064,8 @@ class BattleSide:
 class BattleDivision:
     end: datetime.datetime
     epic: bool
-    dom_pts: Dict[str, int] = None
-    wall: Dict[str, Union[int, float]] = None
+    dom_pts: Dict[str, int]
+    wall: Dict[str, Union[int, float]]
     battle_zone_id: int
     def_medal: Dict[str, int]
     inv_medal: Dict[str, int]
@@ -1071,15 +1088,15 @@ class BattleDivision:
 
 
 class Battle:
-    id: int = 0
-    war_id: int = 0
-    zone_id: int = 0
-    is_rw: bool = False
-    is_dict_lib: bool = False
-    start: datetime.datetime = None
-    invader: BattleSide = None
-    defender: BattleSide = None
-    div: Dict[int, BattleDivision] = None
+    id: int
+    war_id: int
+    zone_id: int
+    is_rw: bool
+    is_dict_lib: bool
+    start: datetime.datetime
+    invader: BattleSide
+    defender: BattleSide
+    div: Dict[int, BattleDivision]
 
     @property
     def is_air(self) -> bool:
@@ -1171,17 +1188,19 @@ class EnergyToFight:
 
 class TelegramBot:
     __initialized = False
-    __queue: List[str] = []
+    __queue: List[str]
     chat_id = 0
     api_url = ""
     player_name = ""
-    __thread_stopper: threading.Event = None
-    _last_time: datetime.datetime = None
-    _last_full_energy_report: datetime.datetime = None
-    _next_time: datetime.datetime = None
-    _threads: List[threading.Thread] = []
+    __thread_stopper: threading.Event
+    _last_time: datetime.datetime
+    _last_full_energy_report: datetime.datetime
+    _next_time: datetime.datetime
+    _threads: List[threading.Thread]
 
     def __init__(self, stop_event: threading.Event = None):
+        self._threads = []
+        self.__queue = []
         self.__thread_stopper = threading.Event() if stop_event is None else stop_event
 
     def __dict__(self):
