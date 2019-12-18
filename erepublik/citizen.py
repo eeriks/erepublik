@@ -1,10 +1,9 @@
 import re
 import sys
-from threading import Event
-
-from itertools import product
 from datetime import datetime, timedelta
+from itertools import product
 from json import loads, dumps
+from threading import Event
 from time import sleep
 from typing import Dict, List, Tuple, Any, Union, Set
 
@@ -12,7 +11,6 @@ from requests import Response, RequestException
 
 from erepublik.classes import (CitizenAPI, Battle, Reporter, Config, Energy, Details, Politics, MyCompanies,
                                TelegramBot, ErepublikException, BattleDivision, MyJSONEncoder)
-
 from erepublik.utils import *
 
 
@@ -38,7 +36,7 @@ class Citizen(CitizenAPI):
     ot_points = 0
 
     tg_contract = None
-    promos = None
+    promos: Dict[str, datetime] = None
 
     eday = 0
 
@@ -320,7 +318,11 @@ class Citizen(CitizenAPI):
             return
         ugly_js = re.search(r'"promotions":\s*(\[{?.*?}?])', html).group(1)
         promos = loads(normalize_html_json(ugly_js))
-        self.promos = {k: v for k, v in (self.promos.items() if self.promos else {}) if v > self.now}
+        if self.promos is None:
+            self.promos = {}
+        else:
+            self.promos.clear()
+        self.promos.update({k: v for k, v in self.promos.items() if v > self.now})
         send_mail = False
         for promo in promos:
             promo_name = promo.get("id")
@@ -549,8 +551,16 @@ class Citizen(CitizenAPI):
 
         resp_json = self._get_military_campaigns_json_list().json()
         if resp_json.get("countries"):
-            self.all_battles = {}
-            self.countries = {}
+            if self.all_battles is None:
+                self.all_battles = {}
+            else:
+                self.all_battles.clear()
+
+            if self.countries is None:
+                self.countries = {}
+            else:
+                self.countries.clear()
+
             for c_id, c_data in resp_json.get("countries").items():
                 if int(c_id) not in self.countries:
                     self.countries.update({
@@ -593,8 +603,7 @@ class Citizen(CitizenAPI):
         r_json = response.json()
         next_recovery = r_json.get("food_remaining_reset").split(":")
         self.energy.set_reference_time(
-            good_timedelta(self.now,
-                                 timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
+            good_timedelta(self.now, timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
         )
         self.energy.recovered = r_json.get("health")
         self.energy.recoverable = r_json.get("food_remaining")
@@ -1488,7 +1497,7 @@ class Citizen(CitizenAPI):
 
         if self.max_time_till_full_ff > self.time_till_week_change:
             max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
-            log_msg = ("End for Weekly challenge is near " 
+            log_msg = ("End for Weekly challenge is near "
                        f"(Recoverable until WC end {max_count}hp | want to do {count}hits)")
             count = count if max_count > count else max_count
 
@@ -1511,8 +1520,7 @@ class Citizen(CitizenAPI):
     @property
     def next_wc_start(self) -> datetime:
         days = 1 - self.now.weekday() if 1 - self.now.weekday() > 0 else 1 - self.now.weekday() + 7
-        return good_timedelta(self.now.replace(hour=0, minute=0, second=0, microsecond=0),
-                                    timedelta(days=days))
+        return good_timedelta(self.now.replace(hour=0, minute=0, second=0, microsecond=0), timedelta(days=days))
 
     @property
     def time_till_week_change(self) -> timedelta:
@@ -1966,19 +1974,19 @@ class Citizen(CitizenAPI):
         process_error(msg, self.name, sys.exc_info(), self, self.commit_id, False)
 
     def get_battle_top_10(self, battle_id: int) -> Dict[int, List[Tuple[int, int]]]:
-        battle = self.all_battles.get(battle_id)
-        round_id = battle.get('zone_id')
-        division = self.division if round_id % 4 else 11
-
-        resp = self._post_military_battle_console(battle_id, round_id, division).json()
-        resp.pop('rounds', None)
-        ret = dict()
-        for country_id, data in resp.items():
-            ret.update({int(country_id): []})
-            for place in sorted(data.get("fighterData", {}).values(), key=lambda _: -_['raw_value']):
-                ret[int(country_id)].append((place['citizenId'], place['raw_value']))
-
-        return ret
+        return {}
+        # battle = self.all_battles.get(battle_id)
+        # round_id = battle.zone_id
+        # division = self.division if round_id % 4 else 11
+        #
+        # resp = self._post_military_battle_console(battle_id, 'battleStatistics', round_id, division).json()
+        # resp.pop('rounds', None)
+        # ret = dict()
+        # for country_id, data in resp.items():
+        #     ret.update({int(country_id): []})
+        #     for place in sorted(data.get("fighterData", {}).values(), key=lambda _: -_['raw_value']):
+        #         ret[int(country_id)].append((place['citizenId'], place['raw_value']))
+        # return ret
 
     def to_json(self, indent: bool = False) -> str:
         return dumps(self.__dict__, cls=MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
@@ -2052,7 +2060,6 @@ class Citizen(CitizenAPI):
 
     def set_default_weapon(self, battle_id: int) -> int:
         battle = self.all_battles[battle_id]
-        battle_zone = battle.div[11 if battle.is_air else self.division].battle_zone_id
         available_weapons = self._get_military_show_weapons(battle_id).json()
         weapon_quality = -1
         if not battle.is_air:
