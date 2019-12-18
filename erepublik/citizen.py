@@ -1,5 +1,6 @@
 import re
 import sys
+from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import product
 from json import loads, dumps
@@ -552,7 +553,7 @@ class Citizen(CitizenAPI):
         resp_json = self._get_military_campaigns_json_list().json()
         if resp_json.get("countries"):
             if self.all_battles is None:
-                self.all_battles = {}
+                self.all_battles = defaultdict(Battle)
             else:
                 self.all_battles.clear()
 
@@ -571,7 +572,7 @@ class Citizen(CitizenAPI):
             self.__last_war_update_data = resp_json
             if resp_json.get("battles"):
                 for battle_data in resp_json.get("battles", {}).values():
-                    self.all_battles.update({battle_data.get('id'): Battle(battle_data)})
+                    self.all_battles[battle_data.get('id')] = Battle(battle_data)
 
     def eat(self):
         """
@@ -806,7 +807,16 @@ class Citizen(CitizenAPI):
                 self.collect_weekly_reward()
                 break
 
-    def fight(self, battle_id: int, side_id: int, count: int = None):
+    def fight(self, battle_id: int, side_id: int = None, count: int = None):
+        """Fight in a battle.
+
+        Will auto activate booster and travel if allowed to do it and
+        in the beginning will switch to default weapon (air - bare hands, ground - q7, if count > 30, else bare hands.
+        :param battle_id: int BattleId - battle to fight in
+        :param side_id: int or None. Battle side to fight in, If side_id not == invader id or not in invader deployed allies list, then defender's side is chosen
+        :param count: How many hits to do, if not specified self.should_fight() is called.
+        :return: None if no errors while fighting, otherwise error count.
+        """
         battle = self.all_battles[battle_id]
         zone_id = battle.div[11 if battle.is_air else self.division].battle_zone_id
         if not battle.is_air and self.config.boosters:
@@ -819,10 +829,10 @@ class Citizen(CitizenAPI):
 
         total_damage = 0
         total_hits = 0
-
+        side = battle.invader.id == side_id or side_id in battle.invader.deployed
         while ok_to_fight and error_count < 10 and count > 0:
             while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
-                hits, error, damage = self._shoot(battle.is_air, battle_id, side_id, zone_id)
+                hits, error, damage = self._shoot(battle_id, side, zone_id)
                 count -= hits
                 total_hits += hits
                 total_damage += damage
@@ -838,8 +848,10 @@ class Citizen(CitizenAPI):
         if error_count:
             return error_count
 
-    def _shoot(self, air: bool, battle_id: int, side_id: int, zone_id: int):
-        if air:
+    def _shoot(self, battle_id: int, inv_side: bool, zone_id: int):
+        battle = self.all_battles[battle_id]
+        side_id = battle.invader.id if inv_side else battle.defender.id
+        if battle.is_air:
             response = self._post_military_fight_air(battle_id, side_id, zone_id)
         else:
             response = self._post_military_fight_ground(battle_id, side_id, zone_id)
@@ -862,6 +874,9 @@ class Citizen(CitizenAPI):
             else:
                 if j_resp.get("message") == "UNKNOWN_SIDE":
                     self._rw_choose_side(battle_id, side_id)
+                elif j_resp.get("message") == "CHANGE_LOCATION":
+                    countries = [side_id] + battle.invader.deployed if inv_side else battle.defender.deployed
+                    self.travel_to_battle(battle_id, countries)
                 err = True
         elif j_resp.get("message") == "ENEMY_KILLED":
             hits = (self.energy.recovered - j_resp["details"]["wellness"]) // 10
@@ -873,9 +888,52 @@ class Citizen(CitizenAPI):
 
         return hits, err, damage
 
-    def deploy_bomb(self, battle_id: int, bomb_id: int):
-        r = self._post_military_deploy_bomb(battle_id, bomb_id).json()
-        return not r.get('error')
+    def deploy_bomb(self, battle_id: int, bomb_id: int, inv_side: bool = None, count: int = 1):
+        """Deploy bombs in a battle for given side.
+
+        :param battle_id: int battle id
+        :param bomb_id: int bomb id
+        :param inv_side: should deploy on invader side, if None then will deploy in currently available side
+        :param count: int how many bombs to deploy
+        :return:
+        """
+        if not isinstance(count, int) or count < 1:
+            count = 1
+        has_traveled = False
+        battle = self.all_battles[battle_id]
+        if inv_side:
+            good_countries = [battle.invader.id] + battle.invader.deployed
+            if self.details.current_country not in good_countries:
+                has_traveled = self.travel_to_battle(battle_id, good_countries)
+        elif inv_side is not None:
+            good_countries = [battle.defender.id] + battle.defender.deployed
+            if self.details.current_country not in good_countries:
+                has_traveled = self.travel_to_battle(battle_id, good_countries)
+        else:
+            involved = [battle.invader.id, battle.defender.id] + battle.invader.deployed + battle.defender.deployed
+            if self.details.current_country not in involved:
+                count = 0
+        errors = deployed_count = 0
+        while (not deployed_count == count) and errors < 10:
+            r = self._post_military_deploy_bomb(battle_id, bomb_id).json()
+            if not r.get('error'):
+                deployed_count += 1
+            elif r.get('message') == 'LOCKED':
+                sleep(0.5)
+
+        if has_traveled:
+            self.travel_to_residence()
+        return deployed_count
+
+    def change_division(self, battle_id: int, division_to: int):
+        """Deploy bombs in a battle for given side.
+
+        :param battle_id: int battle id
+        :param division_to: int target division to switch to
+        :return:
+        """
+        battle = self.all_battles[battle_id]
+        self._post_main_battlefield_change_division(battle_id, battle.div[division_to].battle_zone_id)
 
     def work_ot(self):
         # I"m not checking for 1h cooldown. Beware of nightshift work, if calling more than once every 60min
@@ -1809,7 +1867,7 @@ class Citizen(CitizenAPI):
         if reg_re.findall(html):
             ret.update(regions={}, can_attack=True)
             for reg in reg_re.findall(html):
-                ret["regions"].update({str(reg[0]): reg[1]})
+                ret["regions"].update({int(reg[0]): reg[1]})
         elif re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)" '
                        r'class="join" title="Join"><span>Join</span></a>', html):
             battle_id = re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)" '

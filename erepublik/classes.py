@@ -599,6 +599,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
         data = dict(_token=self.token, sideCountryId=side_id, battleId=battle_id)
         return self.post("{}/main/battlefieldTravel".format(self.url), data=data)
 
+    def _post_main_battlefield_change_division(self, battle_id: int, division_id: int) -> Response:
+        data = dict(_token=self.token, battleZoneId=division_id, battleId=battle_id)
+        return self.post("{}/main/battlefieldTravel".format(self.url), data=data)
+
     def _post_main_buy_gold_items(self, currency: str, item: str, amount: int) -> Response:
         data = dict(itemId=item, currency=currency, amount=amount, _token=self.token)
         return self.post("{}/main/buyGoldItems".format(self.url), data=data)
@@ -1097,22 +1101,42 @@ class Battle:
     def is_air(self) -> bool:
         return not bool(self.zone_id % 4)
 
-    def __init__(self, battle: Dict[str, Any]):
-        self.id = int(battle.get('id', 0))
-        self.war_id = int(battle.get('war_id', 0))
-        self.zone_id = int(battle.get('zone_id', 0))
-        self.is_rw = bool(battle.get('is_rw'))
-        self.is_as = bool(battle.get('is_as'))
-        self.is_dict_lib = bool(battle.get('is_dict')) or bool(battle.get('is_lib'))
-        self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
+    def __init__(self, battle: Dict[str, Any] = None):
+        """Object representing eRepublik battle.
 
-        self.invader = BattleSide(battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
-                                  [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
-                                  [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']])
+        :param battle: Dict object for single battle from '/military/campaignsJson/list' response's 'battles' object
+        """
+        if battle is None:
+            battle = {}
+            self.id = 0
+            self.war_id = 0
+            self.zone_id = 0
+            self.is_rw = False
+            self.is_as = False
+            self.is_dict_lib = False
+            self.start = utils.now().min
+            self.invader = BattleSide(0, 0, [], [])
+            self.defender = BattleSide(0, 0, [], [])
+        else:
+            self.id = int(battle.get('id', 0))
+            self.war_id = int(battle.get('war_id', 0))
+            self.zone_id = int(battle.get('zone_id', 0))
+            self.is_rw = bool(battle.get('is_rw'))
+            self.is_as = bool(battle.get('is_as'))
+            self.is_dict_lib = bool(battle.get('is_dict')) or bool(battle.get('is_lib'))
+            self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
 
-        self.defender = BattleSide(battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
-                                   [row.get('id') for row in battle.get('def', {}).get('ally_list')],
-                                   [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']])
+            self.invader = BattleSide(
+                battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
+                [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
+                [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']]
+            )
+
+            self.defender = BattleSide(
+                battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
+                [row.get('id') for row in battle.get('def', {}).get('ally_list')],
+                [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
+            )
 
         self.div = {}
         for div, data in battle.get('div', {}).items():
