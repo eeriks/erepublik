@@ -322,8 +322,7 @@ class Citizen(CitizenAPI):
         if self.promos is None:
             self.promos = {}
         else:
-            self.promos.clear()
-        self.promos.update({k: v for k, v in self.promos.items() if v > self.now})
+            self.promos = {k: v for k, v in self.promos.items() if v > self.now}
         send_mail = False
         for promo in promos:
             promo_name = promo.get("id")
