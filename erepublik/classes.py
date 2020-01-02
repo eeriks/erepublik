@@ -40,7 +40,7 @@ class MyCompanies:
         """
         :param holdings: Parsed JSON to dict from en/economy/myCompanies
         """
-        self.holdings = {}
+        self.holdings.clear()
         template = dict(id=0, num_factories=0, region_id=0, companies=[])
 
         for holding_id, holding in holdings.items():
@@ -57,18 +57,20 @@ class MyCompanies:
         """
         :param companies: Parsed JSON to dict from en/economy/myCompanies
         """
-        self.companies = {}
+        self.companies.clear()
         template = dict(id=None, quality=0, is_raw=False, resource_bonus=0, effective_bonus=0, raw_usage=0,
-                        production=0, base_production=0, wam_enabled=False, can_work_as_manager=False,
+                        base_production=0, wam_enabled=False, can_work_as_manager=False, industry_id=0, todays_works=0,
                         preset_own_work=0, already_worked=False, can_assign_employees=False, preset_works=0,
-                        todays_works=0, holding_company_id=None, is_assigned_to_holding=False,
-                        cannot_work_as_manager_reason=False, industry_id=0)
+                        holding_company_id=None, is_assigned_to_holding=False, cannot_work_as_manager_reason=False)
 
         for c_id, company in companies.items():
             tmp = {}
             for key in template.keys():
                 if key in ['id', 'holding_company_id']:
                     company[key] = int(company[key])
+                elif key == "raw_usage":
+                    if not company.get("is_raw") and company.get('upgrades'):
+                        company[key] = company.get('upgrades').get(str(company["quality"])).get('raw_usage')
                 tmp.update({key: company[key]})
             self.companies.update({int(c_id): tmp})
 
@@ -76,9 +78,8 @@ class MyCompanies:
         for company_id, company_data in self.companies.items():
             if company_id not in self.holdings[company_data['holding_company_id']]['companies']:
                 self.holdings[company_data['holding_company_id']]['companies'].append(company_id)
-        else:
-            for holding_id in self.holdings:
-                self.holdings[holding_id]['companies'].sort()
+        for holding_id in self.holdings:
+            self.holdings[holding_id]['companies'].sort()
 
     def get_employable_factories(self) -> Dict[int, int]:
         ret = {}
@@ -159,6 +160,31 @@ class MyCompanies:
             return float(sum([self.get_needed_inventory_usage(company_id=cid) for cid in companies]))
 
         raise ErepublikException("Wrong function call")
+
+    def get_wam_raw_usage(self) -> Dict[str, float]:
+        frm = 0.00
+        wrm = 0.00
+        for company in self.companies.values():
+            if company['wam_enabled']:
+                effective_bonus = float(company["effective_bonus"])
+                base_prod = float(company["base_production"])
+                raw = base_prod * effective_bonus / 100
+                if not company["is_raw"]:
+                    raw *= -company["raw_usage"]
+                if company["industry_id"] in [1, 7, 8, 9, 10, 11]:
+                    frm += raw
+                elif company["industry_id"] in [2, 12, 13, 14, 15, 16]:
+                    wrm += raw
+        return {'frm': int(frm * 1000) / 1000, 'wrm': int(wrm * 1000) / 1000}
+
+    def __str__(self):
+        name = []
+        for holding_id in sorted(self.holdings.keys()):
+            if not holding_id:
+                name.append(f"Unassigned - {len(self.holdings[0]['companies'])}")
+            else:
+                name.append(f"{holding_id} - {len(self.holdings[holding_id]['companies'])}")
+        return " | ".join(name)
 
     # @property
     # def __dict__(self):

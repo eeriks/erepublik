@@ -41,6 +41,14 @@ class Citizen(CitizenAPI):
 
     eday = 0
 
+    energy: Energy
+    details: Details
+    politics: Politics
+    my_companies: MyCompanies
+    reporter: Reporter
+    stop_threads: Event
+    telegram: TelegramBot
+
     r: Response
     name = "Not logged in!"
     debug = False
@@ -842,8 +850,8 @@ class Citizen(CitizenAPI):
                     self.write_log("Hits: {:>4} | Damage: {}".format(total_hits, total_damage))
                     ok_to_fight = False
                     if total_damage:
-                        self.reporter.report_action(json_val=dict(battle=battle_id, side=side_id, dmg=total_damage,
-                                                                  air=battle.is_air, hits=total_hits), action="FIGHT")
+                        self.reporter.report_action("FIGHT", dict(battle=battle_id, side=side_id, dmg=total_damage,
+                                                                  air=battle.is_air, hits=total_hits))
         if error_count:
             return error_count
 
@@ -887,14 +895,15 @@ class Citizen(CitizenAPI):
 
         return hits, err, damage
 
-    def deploy_bomb(self, battle_id: int, bomb_id: int, inv_side: bool = None, count: int = 1):
+    def deploy_bomb(self, battle_id: int, bomb_id: int, inv_side: bool = None, count: int = 1) -> int:
         """Deploy bombs in a battle for given side.
 
         :param battle_id: int battle id
         :param bomb_id: int bomb id
         :param inv_side: should deploy on invader side, if None then will deploy in currently available side
         :param count: int how many bombs to deploy
-        :return:
+        :return: Deployed count
+        :rtype: int
         """
         if not isinstance(count, int) or count < 1:
             count = 1
@@ -925,7 +934,7 @@ class Citizen(CitizenAPI):
         return deployed_count
 
     def change_division(self, battle_id: int, division_to: int):
-        """Deploy bombs in a battle for given side.
+        """Change division.
 
         :param battle_id: int battle id
         :param division_to: int target division to switch to
@@ -1095,8 +1104,8 @@ class Citizen(CitizenAPI):
                     if not self.travel_to_region(wam_holding['region_id']):
                         return False
             response = self._post_economy_work("production", wam=wam_list, employ=employee_companies).json()
-            self.reporter.report_action("WORK_WAM_EMPLOYEES", response)
             if response.get("status"):
+                self.reporter.report_action("WORK_WAM_EMPLOYEES", response)
                 if self.config.auto_sell:
                     for kind, data in response.get("result", {}).get("production", {}).items():
                         if kind in self.config.auto_sell and data:
@@ -1132,7 +1141,9 @@ class Citizen(CitizenAPI):
                 self.buy_food()
                 return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
             else:
-                self.write_log("I was not able to wam and or employ because:\n{}".format(response))
+                msg = "I was not able to wam and or employ because:\n{}".format(response)
+                self.reporter.report_action("WORK_WAM_EMPLOYEES", value=msg)
+                self.write_log(msg)
         wam_count = self.my_companies.get_total_wam_count()
         if wam_count:
             self.write_log("Wam ff lockdown is now {}, was {}".format(wam_count, self.my_companies.ff_lockdown))
@@ -1647,12 +1658,9 @@ class Citizen(CitizenAPI):
         if kind in kinds:
             return self._post_main_write_article(title, content, self.details.citizenship, kind)
         else:
-            raise ErepublikException(
-                "Article kind must be one of:\n{}\n'{}' is not supported".format(
-                    "\n".join(["{}: {}".format(k, v) for k, v in kinds.items()]),
-                    kind
-                )
-            )
+            raise ErepublikException("Article kind must be one of:\n{}\n'{}' is not supported".format(
+                "\n".join(["{}: {}".format(k, v) for k, v in kinds.items()]), kind
+            ))
 
     def post_market_offer(self, industry: int, quality: int, amount: int, price: float) -> Response:
         if industry not in self.available_industries.values():
@@ -1683,32 +1691,15 @@ class Citizen(CitizenAPI):
             self.reporter.report_action("BUY_PRODUCT", ret.json())
         return json_ret
 
-    def get_raw_surplus(self) -> (float, float):
-        frm = 0.00
-        wrm = 0.00
-        for cdata in sorted(self.my_companies.companies.values()):
-            if cdata["industry_token"] == "FOOD":
-                raw = frm
-            elif cdata["industry_token"] == "WEAPON":
-                raw = wrm
-            else:
-                continue
-            effective_bonus = cdata["effective_bonus"]
-            base_prod = float(cdata["base_production"])
-            if cdata["is_raw"]:
-                raw += base_prod * effective_bonus / 100
-            else:
-                raw -= effective_bonus / 100 * base_prod * cdata["upgrades"][str(cdata["quality"])]["raw_usage"]
-            if cdata["industry_token"] == "FOOD":
-                frm = raw
-            elif cdata["industry_token"] == "WEAPON":
-                wrm = raw
-        return frm, wrm
-
     def assign_factory_to_holding(self, factory_id: int, holding_id: int) -> Response:
         """
         Assigns factory to new holding
         """
+        company = self.my_companies.companies[factory_id]
+        company_name = self.factories[company['industry_id']]
+        if not company['is_raw']:
+            company_name += f" q{company['quality']}"
+        self.write_log(f"{company_name} moved to {holding_id}")
         return self._post_economy_assign_to_holding(factory_id, holding_id)
 
     def upgrade_factory(self, factory_id: int, level: int) -> Response:
@@ -1722,9 +1713,18 @@ class Citizen(CitizenAPI):
 
                             Storage={1000: 1, 2000: 2} <- Building_type 2
         """
+        company_name = self.factories[industry_id]
+        if building_type == 2:
+            company_name = f"Storage"
+        self.write_log(f"{company_name} created!")
         return self._post_economy_create_company(industry_id, building_type)
 
     def dissolve_factory(self, factory_id: int) -> Response:
+        company = self.my_companies.companies[factory_id]
+        company_name = self.factories[company['industry_id']]
+        if not company['is_raw']:
+            company_name += f" q{company['quality']}"
+        self.write_log(f"{company_name} dissolved!")
         return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
 
     @property
@@ -1735,6 +1735,17 @@ class Citizen(CitizenAPI):
         """
         return {"food": 1, "weapon": 2, "house": 4, "aircraft": 23,
                 "foodRaw": 7, "weaponRaw": 12, "houseRaw": 17, "airplaneRaw": 24}
+
+    @property
+    def factories(self) -> Dict[int, str]:
+        """Returns factory industries as dict(id: name)
+        :return: dict
+        """
+        return {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
+                7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
+                12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
+                18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
+                24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }
 
     def get_industry_id(self, industry_name: str) -> int:
         """
@@ -1996,7 +2007,7 @@ class Citizen(CitizenAPI):
             return False
         data = dict(country=71, action='currency', value=amount)
         self.telegram.send_message(f"Donated {amount}cc to {COUNTRIES[71]}")
-        self.reporter.report_action("CONTRIBUTE_CC", data)
+        self.reporter.report_action("CONTRIBUTE_CC", data, str(amount))
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
@@ -2006,7 +2017,7 @@ class Citizen(CitizenAPI):
         if self.food["q" + str(quality)] < amount or amount < 10:
             return False
         data = dict(country=71, action='food', value=amount, quality=quality)
-        self.reporter.report_action("CONTRIBUTE_FOOD", data)
+        self.reporter.report_action("CONTRIBUTE_FOOD", data, FOOD_ENERGY[quality] * amount)
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
@@ -2016,7 +2027,7 @@ class Citizen(CitizenAPI):
         if self.details.cc < amount:
             return False
         data = dict(country=71, action='gold', value=amount)
-        self.reporter.report_action("CONTRIBUTE_GOLD", data)
+        self.reporter.report_action("CONTRIBUTE_GOLD", data, str(amount))
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
