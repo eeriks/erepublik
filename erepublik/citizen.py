@@ -1,5 +1,6 @@
 import re
 import sys
+import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import product
@@ -13,6 +14,7 @@ from requests import Response, RequestException
 from erepublik.classes import (CitizenAPI, Battle, Reporter, Config, Energy, Details, Politics, MyCompanies,
                                TelegramBot, ErepublikException, BattleDivision, MyJSONEncoder)
 from erepublik.utils import *
+from erepublik.utils import process_warning
 
 
 class Citizen(CitizenAPI):
@@ -41,15 +43,15 @@ class Citizen(CitizenAPI):
 
     eday = 0
 
-    energy: Energy
-    details: Details
-    politics: Politics
-    my_companies: MyCompanies
-    reporter: Reporter
-    stop_threads: Event
-    telegram: TelegramBot
+    energy: Energy = None
+    details: Details = None
+    politics: Politics = None
+    my_companies: MyCompanies = None
+    reporter: Reporter = None
+    stop_threads: Event = None
+    telegram: TelegramBot = None
 
-    r: Response
+    r: Response = None
     name = "Not logged in!"
     debug = False
     __registered = False
@@ -712,35 +714,35 @@ class Citizen(CitizenAPI):
             # CS Battles
             elif self.details.citizenship in battle_sides:
                 if battle.is_air:
-                    cs_battles_ground.append(battle.id)
-                else:
                     cs_battles_air.append(battle.id)
+                else:
+                    cs_battles_ground.append(battle.id)
 
             # Current location battles:
             elif self.details.current_country in battle_sides:
                 if battle.is_air:
-                    deployed_battles_ground.append(battle.id)
-                else:
                     deployed_battles_air.append(battle.id)
+                else:
+                    deployed_battles_ground.append(battle.id)
 
             # Deployed battles and allied battles:
             elif self.details.current_country in battle.invader.allies + battle.defender.allies + battle_sides:
                 if self.details.current_country in battle.invader.deployed + battle.defender.deployed:
                     if battle.is_air:
-                        deployed_battles_ground.append(battle.id)
-                    else:
                         deployed_battles_air.append(battle.id)
+                    else:
+                        deployed_battles_ground.append(battle.id)
                 # Allied battles:
                 else:
                     if battle.is_air:
-                        ally_battles_ground.append(battle.id)
-                    else:
                         ally_battles_air.append(battle.id)
+                    else:
+                        ally_battles_ground.append(battle.id)
             else:
                 if battle.is_air:
-                    other_battles_ground.append(battle.id)
-                else:
                     other_battles_air.append(battle.id)
+                else:
+                    other_battles_ground.append(battle.id)
 
         ret_battles += (cs_battles_air + cs_battles_ground +
                         deployed_battles_air + deployed_battles_ground +
@@ -814,7 +816,7 @@ class Citizen(CitizenAPI):
                 self.collect_weekly_reward()
                 break
 
-    def fight(self, battle_id: int, side_id: int = None, count: int = None):
+    def fight(self, battle_id: int, side_id: int = None, count: int = None) -> int:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it and
@@ -824,6 +826,10 @@ class Citizen(CitizenAPI):
         :param count: How many hits to do, if not specified self.should_fight() is called.
         :return: None if no errors while fighting, otherwise error count.
         """
+        if not isinstance(battle_id, int):
+            self.report_error(f"WARNINNG! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
+            battle_id = int(battle_id)
+
         battle = self.all_battles[battle_id]
         zone_id = battle.div[11 if battle.is_air else self.division].battle_zone_id
         if not battle.is_air and self.config.boosters:
@@ -852,8 +858,7 @@ class Citizen(CitizenAPI):
                     if total_damage:
                         self.reporter.report_action("FIGHT", dict(battle=battle_id, side=side_id, dmg=total_damage,
                                                                   air=battle.is_air, hits=total_hits))
-        if error_count:
-            return error_count
+        return error_count
 
     def _shoot(self, battle_id: int, inv_side: bool, zone_id: int):
         battle = self.all_battles[battle_id]
@@ -1142,7 +1147,7 @@ class Citizen(CitizenAPI):
                 return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
             else:
                 msg = "I was not able to wam and or employ because:\n{}".format(response)
-                self.reporter.report_action("WORK_WAM_EMPLOYEES", value=msg)
+                self.reporter.report_action("WORK_WAM_EMPLOYEES", response, msg)
                 self.write_log(msg)
         wam_count = self.my_companies.get_total_wam_count()
         if wam_count:
@@ -1882,7 +1887,7 @@ class Citizen(CitizenAPI):
                        r'class="join" title="Join"><span>Join</span></a>', html):
             battle_id = re.search(r'<a href="//www.erepublik.com/en/military/battlefield/(\d+)" '
                                   r'class="join" title="Join"><span>Join</span></a>', html).group(1)
-            ret.update(can_attack=False, battle_id=battle_id)
+            ret.update(can_attack=False, battle_id=int(battle_id))
         elif re.search(r'This war is no longer active.', html):
             ret.update(can_attack=False, ended=True)
         else:
@@ -2038,8 +2043,11 @@ class Citizen(CitizenAPI):
         r = self._post_main_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
         return r.json()
 
-    def report_error(self, msg: str = ""):
-        process_error(msg, self.name, sys.exc_info(), self, self.commit_id, False)
+    def report_error(self, msg: str = "", is_warning: bool = False):
+        if is_warning:
+            process_warning(msg, self.name, sys.exc_info(), self, self.commit_id, None)
+        else:
+            process_error(msg, self.name, sys.exc_info(), self, self.commit_id, None)
 
     def get_battle_top_10(self, battle_id: int) -> Dict[int, List[Tuple[int, int]]]:
         return {}

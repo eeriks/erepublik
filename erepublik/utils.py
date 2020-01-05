@@ -8,7 +8,7 @@ import time
 import traceback
 import unicodedata
 from pathlib import Path
-from typing import Union, Any, List, NoReturn, Mapping
+from typing import Union, Any, List, NoReturn, Mapping, Optional
 
 import pytz
 import requests
@@ -17,7 +17,7 @@ __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
-           "send_email", "normalize_html_json", "process_error", 'report_promo', 'calculate_hit']
+           "send_email", "normalize_html_json", "process_error", "process_warning", 'report_promo', 'calculate_hit']
 
 FOOD_ENERGY = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID = "7b92e19"
@@ -288,7 +288,7 @@ def normalize_html_json(js: str) -> str:
 
 
 def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None,
-                  interactive: bool = False):
+                  interactive: Optional[bool] = None):
     """
     Process error logging and email sending to developer
     :param interactive: Should print interactively
@@ -299,19 +299,44 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     :param commit_id: Code's version by commit id
     """
     type_, value_, traceback_ = exc_info
-    bugtrace = [] if not commit_id else ["Commit id: %s" % commit_id, ]
-    bugtrace += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
+    content = [log_info]
+    if commit_id:
+        content += ["Commit id: %s" % commit_id]
+    content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
 
     if interactive:
         write_interactive_log(log_info)
-    else:
+    elif interactive is not None:
         write_silent_log(log_info)
     trace = inspect.trace()
     if trace:
         trace = trace[-1][0].f_locals
     else:
         trace = dict()
-    send_email(name, bugtrace, citizen, local_vars=trace)
+    send_email(name, content, citizen, local_vars=trace)
+
+
+def process_warning(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None):
+    """
+    Process error logging and email sending to developer
+    :param log_info: String to be written in output
+    :param name: String Instance name
+    :param exc_info: tuple output from sys.exc_info()
+    :param citizen: Citizen instance
+    :param commit_id: Code's version by commit id
+    """
+    type_, value_, traceback_ = exc_info
+    content = [log_info]
+    if commit_id:
+        content += ["Commit id: %s" % commit_id]
+    content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
+
+    trace = inspect.trace()
+    if trace:
+        trace = trace[-1][0].f_locals
+    else:
+        trace = dict()
+    send_email(name, content, citizen, local_vars=trace)
 
 
 def report_promo(kind: str, time_untill: datetime.datetime) -> NoReturn:
