@@ -111,6 +111,10 @@ class Citizen(CitizenAPI):
     def __str__(self) -> str:
         return f"Citizen {self.name}"
 
+    def __repr__(self):
+        return self.__str__()
+
+
     def __dict__(self):
         ret = super().__dict__.copy()
         ret.pop('stop_threads', None)
