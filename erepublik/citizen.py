@@ -1,6 +1,5 @@
 import re
 import sys
-import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import product
@@ -505,7 +504,21 @@ class Citizen(CitizenAPI):
             if kind not in final_items:
                 final_items[kind] = {}
 
-            icon = item['icon'] if item['icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
+            if item['icon']:
+                icon = item['icon']
+            else:
+                if item['type'] == 'damageBoosters':
+                    icon = "/images/modules/pvp/damage_boosters/damage_booster.png"
+                elif item['type'] == 'aircraftDamageBoosters':
+                    icon = "/images/modules/pvp/damage_boosters/air_damage_booster.png"
+                elif item['type'] == 'prestigePointsBoosters':
+                    icon = "/images/modules/pvp/prestige_points_boosters/prestige_booster.png"
+                elif item['type'] == 'speedBoosters':
+                    icon = "/images/modules/pvp/speed_boosters/speed_booster.png"
+                elif item['type'] == 'catchupBoosters':
+                    icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
+                else:
+                    icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
             data = dict(kind=kind, quality=item.get('quality', 0), amount=item.get('amount', 0),
                         durability=item.get('duration', 0), icon=icon, name=name)
             if item.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
@@ -533,9 +546,22 @@ class Citizen(CitizenAPI):
                          icon=icon)
                 )
 
+        offers = {}
+        for offer in self._get_economy_my_market_offers().json():
+            kind = self.get_industry_name(offer['industryId'])
+            data = dict(quality=offer.get('quality', 0), amount=offer.get('amount', 0), icon=offer.get('icon'),
+                        kind=kind, name=kind)
+            data = {data['quality']: data}
+
+            if kind not in offers:
+                offers[kind] = {}
+
+            offers[kind].update(data)
+
         self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
                                "total": j.get("inventoryStatus").get("totalStorage")})
-        inventory = dict(items=dict(active=active_items, final=final_items, raw=raw_materials), status=self.inventory)
+        inventory = dict(items=dict(active=active_items, final=final_items,
+                                    raw=raw_materials, offers=offers), status=self.inventory)
         self.food["total"] = sum([self.food[q] * FOOD_ENERGY[q] for q in FOOD_ENERGY])
         return inventory
 
@@ -1668,6 +1694,14 @@ class Citizen(CitizenAPI):
                 "\n".join(["{}: {}".format(k, v) for k, v in kinds.items()]), kind
             ))
 
+    def get_my_market_offers(self) -> List[Dict[str, Union[int, float, str]]]:
+        ret = []
+        for offer in self._get_economy_my_market_offers().json():
+            line = offer.copy()
+            line.pop('icon', None)
+            ret.append(line)
+        return ret
+
     def post_market_offer(self, industry: int, quality: int, amount: int, price: float) -> Response:
         if industry not in self.available_industries.values():
             self.write_log(f"Trying to sell unsupported industry {industry}")
@@ -1745,7 +1779,8 @@ class Citizen(CitizenAPI):
     @property
     def factories(self) -> Dict[int, str]:
         """Returns factory industries as dict(id: name)
-        :return: dict
+        :return: Factory id:name dict
+        ":rtype: Dict[int, str]
         """
         return {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
                 7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
@@ -1754,12 +1789,24 @@ class Citizen(CitizenAPI):
                 24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }
 
     def get_industry_id(self, industry_name: str) -> int:
-        """
-        Returns industry id
+        """Returns industry id
+
         :type industry_name: str
         :return: int
         """
         return self.available_industries.get(industry_name, 0)
+
+    def get_industry_name(self, industry_id: int) -> str:
+        """Returns industry name from industry ID
+
+        :type industry_id: int
+        :return: industry name
+        :rtype: str
+        """
+        for iname, iid in self.available_industries.items():
+            if iid == industry_id:
+                return iname
+        return ""
 
     def buy_tg_contract(self) -> Response:
         ret = self._post_main_buy_gold_items('gold', "TrainingContract2", 1)
