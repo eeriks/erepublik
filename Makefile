@@ -43,6 +43,8 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
+	rm -rf debug/
+	rm -rf log/
 
 clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
