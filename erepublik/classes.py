@@ -4,7 +4,7 @@ import hashlib
 import random
 import threading
 import time
-from collections import deque
+from collections import deque, defaultdict
 from json import JSONDecodeError, loads, JSONEncoder
 from typing import Any, Dict, List, Union, Mapping, Iterable, Tuple
 
@@ -1099,17 +1099,25 @@ class BattleDivision:
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(
-        self, div_id: int, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int,
-        wall_for: int, wall_dom: float, def_medal: Tuple[int, int], inv_medal: Tuple[int, int]
-    ):
-        self.battle_zone_id = div_id
-        self.end = end
-        self.epic = epic
-        self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
-        self.wall = dict({"for": wall_for, "dom": wall_dom})
-        self.def_medal = {"id": def_medal[0], "dmg": def_medal[1]}
-        self.inv_medal = {"id": inv_medal[0], "dmg": inv_medal[1]}
+    def __init__(self, **kwargs):
+        """Battle division helper class
+
+        :param kwargs: must contain keys:
+            div_id: int, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int,
+            wall_for: int, wall_dom: float, def_medal: Tuple[int, int], inv_medal: Tuple[int, int]
+        """
+
+        self.battle_zone_id = kwargs.get("div_id", 0)
+        self.end = kwargs.get("end", 0)
+        self.epic = kwargs.get("epic", 0)
+        self.dom_pts = dict({"inv": kwargs.get("inv_pts", 0), "def": kwargs.get("def_pts", 0)})
+        self.wall = dict({"for": kwargs.get("wall_for", 0), "dom": kwargs.get("wall_dom", 0)})
+        self.def_medal = {"id": kwargs.get("def_medal", 0)[0], "dmg": kwargs.get("def_medal", 0)[1]}
+        self.inv_medal = {"id": kwargs.get("inv_medal", 0)[0], "dmg": kwargs.get("inv_medal", 0)[1]}
+
+    @property
+    def id(self):
+        return self.battle_zone_id
 
 
 class Battle:
@@ -1164,7 +1172,7 @@ class Battle:
                 [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
             )
 
-        self.div = {}
+        self.div = defaultdict(BattleDivision)
         for div, data in battle.get('div', {}).items():
             div = int(data.get('div'))
             if data.get('end'):

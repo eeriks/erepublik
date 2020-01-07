@@ -829,7 +829,8 @@ class Citizen(CitizenAPI):
         if not isinstance(battle_id, int):
             self.report_error(f"WARNINNG! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
             battle_id = int(battle_id)
-
+        if battle_id not in self.all_battles:
+            self.update_war_info()
         battle = self.all_battles[battle_id]
         zone_id = battle.div[11 if battle.is_air else self.division].battle_zone_id
         if not battle.is_air and self.config.boosters:
@@ -2045,7 +2046,7 @@ class Citizen(CitizenAPI):
 
     def report_error(self, msg: str = "", is_warning: bool = False):
         if is_warning:
-            process_warning(msg, self.name, sys.exc_info(), self, self.commit_id, None)
+            process_warning(msg, self.name, sys.exc_info(), self, self.commit_id)
         else:
             process_error(msg, self.name, sys.exc_info(), self, self.commit_id, None)
 

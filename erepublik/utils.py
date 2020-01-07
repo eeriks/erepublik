@@ -292,11 +292,17 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     """
     Process error logging and email sending to developer
     :param interactive: Should print interactively
+    :type interactive: bool
     :param log_info: String to be written in output
+    :type log_info: str
     :param name: String Instance name
+    :type name: str
     :param exc_info: tuple output from sys.exc_info()
+    :type exc_info: tuple
     :param citizen: Citizen instance
+    :type citizen: Citizen
     :param commit_id: Code's version by commit id
+    :type commit_id: str
     """
     type_, value_, traceback_ = exc_info
     content = [log_info]
