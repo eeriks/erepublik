@@ -3,17 +3,16 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import product
-from json import loads, dumps
+from json import dumps, loads
 from threading import Event
 from time import sleep
-from typing import Dict, List, Tuple, Any, Union, Set
+from typing import Any, Dict, List, Set, Tuple, Union
 
-from requests import Response, RequestException
+from requests import RequestException, Response
 
-from erepublik.classes import (CitizenAPI, Battle, Reporter, Config, Energy, Details, Politics, MyCompanies,
-                               TelegramBot, ErepublikException, BattleDivision, MyJSONEncoder)
+from erepublik.classes import (Battle, BattleDivision, CitizenAPI, Config, Details, Energy, ErepublikException,
+                               MyCompanies, MyJSONEncoder, Politics, Reporter, TelegramBot)
 from erepublik.utils import *
-from erepublik.utils import process_warning
 
 
 class Citizen(CitizenAPI):

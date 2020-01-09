@@ -19,3 +19,8 @@ insert_final_newline = false
 
 [Makefile]
 indent_style = tab
+
+[*.py]
+line_length=120
+multi_line_output=0
+balanced_wrapping=True

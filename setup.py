@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['pytz>=2019.2', 'requests>=2.22']
+requirements = ['pytz==2019.3', 'requests==2.22.0']
 
 setup_requirements = []
 
@@ -27,6 +27,7 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     description="Python package for automated eRepublik playing",
     entry_points={},

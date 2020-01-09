@@ -8,7 +8,7 @@ import time
 import traceback
 import unicodedata
 from pathlib import Path
-from typing import Union, Any, List, NoReturn, Mapping, Optional
+from typing import Any, List, Mapping, NoReturn, Optional, Union
 
 import pytz
 import requests
@@ -18,6 +18,10 @@ __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
            "send_email", "normalize_html_json", "process_error", "process_warning", 'report_promo', 'calculate_hit']
+
+if not sys.version_info >= (3, 7):
+    raise AssertionError('This script requires Python version 3.7 and higher\n'
+                         'But Your version is v{}.{}.{}'.format(*sys.version_info))
 
 FOOD_ENERGY = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID = "7b92e19"
@@ -113,6 +117,15 @@ def localize_dt(dt: Union[datetime.date, datetime.datetime]) -> datetime.datetim
 
 
 def good_timedelta(dt: datetime.datetime, td: datetime.timedelta) -> datetime.datetime:
+    """Normalize timezone aware datetime object after timedelta to correct jumps over DST switches
+
+    :param dt: Timezone aware datetime object
+    :type dt: datetime.datetime
+    :param td: timedelta object
+    :type td: datetime.timedelta
+    :return: datetime object with correct timezone when jumped over DST
+    :rtype: datetime.datetime
+    """
     return erep_tz.normalize(dt + td)
 
 
