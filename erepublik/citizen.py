@@ -1,20 +1,20 @@
+import json
 import re
 import sys
-import warnings
-from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import product
-from json import loads, dumps
+from json import dumps, loads
 from threading import Event
 from time import sleep
-from typing import Dict, List, Tuple, Any, Union, Set
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from requests import Response, RequestException
+from requests import RequestException, Response
 
-from erepublik.classes import (CitizenAPI, Battle, Reporter, Config, Energy, Details, Politics, MyCompanies,
-                               TelegramBot, ErepublikException, BattleDivision, MyJSONEncoder)
+from erepublik.classes import (Battle, BattleDivision, CitizenAPI, Config,
+                               Details, Energy, ErepublikException,
+                               MyCompanies, MyJSONEncoder, Politics, Reporter,
+                               TelegramBot)
 from erepublik.utils import *
-from erepublik.utils import process_warning
 
 
 class Citizen(CitizenAPI):
@@ -112,6 +112,9 @@ class Citizen(CitizenAPI):
     def __str__(self) -> str:
         return f"Citizen {self.name}"
 
+    def __repr__(self):
+        return self.__str__()
+
     def __dict__(self):
         ret = super().__dict__.copy()
         ret.pop('stop_threads', None)
@@ -178,7 +181,7 @@ class Citizen(CitizenAPI):
             if j['error'] and j["message"] == 'Too many requests':
                 self.write_log("Made too many requests! Sleeping for 30 seconds.")
                 self.sleep(30)
-        except:
+        except (json.JSONDecodeError, KeyError, TypeError):
             pass
         if response.status_code >= 400:
             self.r = response
@@ -559,10 +562,13 @@ class Citizen(CitizenAPI):
         if not self.details.current_country:
             self.update_citizen_info()
 
-        resp_json = self._get_military_campaigns_json_list().json()
+        if self.__last_war_update_data and self.__last_war_update_data.get('last_updated', 0) + 30 > self.now.timestamp():
+            resp_json = self.__last_war_update_data
+        else:
+            resp_json = self._get_military_campaigns_json_list().json()
         if resp_json.get("countries"):
             if self.all_battles is None:
-                self.all_battles = defaultdict(Battle)
+                self.all_battles = {}
             else:
                 self.all_battles.clear()
 
@@ -638,7 +644,7 @@ class Citizen(CitizenAPI):
     def now(self) -> datetime:
         """
         Returns aware datetime object localized to US/Pacific (eRepublik time)
-        :return: datetime.datetime
+        :return: datetime
         """
         return now()
 
@@ -811,6 +817,7 @@ class Citizen(CitizenAPI):
 
                     if not self.travel_to_battle(battle_id, country_ids_to_travel):
                         break
+                self.set_default_weapon(battle_id)
                 self.fight(battle_id, side_id)
                 self.travel_to_residence()
                 self.collect_weekly_reward()
@@ -819,8 +826,7 @@ class Citizen(CitizenAPI):
     def fight(self, battle_id: int, side_id: int = None, count: int = None) -> int:
         """Fight in a battle.
 
-        Will auto activate booster and travel if allowed to do it and
-        in the beginning will switch to default weapon (air - bare hands, ground - q7, if count > 30, else bare hands.
+        Will auto activate booster and travel if allowed to do it.
         :param battle_id: int BattleId - battle to fight in
         :param side_id: int or None. Battle side to fight in, If side_id not == invader id or not in invader deployed allies list, then defender's side is chosen
         :param count: How many hits to do, if not specified self.should_fight() is called.
@@ -831,11 +837,10 @@ class Citizen(CitizenAPI):
             battle_id = int(battle_id)
         if battle_id not in self.all_battles:
             self.update_war_info()
-        battle = self.all_battles[battle_id]
+        battle = self.all_battles.get(battle_id)
         zone_id = battle.div[11 if battle.is_air else self.division].battle_zone_id
         if not battle.is_air and self.config.boosters:
             self.activate_dmg_booster()
-        self.set_default_weapon(battle_id)
         error_count = 0
         ok_to_fight = True
         if count is None:
@@ -862,7 +867,7 @@ class Citizen(CitizenAPI):
         return error_count
 
     def _shoot(self, battle_id: int, inv_side: bool, zone_id: int):
-        battle = self.all_battles[battle_id]
+        battle = self.all_battles.get(battle_id)
         side_id = battle.invader.id if inv_side else battle.defender.id
         if battle.is_air:
             response = self._post_military_fight_air(battle_id, side_id, zone_id)
@@ -914,7 +919,7 @@ class Citizen(CitizenAPI):
         if not isinstance(count, int) or count < 1:
             count = 1
         has_traveled = False
-        battle = self.all_battles[battle_id]
+        battle = self.all_battles.get(battle_id)
         if inv_side:
             good_countries = [battle.invader.id] + battle.invader.deployed
             if self.details.current_country not in good_countries:
@@ -946,7 +951,7 @@ class Citizen(CitizenAPI):
         :param division_to: int target division to switch to
         :return:
         """
-        battle = self.all_battles[battle_id]
+        battle = self.all_battles.get(battle_id)
         self._post_main_battlefield_change_division(battle_id, battle.div[division_to].battle_zone_id)
 
     def work_ot(self):
@@ -2136,8 +2141,10 @@ class Citizen(CitizenAPI):
         return self._get_military_show_weapons(battle_id).json()
 
     def set_default_weapon(self, battle_id: int) -> int:
-        battle = self.all_battles[battle_id]
+        battle = self.all_battles.get(battle_id)
         available_weapons = self._get_military_show_weapons(battle_id).json()
+        while not isinstance(available_weapons, list):
+            available_weapons = self._get_military_show_weapons(battle_id).json()
         weapon_quality = -1
         if not battle.is_air:
             for weapon in available_weapons:
@@ -2147,7 +2154,12 @@ class Citizen(CitizenAPI):
         return self.change_weapon(battle_id, weapon_quality)
 
     def change_weapon(self, battle_id: int, weapon_quality: int) -> int:
-        battle = self.all_battles[battle_id]
+        battle = self.all_battles.get(battle_id)
         battle_zone = battle.div[11 if battle.is_air else self.division].battle_zone_id
         r = self._post_military_change_weapon(battle_id, battle_zone, weapon_quality)
         return r.json().get('weaponInfluence')
+
+    def get_battle_for_war(self, war_id: int) -> Optional[Battle]:
+        self.update_war_info()
+        war_info = self.get_war_status(war_id)
+        return self.all_battles.get(war_info.get("battle_id"), None)

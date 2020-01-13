@@ -4,9 +4,9 @@ import hashlib
 import random
 import threading
 import time
-from collections import deque, defaultdict
-from json import JSONDecodeError, loads, JSONEncoder
-from typing import Any, Dict, List, Union, Mapping, Iterable, Tuple
+from collections import defaultdict, deque
+from json import JSONDecodeError, JSONEncoder, loads
+from typing import Any, Dict, Iterable, List, Mapping, Tuple, Union
 
 from requests import Response, Session, post
 
@@ -566,10 +566,6 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
 
     def _get_military_campaigns_json_list(self) -> Response:
         return self.get("{}/military/campaignsJson/list".format(self.url))
-
-    def _get_military_show_weapons(self, battle_id: int) -> Response:
-        params = {"_token": self.token, "battleId": battle_id}
-        return self.get("{}/military/show-weapons".format(self.url), params=params)
 
     def _get_military_unit_data(self, unit_id: int, **kwargs) -> Response:
         params = {"groupId": unit_id, "panel": "members", **kwargs}
