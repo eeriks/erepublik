@@ -2,6 +2,20 @@
 History
 =======
 
+0.19.0 (2020-01-13)
+-------------------
+* Created method for current products on sale.
+* Updated inventory to also include products on sale
+* set_default_weapon() - eRepublik should return list with all available weapon qualities, but when a battle is just launched, they return only dict with barehands
+* fight() - no longer calls self.set_default_weapon()
+* find_battle_and_fight() - now calls self.set_default_weapon() just before fighting
+* update_war_info() - returns previous battle list if responses 'last_updated' isn't more than 30s old
+* get_battle_for_war(war_id) - returns Battle instance for specific war, if battle is active for given war
+* Citizen.get_raw_surplus() fixed and moved to Citizen.my_companies.get_wam_raw_usage()
+* Implemented division switching
+* improved multi bomb deploy with auto traveling,
+* Citizen.fight() simplified battle data gathering logic -> Citizen.shoot logic improved
+
 
 0.17.0 (2019-11-21)
 -------------------

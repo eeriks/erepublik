@@ -23,12 +23,6 @@ If you are reporting a bug, please include:
 * Any details about your local setup that might be helpful in troubleshooting.
 * Detailed steps to reproduce the bug.
 
-Fix Bugs
-~~~~~~~~
-
-Look through the GitHub issues for bugs. Anything tagged with "bug" and "help
-wanted" is open to whoever wants to implement it.
-
 Implement Features
 ~~~~~~~~~~~~~~~~~~
 
@@ -59,7 +53,7 @@ Get Started!
 
 Ready to contribute? Here's how to set up `erepublik` for local development.
 
-1. Fork the `erepublik_script` repo on GitHub.
+1. Fork the `erepublik` repo on GitHub.
 2. Clone your fork locally::
 
     $ git clone git@github.com:your_name_here/erepublik.git
@@ -103,7 +97,7 @@ Before you submit a pull request, check that it meets these guidelines:
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
 3. The pull request should work for Python 3.7.1. Check
-   https://travis-ci.org/eeriks/erepublik_script/pull_requests
+   https://travis-ci.org/eeriks/erepublik/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
 Tips
@@ -112,7 +106,7 @@ Tips
 To run a subset of tests::
 
 
-    $ python -m unittest tests.test_erepublik_script
+    $ python -m unittest tests.test_erepublik
 
 Deploying
 ---------
