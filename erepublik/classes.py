@@ -5,12 +5,16 @@ import random
 import threading
 import time
 from collections import defaultdict, deque
-from json import JSONDecodeError, JSONEncoder, loads
 from typing import Any, Dict, Iterable, List, Mapping, Tuple, Union
 
 from requests import Response, Session, post
 
 from erepublik import utils
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 
 class ErepublikException(Exception):
@@ -281,9 +285,9 @@ class SlowRequests(Session):
             }
 
             try:
-                loads(resp.text)
+                json.loads(resp.text)
                 file_data.update({"ext": "json"})
-            except JSONDecodeError:
+            except json.JSONDecodeError:
                 file_data.update({"ext": "html"})
 
             filename = 'debug/requests/{time}_{name}{extra}.{ext}'.format(**file_data)
@@ -355,6 +359,18 @@ class Config:
         self.telegram = True
         self.telegram_chat_id = 0
         self.telegram_token = ""
+
+    @property
+    def __dict__(self):
+        return dict(email=self.email, work=self.work, train=self.train, wam=self.wam,
+                    auto_sell=self.auto_sell, auto_sell_all=self.auto_sell_all, employees=self.employees,
+                    fight=self.fight, air=self.air, ground=self.ground, all_in=self.all_in,
+                    next_energy=self.next_energy, boosters=self.boosters, travel_to_fight=self.travel_to_fight,
+                    always_travel=self.always_travel, epic_hunt=self.epic_hunt, epic_hunt_ebs=self.epic_hunt_ebs,
+                    rw_def_side=self.rw_def_side, interactive=self.interactive,
+                    continuous_fighting=self.continuous_fighting, auto_buy_raw=self.auto_buy_raw,
+                    force_wam=self.force_wam, sort_battles_time=self.sort_battles_time, force_travel=self.force_travel,
+                    telegram=self.telegram, telegram_chat_id=self.telegram_chat_id, telegram_token=self.telegram_token)
 
 
 class Energy:
@@ -1045,16 +1061,16 @@ class Reporter:
             self.__to_update.append(json_data)
 
 
-class MyJSONEncoder(JSONEncoder):
+class MyJSONEncoder(json.JSONEncoder):
     def default(self, o):
         from erepublik.citizen import Citizen
         if isinstance(o, decimal.Decimal):
             return float("{:.02f}".format(o))
         elif isinstance(o, datetime.datetime):
-            return dict(__type__='datetime', year=o.year, month=o.month, day=o.day, hour=o.hour, minute=o.minute,
-                        second=o.second, microsecond=o.microsecond, tzinfo=o.tzinfo.zone if o.tzinfo else None)
+            return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
+                        tzinfo=o.tzinfo.zone if o.tzinfo else None)
         elif isinstance(o, datetime.date):
-            return dict(__type__='date', year=o.year, month=o.month, day=o.day)
+            return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
         elif isinstance(o, datetime.timedelta):
             return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
                         microseconds=o.microseconds, total_seconds=o.total_seconds())
@@ -1131,42 +1147,31 @@ class Battle:
     def is_air(self) -> bool:
         return not bool(self.zone_id % 4)
 
-    def __init__(self, battle: Dict[str, Any] = None):
+    def __init__(self, battle: Dict[str, Any]):
         """Object representing eRepublik battle.
 
         :param battle: Dict object for single battle from '/military/campaignsJson/list' response's 'battles' object
         """
-        if battle is None:
-            battle = {}
-            self.id = 0
-            self.war_id = 0
-            self.zone_id = 0
-            self.is_rw = False
-            self.is_as = False
-            self.is_dict_lib = False
-            self.start = utils.now().min
-            self.invader = BattleSide(0, 0, [], [])
-            self.defender = BattleSide(0, 0, [], [])
-        else:
-            self.id = int(battle.get('id', 0))
-            self.war_id = int(battle.get('war_id', 0))
-            self.zone_id = int(battle.get('zone_id', 0))
-            self.is_rw = bool(battle.get('is_rw'))
-            self.is_as = bool(battle.get('is_as'))
-            self.is_dict_lib = bool(battle.get('is_dict')) or bool(battle.get('is_lib'))
-            self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
 
-            self.invader = BattleSide(
-                battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
-                [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
-                [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']]
-            )
+        self.id = int(battle.get('id'))
+        self.war_id = int(battle.get('war_id'))
+        self.zone_id = int(battle.get('zone_id'))
+        self.is_rw = bool(battle.get('is_rw'))
+        self.is_as = bool(battle.get('is_as'))
+        self.is_dict_lib = bool(battle.get('is_dict')) or bool(battle.get('is_lib'))
+        self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
 
-            self.defender = BattleSide(
-                battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
-                [row.get('id') for row in battle.get('def', {}).get('ally_list')],
-                [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
-            )
+        self.invader = BattleSide(
+            battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
+            [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
+            [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']]
+        )
+
+        self.defender = BattleSide(
+            battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
+            [row.get('id') for row in battle.get('def', {}).get('ally_list')],
+            [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
+        )
 
         self.div = defaultdict(BattleDivision)
         for div, data in battle.get('div', {}).items():
@@ -1195,13 +1200,14 @@ class Battle:
         now = utils.now()
         is_started = self.start < utils.now()
         if is_started:
-            time_part = "{}".format(now - self.start)
+            time_part = " {}".format(now - self.start)
         else:
-            time_part = "- {}".format(self.start - now)
+            time_part = "-{}".format(self.start - now)
+
         return f"Battle {self.id} | " \
-               f"{utils.COUNTRIES[self.invader.id]:>21.21}:{utils.COUNTRIES[self.defender.id]:<21.21} | " \
+               f"{utils.ISO_CC[self.invader.id]} : {utils.ISO_CC[self.defender.id]} | " \
                f"Round {self.zone_id:2} | " \
-               f"Time since start {time_part}"
+               f"Round time {time_part}"
 
 
 class EnergyToFight:
@@ -1252,6 +1258,7 @@ class TelegramBot:
         self.__queue = []
         self.__thread_stopper = threading.Event() if stop_event is None else stop_event
 
+    @property
     def __dict__(self):
         return dict(chat_id=self.chat_id, api_url=self.api_url, player=self.player_name, last_time=self._last_time,
                     next_time=self._next_time, queue=self.__queue, initialized=self.__initialized,

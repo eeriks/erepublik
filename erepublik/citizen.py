@@ -1,21 +1,21 @@
-import json
 import re
 import sys
-from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import product
-from json import dumps, loads
 from threading import Event
 from time import sleep
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from requests import RequestException, Response
 
-from erepublik.classes import (Battle, BattleDivision, CitizenAPI, Config,
-                               Details, Energy, ErepublikException,
-                               MyCompanies, MyJSONEncoder, Politics, Reporter,
-                               TelegramBot)
+from erepublik.classes import (Battle, BattleDivision, CitizenAPI, Config, Details, Energy, ErepublikException,
+                               MyCompanies, MyJSONEncoder, Politics, Reporter, TelegramBot)
 from erepublik.utils import *
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 
 class Citizen(CitizenAPI):
@@ -116,6 +116,7 @@ class Citizen(CitizenAPI):
     def __repr__(self):
         return self.__str__()
 
+    @property
     def __dict__(self):
         ret = super().__dict__.copy()
         ret.pop('stop_threads', None)
@@ -332,7 +333,7 @@ class Citizen(CitizenAPI):
             self._get_main()
             return
         ugly_js = re.search(r'"promotions":\s*(\[{?.*?}?])', html).group(1)
-        promos = loads(normalize_html_json(ugly_js))
+        promos = json.loads(normalize_html_json(ugly_js))
         if self.promos is None:
             self.promos = {}
         else:
@@ -367,7 +368,7 @@ class Citizen(CitizenAPI):
             )
 
         ugly_js = re.search(r"var erepublik = ({.*}),\s+", html).group(1)
-        citizen_js = loads(ugly_js)
+        citizen_js = json.loads(ugly_js)
         citizen = citizen_js.get("citizen", {})
 
         self.eday = citizen_js.get("settings").get("eDay")
@@ -423,14 +424,14 @@ class Citizen(CitizenAPI):
 
     def update_companies(self):
         html = self._get_economy_my_companies().text
-        page_details = loads(re.search(r"var pageDetails\s+= ({.*});", html).group(1))
+        page_details = json.loads(re.search(r"var pageDetails\s+= ({.*});", html).group(1))
         self.my_companies.work_units = int(page_details.get("total_works", 0))
 
         have_holdings = re.search(r"var holdingCompanies\s+= ({.*}});", html)
         have_companies = re.search(r"var companies\s+= ({.*}});", html)
         if have_holdings and have_companies:
-            self.my_companies.prepare_companies(loads(have_companies.group(1)))
-            self.my_companies.prepare_holdings(loads(have_holdings.group(1)))
+            self.my_companies.prepare_companies(json.loads(have_companies.group(1)))
+            self.my_companies.prepare_holdings(json.loads(have_holdings.group(1)))
             self.my_companies.update_holding_companies()
 
     def update_inventory(self) -> Dict[str, Any]:
@@ -573,7 +574,7 @@ class Citizen(CitizenAPI):
     def update_weekly_challenge(self):
         data = self._get_main_weekly_challenge_data().json()
         self.details.pp = data.get("player", {}).get("prestigePoints", 0)
-        self.details.next_pp = []
+        self.details.next_pp.clear()
         for reward in data.get("rewards", {}).get("normal", {}):
             status = reward.get("status", "")
             if status == "rewarded":
@@ -2060,33 +2061,32 @@ class Citizen(CitizenAPI):
         return {battle.invader.id: r.json().get(str(battle.invader.id)).get("fighterData"),
                 battle.defender.id: r.json().get(str(battle.defender.id)).get("fighterData")}
 
-    def contribute_cc_to_country(self, amount=0.) -> bool:
+    def contribute_cc_to_country(self, amount=0., country_id: int = 71) -> bool:
         self.update_money()
         amount = int(amount)
         if self.details.cc < amount or amount < 20:
             return False
-        data = dict(country=71, action='currency', value=amount)
-        self.telegram.send_message(f"Donated {amount}cc to {COUNTRIES[71]}")
+        data = dict(country=country_id, action='currency', value=amount)
         self.reporter.report_action("CONTRIBUTE_CC", data, str(amount))
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
-    def contribute_food_to_country(self, amount: int = 0, quality: int = 1) -> bool:
+    def contribute_food_to_country(self, amount: int = 0, quality: int = 1, country_id: int = 71) -> bool:
         self.update_inventory()
         amount = amount // 1
         if self.food["q" + str(quality)] < amount or amount < 10:
             return False
-        data = dict(country=71, action='food', value=amount, quality=quality)
+        data = dict(country=country_id, action='food', value=amount, quality=quality)
         self.reporter.report_action("CONTRIBUTE_FOOD", data, FOOD_ENERGY[quality] * amount)
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
 
-    def contribute_gold_to_country(self, amount: int) -> bool:
+    def contribute_gold_to_country(self, amount: int, country_id: int = 71) -> bool:
         self.update_money()
 
         if self.details.cc < amount:
             return False
-        data = dict(country=71, action='gold', value=amount)
+        data = dict(country=country_id, action='gold', value=amount)
         self.reporter.report_action("CONTRIBUTE_GOLD", data, str(amount))
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
@@ -2120,7 +2120,7 @@ class Citizen(CitizenAPI):
         # return ret
 
     def to_json(self, indent: bool = False) -> str:
-        return dumps(self.__dict__, cls=MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+        return json.dumps(self.__dict__, cls=MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
 
     def get_game_token_offers(self):
         r = self._post_economy_game_tokens_market('retrieve').json()
