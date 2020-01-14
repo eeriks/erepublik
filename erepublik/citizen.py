@@ -156,7 +156,7 @@ class Citizen(CitizenAPI):
             raise ErepublikException("Something went wrong! Can't find token in page! Exiting!")
         try:
             self.update_citizen_info(resp.text)
-        except:
+        except (AttributeError, json.JSONDecodeError, ValueError, KeyError):
             pass
 
     def _login(self):
@@ -212,8 +212,8 @@ class Citizen(CitizenAPI):
                 return self.get(url, **kwargs)
 
             try:
-                self.update_citizen_info(html=response.text)
-            except:
+                self.update_citizen_info(response.text)
+            except (AttributeError, json.JSONDecodeError, ValueError, KeyError):
                 pass
 
             if self._errors_in_response(response):
