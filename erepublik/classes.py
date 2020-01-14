@@ -1257,6 +1257,7 @@ class TelegramBot:
         self._threads = []
         self.__queue = []
         self.__thread_stopper = threading.Event() if stop_event is None else stop_event
+        self._last_time = self._last_full_energy_report = utils.now().min
 
     @property
     def __dict__(self):
