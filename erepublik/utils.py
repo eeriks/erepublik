@@ -6,6 +6,7 @@ import sys
 import time
 import traceback
 import unicodedata
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, List, Mapping, NoReturn, Optional, Union
 
@@ -393,27 +394,28 @@ def slugify(value, allow_unicode=False) -> str:
 
 
 def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, booster: int = 0,
-                  weapon: int = 200) -> float:
-    base_dmg = 10 * (1 + strength / 400) * (1 + rang / 5) * (1 + weapon / 100)
-    dmg = int(base_dmg * 10 + 5) // 10
+                  weapon: int = 200, is_deploy: bool = False) -> Decimal:
+    dec = 3 if is_deploy else 0
+    base_str = (1 + Decimal(str(round(strength, 3))) / 400)
+    base_rnk = (1 + Decimal(str(rang / 5)))
+    base_wpn = (1 + Decimal(str(weapon / 100)))
+    dmg = 10 * base_str * base_rnk * base_wpn
 
-    booster_multiplier = (100 + booster) / 100
-    booster_dmg = dmg * booster_multiplier
-    dmg = int(booster_dmg * 10 + 5) // 10
+    if elite:
+        dmg = dmg * 11 / 10
 
-    elite = 1.1 if elite else 1
-    elite_dmg = dmg * elite
-    dmg = int(elite_dmg)
+    if tp and rang >= 70:
+        dmg = dmg * (1 + Decimal((rang - 69) / 10))
 
-    legend = 1 if (not tp or rang < 70) else 1 + (rang - 69) / 10
-    legend_dmg = dmg * legend
-    dmg = int(legend_dmg)
+    dmg = dmg * (100 + booster) / 100
 
-    return dmg * (1.1 if ne else 1)
+    if ne:
+        dmg = dmg * 11 / 10
+    return round(dmg, dec)
 
 
-def ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
-                         booster: int = 0, weapon_power: int = 200) -> float:
+def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
+                             booster: int = 0, weapon_power: int = 200) -> Decimal:
     r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
     rang = r['military']['militaryData']['ground']['rankNumber']
     strength = r['military']['militaryData']['ground']['strength']
@@ -424,8 +426,8 @@ def ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patr
     return calculate_hit(strength, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
 
 
-def air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0,
-                      weapon_power: int = 0) -> float:
+def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0,
+                          weapon_power: int = 0) -> Decimal:
     r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
     rang = r['military']['militaryData']['aircraft']['rankNumber']
     elite = r['citizenAttributes']['level'] > 100
