@@ -345,6 +345,11 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     trace = inspect.trace()
     if trace:
         trace = trace[-1][0].f_locals
+        if trace.get('__name__') == '__main__':
+            trace = {'commit_id': trace.get('COMMIT_ID'),
+                     'interactive': trace.get('INTERACTIVE'),
+                     'version': trace.get('__version__'),
+                     'config': trace.get('CONFIG')}
     else:
         trace = dict()
     send_email(name, content, citizen, local_vars=trace)
