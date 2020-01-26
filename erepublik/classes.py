@@ -1242,11 +1242,11 @@ class EnergyToFight:
 
 
 class TelegramBot:
-    __initialized = False
+    __initialized: bool = False
     __queue: List[str]
-    chat_id = 0
-    api_url = ""
-    player_name = ""
+    chat_id: int = 0
+    api_url: str = ""
+    player_name: str = ""
     __thread_stopper: threading.Event
     _last_time: datetime.datetime
     _last_full_energy_report: datetime.datetime
@@ -1257,12 +1257,13 @@ class TelegramBot:
         self._threads = []
         self.__queue = []
         self.__thread_stopper = threading.Event() if stop_event is None else stop_event
+        self._last_full_energy_report = self._next_time = self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(hours=1))
 
     @property
     def __dict__(self):
-        return dict(chat_id=self.chat_id, api_url=self.api_url, player=self.player_name, last_time=self._last_time,
-                    next_time=self._next_time, queue=self.__queue, initialized=self.__initialized,
-                    has_threads=bool(len(self._threads)))
+        return {'chat_id': self.chat_id, 'api_url': self.api_url, 'player': self.player_name,
+                'last_time': self._last_time, 'next_time': self._next_time, 'queue': self.__queue,
+                'initialized': self.__initialized, 'has_threads': bool(len(self._threads))}
 
     def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id
