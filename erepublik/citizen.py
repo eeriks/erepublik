@@ -2195,11 +2195,14 @@ class Citizen(CitizenAPI):
         while not isinstance(available_weapons, list):
             available_weapons = self._get_military_show_weapons(battle_id).json()
         weapon_quality = -1
+        weapon_damage = 0
         if not battle.is_air:
             for weapon in available_weapons:
-                if weapon['weaponId'] == 7 and weapon['weaponQuantity'] > 30:
-                    weapon_quality = 7
-                    break
+                try:
+                    if weapon['weaponQuantity'] > 30 and weapon['damage'] > weapon_damage:
+                        weapon_quality = int(weapon['weaponId'])
+                except ValueError:
+                    pass
         return self.change_weapon(battle_id, weapon_quality)
 
     def change_weapon(self, battle_id: int, weapon_quality: int) -> int:
