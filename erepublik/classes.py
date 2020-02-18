@@ -524,8 +524,11 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def _get_main_citizen_profile_json(self, player_id: int) -> Response:
         return self.get("{}/main/citizen-profile-json/{}".format(self.url, player_id))
 
-    def _get_main_citizen_daily_assistant(self) -> Response:
+    def _get_main_citizen_notifications(self) -> Response:
         return self.get("{}/main/citizenDailyAssistant".format(self.url))
+
+    def _get_main_citizen_daily_assistant(self) -> Response:
+        return self.get("{}/main/citizenNotifications".format(self.url))
 
     def _get_main_city_data_residents(self, city: int, page: int = 1, params: Mapping[str, Any] = None) -> Response:
         if params is None:
@@ -672,6 +675,10 @@ Class for unifying eRepublik known endpoints and their required/optional paramet
     def _post_main_donate_article(self, article_id: int, amount: int) -> Response:
         data = dict(_token=self.token, articleId=article_id, amount=amount)
         return self.post("{}/main/donate-article".format(self.url), data=data)
+
+    def _post_main_global_alerts_close(self, alert_id: int) -> Response:
+        data = dict(_token=self.token, alert_id=alert_id)
+        return self.post("{}/main/global-alerts/close".format(self.url), data=data)
 
     def _post_delete_message(self, msg_id: list) -> Response:
         data = {"_token": self.token, "delete_message[]": msg_id}
