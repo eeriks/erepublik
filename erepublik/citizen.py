@@ -144,6 +144,7 @@ class Citizen(CitizenAPI):
             return
 
         html = resp.text
+        self.check_for_medals(html)
         re_token = re.search(r'var csrfToken = \'(\w{32})\'', html)
         re_login_token = re.search(r'<input type="hidden" id="_token" name="_token" value="(\w{32})">', html)
         if re_token:
@@ -218,6 +219,8 @@ class Citizen(CitizenAPI):
             if self._errors_in_response(response):
                 self.get_csrf_token()
                 self.get(url, **kwargs)
+            else:
+                self.check_for_medals(response.text)
 
             self.r = response
         return response
@@ -255,11 +258,60 @@ class Citizen(CitizenAPI):
             elif json:
                 json.update({"_token": self.token})
             response = self.post(url, data=data, json=json, **kwargs)
+        else:
+            self.check_for_medals(response.text)
 
         self.r = response
         return response
 
-    def check_for_new_medals(self):
+    def check_for_medals(self, html: str):
+        new_medals = re.findall(r'(<div class="home_reward reward achievement">.*?<div class="bottom"></div>\s*</div>)',
+                                html, re.M | re.S | re.I)
+        data: Dict[Tuple[str, Union[float, str]], Dict[str, Union[int, str, float]]] = {}
+        for medal in new_medals:
+            try:
+                info = re.search(r"<h3>New Achievement</h3>.*?<p.*?>(.*?)</p>.*?"
+                                 r"achievement_recieved.*?<strong>(.*?)</strong>.*?"
+                                 r"<div title=\"(.*?)\">", medal, re.M | re.S)
+                about = info.group(1).strip()
+                title = info.group(2).strip()
+                award_id = re.search(r'"wall_enable_alerts_(\d+)', medal)
+                if award_id:
+                    self._post_main_wall_post_automatic(**{'message': title, 'awardId': award_id.group(1)})
+                reward, currency = info.group(3).strip().split(" ")
+                while not isinstance(reward, float):
+                    try:
+                        reward = float(reward)
+                    except ValueError:
+                        reward = reward[:-1]
+
+                if (title, reward) not in data:
+                    data[(title, reward)] = {'about': about, 'kind': title, 'reward': reward, "count": 1,
+                                             "currency": currency}
+                else:
+                    data[(title, reward)]['count'] += 1
+            except AttributeError:
+                continue
+        if data:
+
+            msgs = ["{count} x {kind}, totaling {} {currency}\n"
+                    "{about}".format(d["count"] * d["reward"], **d) for d in data.values()]
+
+            msgs = "\n".join(msgs)
+            self.telegram.report_medal(msgs)
+            self.write_log(f"Found awards:\n{msgs}")
+            for info in data.values():
+                self.reporter.report_action("NEW_MEDAL", info)
+
+        levelup = re.search(r"<p>Congratulations, you have reached experience <strong>level (\d+)</strong></p>", html)
+        if levelup:
+            level = levelup.group(1)
+            msg = f"Level up! Current level {level}"
+            self.write_log(msg)
+            self.telegram.report_medal(f"Level *{level}*")
+            self.reporter.report_action("LEVEL_UP", value=level)
+
+    def check_for_notification_medals(self):
         notifications = self._get_main_citizen_daily_assistant().json()
         data: Dict[Tuple[str, Union[float, str]], Dict[str, Union[int, str, float]]] = {}
         for medal in notifications.get('notifications', []):
@@ -288,23 +340,14 @@ class Citizen(CitizenAPI):
                     data[(title, reward)]['count'] += 1
             self._post_main_global_alerts_close(medal.get('id'))
         if data:
-
-            msgs = ["{count} x {kind}, totaling {} {currency}\n"
-                    "{about}".format(d["count"] * d["reward"], **d) for d in data.values()]
+            msgs = ["{count} x {kind},"
+                    " totaling {} {currency}".format(d["count"] * d["reward"], **d) for d in data.values()]
 
             msgs = "\n".join(msgs)
             self.telegram.report_medal(msgs)
             self.write_log(f"Found awards:\n{msgs}")
             for info in data.values():
                 self.reporter.report_action("NEW_MEDAL", info)
-
-        # levelup = re.search(r"<p>Congratulations, you have reached experience <strong>level (\d+)</strong></p>", html)
-        # if levelup:
-        #     level = levelup.group(1)
-        #     msg = f"Level up! Current level {level}"
-        #     self.write_log(msg)
-        #     self.telegram.report_medal(f"Level *{level}*")
-        #     self.reporter.report_action("LEVEL_UP", value=level)
 
     def update_all(self, force_update=False):
         # Do full update max every 5 min
@@ -319,14 +362,14 @@ class Citizen(CitizenAPI):
         self.update_money()
         self.update_weekly_challenge()
         self.send_state_update()
-        self.check_for_new_medals()
+        self.check_for_notification_medals()
 
     def update_citizen_info(self, html: str = None):
         """
         Gets main page and updates most information about player
         """
         if html is None:
-            self.check_for_new_medals()
+            self.check_for_notification_medals()
             self._get_main()
             return
         ugly_js = re.search(r'"promotions":\s*(\[{?.*?}?])', html).group(1)

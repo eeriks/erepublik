@@ -1285,6 +1285,8 @@ class TelegramBot:
     def send_message(self, message: str) -> bool:
         self.__queue.append(message)
         if not self.__initialized:
+            if self._last_time < utils.now():
+                self.__queue.clear()
             return True
         self._threads = [t for t in self._threads if t.is_alive()]
         self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
