@@ -204,6 +204,7 @@ class Config:
     work = True
     train = True
     wam = False
+    ot = True
     auto_sell: List[str] = None
     auto_sell_all = False
     employees = False
@@ -231,14 +232,11 @@ class Config:
     def __init__(self):
         self.auto_sell = []
 
-    @property
-    def wt(self):
-        return self.work and self.train
-
     def reset(self):
         self.work = True
         self.train = True
         self.wam = False
+        self.ot = True
         self.auto_sell = list()
         self.auto_sell_all = False
         self.employees = False
@@ -265,7 +263,7 @@ class Config:
 
     @property
     def __dict__(self):
-        return dict(email=self.email, work=self.work, train=self.train, wam=self.wam,
+        return dict(email=self.email, work=self.work, train=self.train, wam=self.wam, ot=self.ot,
                     auto_sell=self.auto_sell, auto_sell_all=self.auto_sell_all, employees=self.employees,
                     fight=self.fight, air=self.air, ground=self.ground, all_in=self.all_in,
                     next_energy=self.next_energy, boosters=self.boosters, travel_to_fight=self.travel_to_fight,
