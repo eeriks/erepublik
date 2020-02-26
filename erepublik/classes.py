@@ -723,8 +723,9 @@ class TelegramBot:
             message = f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
             self.send_message(message)
 
-    def report_medal(self, msg):
-        self.send_message(f"New award: *{msg}*")
+    def report_medal(self, msg, multiple: bool=True):
+        new_line = '\n' if multiple else ''
+        self.send_message(f"New award: {new_line}*{msg}*")
 
     def __send_messages(self):
         while self._next_time > utils.now():

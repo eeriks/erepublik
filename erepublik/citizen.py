@@ -2178,11 +2178,11 @@ class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial
         for medal in notifications.get('notifications', []):
             if medal.get('details', {}).get('type') == "citizenAchievement":
                 params: dict = medal.get('details', {}).get('achievement')
-                about: str = medal.get('details').get('description')
+                about: str = medal.get('body')
                 title: str = medal.get('title')
 
                 award_id: int = medal.get('id')
-                if award_id and title:
+                if award_id and title and medal.get('details').get('isWallMaterial'):
                     self._post_main_wall_post_automatic(title.lower(), award_id)
 
                 if params.get('ccValue'):
@@ -2206,7 +2206,8 @@ class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial
                     " totaling {} {currency}".format(d["count"] * d["reward"], **d) for d in data.values()]
 
             msgs = "\n".join(msgs)
-            self.telegram.report_medal(msgs)
+            if self.config.telegram:
+                self.telegram.report_medal(msgs, len(data) > 1)
             self.write_log(f"Found awards:\n{msgs}")
             for info in data.values():
                 self.reporter.report_action("NEW_MEDAL", info)
@@ -2249,8 +2250,28 @@ class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial
                 if pps:
                     self.details.next_pp.append(int(pps.group(1)))
 
+    def should_fight(self, silent: bool = True) -> Tuple[int, str, bool]:
+        count, log_msg, force_fight = super().should_fight()
 
+        if count > 0 and not force_fight:
+            if self.energy.food_fights - self.my_companies.ff_lockdown < count:
+                log_msg = (f"Fight count modified (old count: {count} | FF: {self.energy.food_fights} | "
+                           f"WAM ff_lockdown: {self.my_companies.ff_lockdown} |"
+                           f" New count: {count - self.my_companies.ff_lockdown})")
+                count -= self.my_companies.ff_lockdown
+                if count <= 0:
+                    count = 0
+                    log_msg = f"Not fighting because WAM needs {self.my_companies.ff_lockdown} food fights"
 
+        if self.max_time_till_full_ff > self.time_till_week_change:
+            max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
+            log_msg = ("End for Weekly challenge is near "
+                       f"(Recoverable until WC end {max_count}hp | want to do {count}hits)")
+            count = count if max_count > count else max_count
+
+        self.write_log(log_msg, False)
+
+        return count, log_msg, force_fight
 
     def collect_weekly_reward(self):
         self.update_weekly_challenge()
