@@ -2067,6 +2067,47 @@ class CitizenSocial(BaseCitizen):
                 for resident in resp["widgets"]["residents"]["residents"]:
                     self.add_friend(resident["citizenId"])
 
+    def get_community_notifications(self, page: int = 1) -> List[Dict[str, Any]]:
+        return self._get_main_notifications_ajax_community(page).json().get('alertsList', [])
+
+    def get_system_notifications(self, page: int = 1) -> List[Dict[str, Any]]:
+        return self._get_main_notifications_ajax_system(page).json().get('alertsList', [])
+
+    def get_report_notifications(self, page: int = 1) -> List[Dict[str, Any]]:
+        return self._get_main_notifications_ajax_report(page).json().get('alertsList', [])
+
+    def delete_community_notification(self, notification_id: Union[int, List[int]]):
+        if not isinstance(notification_id, list):
+            notification_id = [notification_id]
+        self._post_main_notifications_ajax_community(notification_id)
+
+    def delete_system_notification(self, notification_id: Union[int, List[int]]):
+        if not isinstance(notification_id, list):
+            notification_id = [notification_id]
+        self._post_main_notifications_ajax_system(notification_id)
+
+    def delete_report_notification(self, notification_id: Union[int, List[int]]):
+        if not isinstance(notification_id, list):
+            notification_id = [notification_id]
+        self._post_main_notifications_ajax_report(notification_id)
+
+    def get_all_notifications(self, page: int = 1) -> Dict[str, List[Dict[str, Any]]]:
+        return dict(community=self.get_community_notifications(),
+                    system=self.get_system_notifications(page),
+                    report=self.get_report_notifications(page))
+
+    def delete_all_notifications(self):
+        for kind, notifications in self.get_all_notifications():
+            if notifications:
+                if kind == "community":
+                    self.delete_community_notification([n['id'] for n in notifications])
+                elif kind == "report":
+                    self.delete_report_notification([n['id'] for n in notifications])
+                elif kind == "system":
+                    self.delete_system_notification([n['id'] for n in notifications])
+                else:
+                    self.report_error(f"Unsupported notification kind: \"{kind}\"!")
+
 
 class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial, CitizenPolitics):
     debug: bool = False
@@ -2208,21 +2249,8 @@ class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial
                 if pps:
                     self.details.next_pp.append(int(pps.group(1)))
 
-    def parse_notifications(self, page: int = 1) -> list:
-        community = self._get_main_notifications_ajax_community(page).json()
-        system = self._get_main_notifications_ajax_system(page).json()
-        return community['alertsList'] + system['alertsList']
 
-    def delete_notifications(self):
-        response = self._get_main_notifications_ajax_community().json()
-        while response['totalAlerts']:
-            self._post_main_messages_alert([_['id'] for _ in response['alertList']])
-            response = self._get_main_notifications_ajax_community().json()
 
-        response = self._get_main_notifications_ajax_system().json()
-        while response['totalAlerts']:
-            self._post_main_messages_alert([_['id'] for _ in response['alertList']])
-            response = self._get_main_notifications_ajax_system().json()
 
     def collect_weekly_reward(self):
         self.update_weekly_challenge()

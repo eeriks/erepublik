@@ -243,7 +243,7 @@ class ErepublikCompanyAPI(CitizenBaseAPI):
         data = dict(action_type="workOvertime", _token=self.token)
         return self.post("{}/economy/workOvertime".format(self.url), data=data)
 
-    def _post_economy_job_market_apply(self, citizen: int, salary: int) -> Response:
+    def _post_economy_job_market_apply(self, citizen: int, salary: float) -> Response:
         data = dict(_token=self.token, citizenId=citizen, salary=salary)
         return self.post("{}/economy/job-market-apply".format(self.url), data=data)
 
@@ -424,6 +424,10 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
         data = dict(sideId=side_id, battleId=battle_id, _token=self.token, battleZoneId=zone_id)
         return self.post("{}/military/fight-shooot/{}".format(self.url, battle_id), data=data)
 
+    def _post_fight_deploy_deploy_report_data(self, deployment_id: int):
+        data = dict(_token=self.token, deploymentId=deployment_id)
+        return self.post(f"{self.url}/military/fightDeploy-deployReportData", json=data)
+
 
 class ErepublikPoliticsAPI(CitizenBaseAPI):
     def _get_candidate_party(self, party_slug: str) -> Response:
@@ -527,6 +531,18 @@ class ErepublikProfileAPI(CitizenBaseAPI):
     def _post_main_messages_alert(self, notification_ids: List[int]) -> Response:
         data = {"_token": self.token, "delete_alerts[]": notification_ids, "deleteAllAlerts": "1", "delete": "Delete"}
         return self.post("{}/main/messages-alerts/1".format(self.url), data=data)
+
+    def _post_main_notifications_ajax_community(self, notification_ids: List[int], page: int = 1) -> Response:
+        data = {"_token": self.token, "delete_alerts[]": notification_ids}
+        return self.post("{}/main/notificationsAjax/community/{}".format(self.url, page), data=data)
+
+    def _post_main_notifications_ajax_system(self, notification_ids: List[int], page: int = 1) -> Response:
+        data = {"_token": self.token, "delete_alerts[]": notification_ids}
+        return self.post("{}/main/notificationsAjax/system/{}".format(self.url, page), data=data)
+
+    def _post_main_notifications_ajax_report(self, notification_ids: List[int], page: int = 1) -> Response:
+        data = {"_token": self.token, "delete_alerts[]": notification_ids}
+        return self.post("{}/main/notificationsAjax/report/{}".format(self.url, page), data=data)
 
     def _post_main_messages_compose(self, subject: str, body: str, citizens: List[int]) -> Response:
         url_pk = 0 if len(citizens) > 1 else str(citizens[0])
