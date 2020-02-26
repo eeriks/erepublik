@@ -648,9 +648,9 @@ class CitizenTasks(BaseCitizen):
         return self._post_economy_job_market_apply(**data)
 
     def apply_to_employer(self, employer_id: int, salary: float) -> bool:
-        data = dict(citizen=0, salary=10)
-        self.reporter.report_action("APPLYING_FOR_JOB", data, str(data['citizen']))
-        r = self._post_economy_job_market_apply(**data)
+        data = dict(citizenId=employer_id, salary=salary)
+        self.reporter.report_action("APPLYING_FOR_JOB", data)
+        r = self._post_economy_job_market_apply(employer_id, salary)
         return bool(r.json().get('status'))
 
     def update_job_info(self):
@@ -1513,7 +1513,7 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
                             if errors:
                                 error_count += errors
                             if self.config.epic_hunt_ebs:
-                                self.eat_ebs()
+                                self._eat('orange')
                         self.travel_to_residence()
                         break
                 elif bool(my_div.epic):
@@ -1589,7 +1589,7 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
         return bool(self.__last_war_update_data.get("citizen_contribution", []))
 
     def find_battle_and_fight(self):
-        if self.should_fight(False):
+        if self.should_fight()[0]:
             self.write_log("Checking for battles to fight in...")
             for battle_id in self.sorted_battles(self.config.sort_battles_time):
                 battle = self.all_battles.get(battle_id)
@@ -1671,7 +1671,7 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
         error_count = 0
         ok_to_fight = True
         if count is None:
-            count = self.should_fight(silent=False)
+            count = self.should_fight()[0]
 
         total_damage = 0
         total_hits = 0
@@ -1684,7 +1684,7 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
                 total_damage += damage
                 error_count += error
             else:
-                self.eat()
+                self._eat('blue')
                 if self.energy.recovered < 50 or error_count >= 10 or count <= 0:
                     self.write_log("Hits: {:>4} | Damage: {}".format(total_hits, total_damage))
                     ok_to_fight = False
@@ -1850,15 +1850,19 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
             ret = True
         return ret
 
-    def should_fight(self, silent: bool = True) -> int:
-        if not self.config.fight:
-            return 0
+    def should_fight(self) -> Tuple[int, str, bool]:
+        """ Checks if citizen should fight at this moment
+        :rtype: Tuple[int, str, bool]
+        """
         count = 0
-        log_msg = ""
         force_fight = False
+        msg = "Fighting not allowed!"
+        if not self.config.fight:
+            return count, msg, force_fight
+
         # Do levelup
         if self.is_levelup_reachable:
-            log_msg = "Level up"
+            msg = "Level up"
             if self.should_do_levelup:
                 count = (self.energy.limit * 3) // 10
                 force_fight = True
@@ -1868,58 +1872,40 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
         # Levelup reachable
         elif self.is_levelup_close:
             count = self.details.xp_till_level_up - (self.energy.limit // 10) + 5
-            log_msg = "Fighting for close Levelup. Doing %i hits" % count
+            msg = "Fighting for close Levelup. Doing %i hits" % count
             force_fight = True
 
         elif self.details.pp < 75:
             count = 75 - self.details.pp
-            log_msg = "Obligatory fighting for at least 75pp"
+            msg = "Obligatory fighting for at least 75pp"
             force_fight = True
 
         elif self.config.continuous_fighting and self.has_battle_contribution:
             count = self.energy.food_fights
-            log_msg = "Continuing to fight in previous battle"
+            msg = "Continuing to fight in previous battle"
 
         # All-in (type = all-in and full ff)
         elif self.config.all_in and self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
             count = self.energy.food_fights
-            log_msg = "Fighting all-in. Doing %i hits" % count
+            msg = "Fighting all-in. Doing %i hits" % count
 
         # All-in for AIR battles
         elif all([self.config.air, self.config.all_in, self.energy.available >= self.energy.limit]):
             count = self.energy.food_fights
-            log_msg = "Fighting all-in in AIR. Doing %i hits" % count
+            msg = "Fighting all-in in AIR. Doing %i hits" % count
 
         # Get to next Energy +1
         elif self.next_reachable_energy and self.config.next_energy:
             count = self.next_reachable_energy
-            log_msg = "Fighting for +1 energy. Doing %i hits" % count
+            msg = "Fighting for +1 energy. Doing %i hits" % count
 
         # 1h worth of energy
         elif self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
             count = self.energy.interval
-            log_msg = "Fighting for 1h energy. Doing %i hits" % count
+            msg = "Fighting for 1h energy. Doing %i hits" % count
             force_fight = True
 
-        if count > 0 and not force_fight:
-            if self.energy.food_fights - self.my_companies.ff_lockdown < count:
-                log_msg = (f"Fight count modified (old count: {count} | FF: {self.energy.food_fights} | "
-                           f"WAM ff_lockdown: {self.my_companies.ff_lockdown} |"
-                           f" New count: {count - self.my_companies.ff_lockdown})")
-                count -= self.my_companies.ff_lockdown
-                if count <= 0:
-                    count = 0
-                    log_msg = f"Not fighting because WAM needs {self.my_companies.ff_lockdown} food fights"
-
-        if self.max_time_till_full_ff > self.time_till_week_change:
-            max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
-            log_msg = ("End for Weekly challenge is near "
-                       f"(Recoverable until WC end {max_count}hp | want to do {count}hits)")
-            count = count if max_count > count else max_count
-
-        self.write_log(log_msg, False)
-
-        return count if count > 0 else 0
+        return (count if count > 0 else 0), msg, force_fight
 
     def get_battle_round_data(self, battle_id: int, round_id: int, division: int = None) -> dict:
         battle = self.all_battles.get(battle_id)
@@ -2296,7 +2282,7 @@ class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
         except:
-            self.report_error()
+            self.report_error("State updater crashed")
 
     def send_state_update(self):
         data = dict(xp=self.details.xp, cc=self.details.cc, gold=self.details.gold, pp=self.details.pp,
