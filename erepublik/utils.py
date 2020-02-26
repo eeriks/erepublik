@@ -30,7 +30,7 @@ if not sys.version_info >= (3, 7):
                          'But Your version is v{}.{}.{}'.format(*sys.version_info))
 
 FOOD_ENERGY = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
-COMMIT_ID = "62e265e"
+COMMIT_ID = "04bb0be"
 
 erep_tz = pytz.timezone('US/Pacific')
 AIR_RANKS = {1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**",
