@@ -88,3 +88,9 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+setcommit:
+	bash set_commit_id.sh
+# 	commit=`git log -1 --pretty=format:%h`
+# 	sed -i.bak -E "s|COMMIT_ID = \".+\"|COMMIT_ID = \"$(commit)\"|g" erepublik/utils.py
+# 	mv erepublik/utils.py.bak erepublik/utils.py
