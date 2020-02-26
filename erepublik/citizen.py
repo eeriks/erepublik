@@ -612,6 +612,24 @@ class BaseCitizen(CitizenAPI):
         return ""
 
 
+class CitizenAnniversary(BaseCitizen):
+    def collect_anniversary_reward(self) -> Response:
+        return self._post_main_collect_anniversary_reward()
+
+    def get_anniversary_quest_data(self):
+        return self._get_anniversary_quest_data().json()
+
+    def start_unlocking_map_quest_node(self, node_id: int):
+        return self._post_map_rewards_unlock(node_id)
+
+    def collect_map_quest_node(self, node_id: int):
+        return self._post_map_rewards_claim(node_id)
+
+    def speedup_map_quest_node(self, node_id: int):
+        node = self.get_anniversary_quest_data().get('cities', {}).get(str(node_id), {})
+        return self._post_map_rewards_speedup(node_id, node.get("skipCost", 0))
+
+
 class CitizenTravel(BaseCitizen):
     def _update_citizen_location(self, country_id: int, region_id: int):
         self.details.current_region = region_id
@@ -822,23 +840,6 @@ class CitizenTasks(BaseCitizen):
         if ot:
             self.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
             self.ot_points = ot.get("points", 0)
-
-
-class CitizenPolitics(BaseCitizen):
-    def get_country_parties(self, country_id: int = None) -> dict:
-        if country_id is None:
-            country_id = self.details.citizenship
-        r = self._get_main_rankings_parties(country_id)
-        ret = {}
-        for name, id_ in re.findall(r'<a class="dotted" title="([^"]+)" href="/en/party/[\w\d-]+-(\d+)/1">', r.text):
-            ret.update({int(id_): name})
-        return ret
-
-    def candidate_for_congress(self, presentation: str = "") -> Response:
-        return self._post_candidate_for_congress(presentation)
-
-    def candidate_for_party_presidency(self) -> Response:
-        return self._get_candidate_party(self.politics.party_slug)
 
 
 class CitizenEconomy(CitizenTravel):
@@ -1982,22 +1983,21 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
         return ret
 
 
-class CitizenAnniversary(BaseCitizen):
-    def collect_anniversary_reward(self) -> Response:
-        return self._post_main_collect_anniversary_reward()
+class CitizenPolitics(BaseCitizen):
+    def get_country_parties(self, country_id: int = None) -> dict:
+        if country_id is None:
+            country_id = self.details.citizenship
+        r = self._get_main_rankings_parties(country_id)
+        ret = {}
+        for name, id_ in re.findall(r'<a class="dotted" title="([^"]+)" href="/en/party/[\w\d-]+-(\d+)/1">', r.text):
+            ret.update({int(id_): name})
+        return ret
 
-    def get_anniversary_quest_data(self):
-        return self._get_anniversary_quest_data().json()
+    def candidate_for_congress(self, presentation: str = "") -> Response:
+        return self._post_candidate_for_congress(presentation)
 
-    def start_unlocking_map_quest_node(self, node_id: int):
-        return self._post_map_rewards_unlock(node_id)
-
-    def collect_map_quest_node(self, node_id: int):
-        return self._post_map_rewards_claim(node_id)
-
-    def speedup_map_quest_node(self, node_id: int):
-        node = self.get_anniversary_quest_data().get('cities', {}).get(str(node_id), {})
-        return self._post_map_rewards_speedup(node_id, node.get("skipCost", 0))
+    def candidate_for_party_presidency(self) -> Response:
+        return self._get_candidate_party(self.politics.party_slug)
 
 
 class CitizenSocial(BaseCitizen):
@@ -2094,7 +2094,7 @@ class CitizenSocial(BaseCitizen):
                     self.report_error(f"Unsupported notification kind: \"{kind}\"!")
 
 
-class Citizen(CitizenMilitary, CitizenAnniversary, CitizenEconomy, CitizenSocial, CitizenPolitics):
+class Citizen(CitizenAnniversary, CitizenEconomy, CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial):
     debug: bool = False
 
     def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
