@@ -17,6 +17,10 @@ class BaseCitizen(CitizenAPI):
     __last_full_update: datetime = utils.now().min
 
     promos: Dict[str, datetime] = None
+    inventory: Dict[str, int] = {'used': 0, 'total': 0}
+    boosters: Dict[int, Dict[int, int]] = {50: {}, 100: {}}
+    ot_points: int = 0
+
     food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
     eb_normal = 0
     eb_double = 0
@@ -239,6 +243,146 @@ class BaseCitizen(CitizenAPI):
             self.politics.is_party_president = bool(party.get('is_party_president'))
             self.politics.party_slug = f"{party.get('stripped_title')}-{party.get('party_id')}"
 
+    def update_inventory(self) -> Dict[str, Any]:
+        """
+        Updates class properties and returns structured inventory.
+        Return structure: {status: {used: int, total: int}, items: {active/final/raw: {item_token:{quality: data}}}
+        If item kind is damageBoosters or aircraftDamageBoosters then kind is renamed to kind+quality and duration is
+        used as quality.
+        :return: dict
+        """
+        self.food.update({"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0})
+        self.eb_small = self.eb_double = self.eb_normal = 0
+
+        j = self._get_economy_inventory_items().json()
+        active_items = {}
+        if j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}):
+            for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
+                if item.get('token'):
+                    kind = re.sub(r'_q\d\d*', "", item.get('token'))
+                else:
+                    kind = item.get('type')
+                if kind not in active_items:
+                    active_items[kind] = {}
+                icon = item['icon'] if item['icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
+                item_data = dict(name=item.get("name"), time_left=item['active']['time_left'], icon=icon, kind=kind,
+                                 quality=item.get("quality", 0))
+
+                if item.get('isPackBooster'):
+                    active_items[kind].update({0: item_data})
+                else:
+                    active_items[kind].update({item.get("quality"): item_data})
+
+        final_items = {}
+        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
+            name = item['name']
+
+            if item.get('type'):
+                if item.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
+                    kind = f"{item['type']}{item['quality']}"
+                    if item['quality'] == 5:
+                        self.boosters[50].update({item['duration']: item['amount']})
+                    elif item['quality'] == 10:
+                        self.boosters[100].update({item['duration']: item['amount']})
+
+                    delta = item['duration']
+                    if delta // 3600:
+                        name += f" {delta // 3600}h"
+                    if delta // 60 % 60:
+                        name += f" {delta // 60 % 60}m"
+                    if delta % 60:
+                        name += f" {delta % 60}s"
+                else:
+                    kind = item.get('type')
+            else:
+                if item['industryId'] == 1:
+                    amount = item['amount']
+                    q = item['quality']
+                    if 1 <= q <= 7:
+                        self.food.update({f"q{q}": amount})
+                    else:
+                        if q == 10:
+                            self.eb_normal = amount
+                        elif q == 11:
+                            self.eb_double = amount
+                        elif q == 13:
+                            self.eb_small += amount
+                        elif q == 14:
+                            self.eb_small += amount
+                        elif q == 15:
+                            self.eb_small += amount
+                kind = re.sub(r'_q\d\d*', "", item.get('token'))
+
+            if item.get('token', "") == "house_q100":
+                self.ot_points = item['amount']
+
+            if kind not in final_items:
+                final_items[kind] = {}
+
+            if item['icon']:
+                icon = item['icon']
+            else:
+                if item['type'] == 'damageBoosters':
+                    icon = "/images/modules/pvp/damage_boosters/damage_booster.png"
+                elif item['type'] == 'aircraftDamageBoosters':
+                    icon = "/images/modules/pvp/damage_boosters/air_damage_booster.png"
+                elif item['type'] == 'prestigePointsBoosters':
+                    icon = "/images/modules/pvp/prestige_points_boosters/prestige_booster.png"
+                elif item['type'] == 'speedBoosters':
+                    icon = "/images/modules/pvp/speed_boosters/speed_booster.png"
+                elif item['type'] == 'catchupBoosters':
+                    icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
+                else:
+                    icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
+            data = dict(kind=kind, quality=item.get('quality', 0), amount=item.get('amount', 0),
+                        durability=item.get('duration', 0), icon=icon, name=name)
+            if item.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
+                data = {data['durability']: data}
+            else:
+                data = {data['quality']: data}
+            final_items[kind].update(data)
+
+        raw_materials = {}
+        if j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}):
+            for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
+                if item['isPartial']:
+                    continue
+                kind = re.sub(r'_q\d\d*', "", item.get('token'))
+                if kind == "magnesium":
+                    kind = "raw_aircraft"
+                elif kind == "sand":
+                    kind = "raw_house"
+                if kind not in raw_materials:
+                    raw_materials[kind] = []
+                if item['icon'].startswith('//www.erepublik.net/'):
+                    icon = item['icon']
+                else:
+                    icon = "//www.erepublik.net/" + item['icon']
+
+                raw_materials[kind].append(
+                    dict(name=item.get("name"), amount=item['amount'] + (item.get('underCostruction', 0) / 100),
+                         icon=icon)
+                )
+
+        offers = {}
+        for offer in self._get_economy_my_market_offers().json():
+            kind = self.get_industry_name(offer['industryId'])
+            data = dict(quality=offer.get('quality', 0), amount=offer.get('amount', 0), icon=offer.get('icon'),
+                        kind=kind, name=kind)
+            data = {data['quality']: data}
+
+            if kind not in offers:
+                offers[kind] = {}
+
+            offers[kind].update(data)
+
+        self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
+                               "total": j.get("inventoryStatus").get("totalStorage")})
+        inventory = dict(items=dict(active=active_items, final=final_items,
+                                    raw=raw_materials, offers=offers), status=self.inventory)
+        self.food["total"] = sum([self.food[q] * utils.FOOD_ENERGY[q] for q in utils.FOOD_ENERGY])
+        return inventory
+
     def _check_response_for_medals(self, html: str):
         new_medals = re.findall(r'(<div class="home_reward reward achievement">.*?<div class="bottom"></div>\s*</div>)',
                                 html, re.M | re.S | re.I)
@@ -446,6 +590,26 @@ class BaseCitizen(CitizenAPI):
         self.energy.recovered = r_json.get("health")
         self.energy.recoverable = r_json.get("food_remaining")
         return response
+
+    def get_industry_id(self, industry_name: str) -> int:
+        """Returns industry id
+
+        :type industry_name: str
+        :return: int
+        """
+        return self.available_industries.get(industry_name, 0)
+
+    def get_industry_name(self, industry_id: int) -> str:
+        """Returns industry name from industry ID
+
+        :type industry_id: int
+        :return: industry name
+        :rtype: str
+        """
+        for iname, iid in self.available_industries.items():
+            if iid == industry_id:
+                return iname
+        return ""
 
 
 class CitizenTravel(BaseCitizen):
@@ -690,143 +854,6 @@ class CitizenEconomy(CitizenTravel):
     def __init__(self):
         super().__init__()
         self.my_companies = MyCompanies()
-
-    def update_inventory(self) -> Dict[str, Any]:
-        """
-        Updates class properties and returns structured inventory.
-        Return structure: {status: {used: int, total: int}, items: {active/final/raw: {item_token:{quality: data}}}
-        If item kind is damageBoosters or aircraftDamageBoosters then kind is renamed to kind+quality and duration is
-        used as quality.
-        :return: dict
-        """
-        self.food.update({"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0})
-        self.eb_small = self.eb_double = self.eb_normal = 0
-
-        j = self._get_economy_inventory_items().json()
-        active_items = {}
-        if j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}):
-            for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
-                if item.get('token'):
-                    kind = re.sub(r'_q\d\d*', "", item.get('token'))
-                else:
-                    kind = item.get('type')
-                if kind not in active_items:
-                    active_items[kind] = {}
-                icon = item['icon'] if item['icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
-                item_data = dict(name=item.get("name"), time_left=item['active']['time_left'], icon=icon, kind=kind,
-                                 quality=item.get("quality", 0))
-
-                if item.get('isPackBooster'):
-                    active_items[kind].update({0: item_data})
-                else:
-                    active_items[kind].update({item.get("quality"): item_data})
-
-        final_items = {}
-        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
-            name = item['name']
-
-            if item.get('type'):
-                if item.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
-                    kind = f"{item['type']}{item['quality']}"
-                    if item['quality'] == 5:
-                        self.boosters[50].update({item['duration']: item['amount']})
-                    elif item['quality'] == 10:
-                        self.boosters[100].update({item['duration']: item['amount']})
-
-                    delta = item['duration']
-                    if delta // 3600:
-                        name += f" {delta // 3600}h"
-                    if delta // 60 % 60:
-                        name += f" {delta // 60 % 60}m"
-                    if delta % 60:
-                        name += f" {delta % 60}s"
-                else:
-                    kind = item.get('type')
-            else:
-                if item['industryId'] == 1:
-                    amount = item['amount']
-                    q = item['quality']
-                    if 1 <= q <= 7:
-                        self.food.update({f"q{q}": amount})
-                    else:
-                        if q == 10:
-                            self.eb_normal = amount
-                        elif q == 11:
-                            self.eb_double = amount
-                        elif q == 13:
-                            self.eb_small += amount
-                        elif q == 14:
-                            self.eb_small += amount
-                        elif q == 15:
-                            self.eb_small += amount
-                kind = re.sub(r'_q\d\d*', "", item.get('token'))
-
-            if item.get('token', "") == "house_q100":
-                self.ot_points = item['amount']
-
-            if kind not in final_items:
-                final_items[kind] = {}
-
-            if item['icon']:
-                icon = item['icon']
-            else:
-                if item['type'] == 'damageBoosters':
-                    icon = "/images/modules/pvp/damage_boosters/damage_booster.png"
-                elif item['type'] == 'aircraftDamageBoosters':
-                    icon = "/images/modules/pvp/damage_boosters/air_damage_booster.png"
-                elif item['type'] == 'prestigePointsBoosters':
-                    icon = "/images/modules/pvp/prestige_points_boosters/prestige_booster.png"
-                elif item['type'] == 'speedBoosters':
-                    icon = "/images/modules/pvp/speed_boosters/speed_booster.png"
-                elif item['type'] == 'catchupBoosters':
-                    icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
-                else:
-                    icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
-            data = dict(kind=kind, quality=item.get('quality', 0), amount=item.get('amount', 0),
-                        durability=item.get('duration', 0), icon=icon, name=name)
-            if item.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
-                data = {data['durability']: data}
-            else:
-                data = {data['quality']: data}
-            final_items[kind].update(data)
-
-        raw_materials = {}
-        if j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}):
-            for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
-                if item['isPartial']:
-                    continue
-                kind = re.sub(r'_q\d\d*', "", item.get('token'))
-                if kind == "magnesium":
-                    kind = "raw_aircraft"
-                elif kind == "sand":
-                    kind = "raw_house"
-                if kind not in raw_materials:
-                    raw_materials[kind] = []
-                icon = (item['icon'] if item['icon'].startswith('//www.erepublik.net/') else "//www.erepublik."
-                                                                                             "net/" + item['icon'])
-                raw_materials[kind].append(
-                    dict(name=item.get("name"), amount=item['amount'] + (item.get('underCostruction', 0) / 100),
-                         icon=icon)
-                )
-
-        offers = {}
-        for offer in self._get_economy_my_market_offers().json():
-            kind = self.get_industry_name(offer['industryId'])
-            data = dict(quality=offer.get('quality', 0), amount=offer.get('amount', 0), icon=offer.get('icon'),
-                        kind=kind, name=kind)
-            data = {data['quality']: data}
-
-            if kind not in offers:
-                offers[kind] = {}
-
-            offers[kind].update(data)
-
-        self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
-                               "total": j.get("inventoryStatus").get("totalStorage")})
-        inventory = dict(items=dict(active=active_items, final=final_items,
-                                    raw=raw_materials, offers=offers), status=self.inventory)
-        self.food["total"] = sum([self.food[q] * utils.FOOD_ENERGY[q] for q in utils.FOOD_ENERGY])
-        return inventory
 
     def work_employees(self) -> bool:
         self.update_companies()
@@ -1146,26 +1173,6 @@ class CitizenEconomy(CitizenTravel):
             company_name += f" q{company['quality']}"
         self.write_log(f"{company_name} dissolved!")
         return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
-
-    def get_industry_id(self, industry_name: str) -> int:
-        """Returns industry id
-
-        :type industry_name: str
-        :return: int
-        """
-        return self.available_industries.get(industry_name, 0)
-
-    def get_industry_name(self, industry_id: int) -> str:
-        """Returns industry name from industry ID
-
-        :type industry_id: int
-        :return: industry name
-        :rtype: str
-        """
-        for iname, iid in self.available_industries.items():
-            if iid == industry_id:
-                return iname
-        return ""
 
     def get_market_offers(self, country_id: int = None, product_name: str = None, quality: int = None) -> dict:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
@@ -1612,14 +1619,6 @@ class CitizenMilitary(CitizenTravel, CitizenTasks):
                 except KeyError:
                     self.report_error(f"Division {div} not available for battle {battle.id}!")
                     def_points = inv_points = 3600
-                kwargs = {
-                    "bid": battle.id,
-                    "air": "air" if battle.is_air else "ground",
-                    "rw": "True" if battle.is_rw else "False",
-                    "def": def_points,
-                    "inv": inv_points,
-                    "travel": "(TRAVEL)" if travel_needed else "",
-                }
                 self.write_log(battle)
 
                 points = def_points <= 1700 and inv_points <= 1700
