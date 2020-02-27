@@ -731,129 +731,6 @@ class CitizenTravel(BaseCitizen):
         return return_list
 
 
-class CitizenTasks(BaseCitizen):
-    tg_contract: dict = {}
-    ot_points: int = 0
-    next_ot_time: datetime = None
-
-    def eat(self):
-        """ Eat food """
-        self._eat("blue")
-
-    def work(self):
-        if self.energy.food_fights >= 1:
-            response = self._post_economy_work("work")
-            js = response.json()
-            good_msg = ["already_worked", "captcha"]
-            if not js.get("status") and not js.get("message") in good_msg:
-                if js.get('message') == 'employee':
-                    self.find_new_job()
-                self.update_citizen_info()
-                self.work()
-            else:
-                self.reporter.report_action("WORK", json_val=js)
-        else:
-            self._eat("blue")
-            if self.energy.food_fights < 1:
-                seconds = (self.energy.reference_time - self.now).total_seconds()
-                self.write_log("I don't have energy to work. Will sleep for {}s".format(seconds))
-                self.sleep(seconds)
-                self._eat("blue")
-            self.work()
-
-    def train(self):
-        r = self._get_main_training_grounds_json()
-        tg_json = r.json()
-        self.details.gold = tg_json["page_details"]["gold"]
-        self.tg_contract.update(free_train=tg_json["hasFreeTrain"])
-        if tg_json["contracts"]:
-            self.tg_contract.update(**tg_json["contracts"][0])
-
-        tgs = []
-        for data in sorted(tg_json["grounds"], key=lambda k: k["cost"]):
-            if data["default"] and not data["trained"]:
-                tgs.append(data["id"])
-        if tgs:
-            if self.energy.food_fights >= len(tgs):
-                response = self._post_economy_train(tgs)
-                if not response.json().get("status"):
-                    self.update_citizen_info()
-                    self.train()
-                else:
-                    self.reporter.report_action("TRAIN", response.json())
-            else:
-                self._eat("blue")
-                if self.energy.food_fights < len(tgs):
-                    large = max(self.energy.reference_time, self.now)
-                    small = min(self.energy.reference_time, self.now)
-                    self.write_log("I don't have energy to train. Will sleep for {} seconds".format(
-                        (large - small).seconds))
-                    self.sleep(int((large - small).total_seconds()))
-                    self._eat("blue")
-                self.train()
-
-    def work_ot(self):
-        # I"m not checking for 1h cooldown. Beware of nightshift work, if calling more than once every 60min
-        self.update_job_info()
-        if self.ot_points >= 24 and self.energy.food_fights > 1:
-            r = self._post_economy_work_overtime()
-            if not r.json().get("status") and r.json().get("message") == "money":
-                self.resign_from_employer()
-                self.find_new_job()
-            else:
-                if r.json().get('message') == 'employee':
-                    self.find_new_job()
-                self.reporter.report_action("WORK_OT", r.json())
-        elif self.energy.food_fights < 1 and self.ot_points >= 24:
-            self._eat("blue")
-            if self.energy.food_fights < 1:
-                large = max(self.energy.reference_time, self.now)
-                small = min(self.energy.reference_time, self.now)
-                self.write_log("I don't have energy to work OT. Will sleep for {}s".format((large - small).seconds))
-                self.sleep(int((large - small).total_seconds()))
-                self._eat("blue")
-            self.work_ot()
-
-    def resign_from_employer(self) -> bool:
-        self.update_job_info()
-        if self.r.json().get("isEmployee"):
-            self.reporter.report_action("RESIGN", self.r.json())
-            self._post_economy_resign()
-            return True
-        return False
-
-    def buy_tg_contract(self) -> Response:
-        ret = self._post_main_buy_gold_items('gold', "TrainingContract2", 1)
-        self.reporter.report_action("BUY_TG_CONTRACT", ret.json())
-        return ret
-
-    def find_new_job(self) -> Response:
-        r = self._get_economy_job_market_json(self.details.current_country)
-        jobs = r.json().get("jobs")
-        data = dict(citizen=0, salary=10)
-        for posting in jobs:
-            salary = posting.get("salary")
-            limit = posting.get("salaryLimit", 0)
-            userid = posting.get("citizen").get("id")
-
-            if (not limit or salary * 3 < limit) and salary > data["salary"]:
-                data.update({"citizen": userid, "salary": salary})
-        self.reporter.report_action("APPLYING_FOR_JOB", jobs, str(data['citizen']))
-        return self._post_economy_job_market_apply(**data)
-
-    def apply_to_employer(self, employer_id: int, salary: float) -> bool:
-        data = dict(citizenId=employer_id, salary=salary)
-        self.reporter.report_action("APPLYING_FOR_JOB", data)
-        r = self._post_economy_job_market_apply(employer_id, salary)
-        return bool(r.json().get('status'))
-
-    def update_job_info(self):
-        ot = self._get_main_job_data().json().get("overTime", {})
-        if ot:
-            self.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
-            self.ot_points = ot.get("points", 0)
-
-
 class CitizenEconomy(CitizenTravel):
     food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
     inventory: Dict[str, int] = {"used": 0, "total": 0}
@@ -1364,6 +1241,20 @@ class CitizenEconomy(CitizenTravel):
         self.reporter.report_action("CONTRIBUTE_GOLD", data, str(amount))
         r = self._post_main_country_donate(**data)
         return r.json().get('status') or not r.json().get('error')
+
+
+class CitizenLeaderboard(BaseCitizen):
+    def get_aircraft_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Dict[str, any]:
+        return self._get_main_leaderboards_damage_aircraft_rankings(country, weeks, mu).json()
+
+    def get_ground_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 4) -> Dict[str, any]:
+        return self._get_main_leaderboards_damage_rankings(country, weeks, mu, div).json()
+
+    def get_aircraft_kill_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Dict[str, any]:
+        return self._get_main_leaderboards_kills_aircraft_rankings(country, weeks, mu).json()
+
+    def get_ground_kill_rankings(self, country: int, weeks: int = 0, mu: int = 0, div: int = 4) -> Dict[str, any]:
+        return self._get_main_leaderboards_kills_rankings(country, weeks, mu, div).json()
 
 
 class CitizenMedia(BaseCitizen):
@@ -2105,8 +1996,139 @@ class CitizenSocial(BaseCitizen):
                 else:
                     self.report_error(f"Unsupported notification kind: \"{kind}\"!")
 
+    def get_citizen_profile(self, player_id: int = None):
+        if player_id is None:
+            player_id = self.details.citizen_id
+        return self._get_main_citizen_profile_json(player_id).json()
 
-class Citizen(CitizenAnniversary, CitizenEconomy, CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
+
+class CitizenTasks(BaseCitizen):
+    tg_contract: dict = {}
+    ot_points: int = 0
+    next_ot_time: datetime = None
+
+    def eat(self):
+        """ Eat food """
+        self._eat("blue")
+
+    def work(self):
+        if self.energy.food_fights >= 1:
+            response = self._post_economy_work("work")
+            js = response.json()
+            good_msg = ["already_worked", "captcha"]
+            if not js.get("status") and not js.get("message") in good_msg:
+                if js.get('message') == 'employee':
+                    self.find_new_job()
+                self.update_citizen_info()
+                self.work()
+            else:
+                self.reporter.report_action("WORK", json_val=js)
+        else:
+            self._eat("blue")
+            if self.energy.food_fights < 1:
+                seconds = (self.energy.reference_time - self.now).total_seconds()
+                self.write_log("I don't have energy to work. Will sleep for {}s".format(seconds))
+                self.sleep(seconds)
+                self._eat("blue")
+            self.work()
+
+    def train(self):
+        r = self._get_main_training_grounds_json()
+        tg_json = r.json()
+        self.details.gold = tg_json["page_details"]["gold"]
+        self.tg_contract.update(free_train=tg_json["hasFreeTrain"])
+        if tg_json["contracts"]:
+            self.tg_contract.update(**tg_json["contracts"][0])
+
+        tgs = []
+        for data in sorted(tg_json["grounds"], key=lambda k: k["cost"]):
+            if data["default"] and not data["trained"]:
+                tgs.append(data["id"])
+        if tgs:
+            if self.energy.food_fights >= len(tgs):
+                response = self._post_economy_train(tgs)
+                if not response.json().get("status"):
+                    self.update_citizen_info()
+                    self.train()
+                else:
+                    self.reporter.report_action("TRAIN", response.json())
+            else:
+                self._eat("blue")
+                if self.energy.food_fights < len(tgs):
+                    large = max(self.energy.reference_time, self.now)
+                    small = min(self.energy.reference_time, self.now)
+                    self.write_log("I don't have energy to train. Will sleep for {} seconds".format(
+                        (large - small).seconds))
+                    self.sleep(int((large - small).total_seconds()))
+                    self._eat("blue")
+                self.train()
+
+    def work_ot(self):
+        # I"m not checking for 1h cooldown. Beware of nightshift work, if calling more than once every 60min
+        self.update_job_info()
+        if self.ot_points >= 24 and self.energy.food_fights > 1:
+            r = self._post_economy_work_overtime()
+            if not r.json().get("status") and r.json().get("message") == "money":
+                self.resign_from_employer()
+                self.find_new_job()
+            else:
+                if r.json().get('message') == 'employee':
+                    self.find_new_job()
+                self.reporter.report_action("WORK_OT", r.json())
+        elif self.energy.food_fights < 1 and self.ot_points >= 24:
+            self._eat("blue")
+            if self.energy.food_fights < 1:
+                large = max(self.energy.reference_time, self.now)
+                small = min(self.energy.reference_time, self.now)
+                self.write_log("I don't have energy to work OT. Will sleep for {}s".format((large - small).seconds))
+                self.sleep(int((large - small).total_seconds()))
+                self._eat("blue")
+            self.work_ot()
+
+    def resign_from_employer(self) -> bool:
+        self.update_job_info()
+        if self.r.json().get("isEmployee"):
+            self.reporter.report_action("RESIGN", self.r.json())
+            self._post_economy_resign()
+            return True
+        return False
+
+    def buy_tg_contract(self) -> Response:
+        ret = self._post_main_buy_gold_items('gold', "TrainingContract2", 1)
+        self.reporter.report_action("BUY_TG_CONTRACT", ret.json())
+        return ret
+
+    def find_new_job(self) -> Response:
+        r = self._get_economy_job_market_json(self.details.current_country)
+        jobs = r.json().get("jobs")
+        data = dict(citizen=0, salary=10)
+        for posting in jobs:
+            salary = posting.get("salary")
+            limit = posting.get("salaryLimit", 0)
+            userid = posting.get("citizen").get("id")
+
+            if (not limit or salary * 3 < limit) and salary > data["salary"]:
+                data.update({"citizen": userid, "salary": salary})
+        self.reporter.report_action("APPLYING_FOR_JOB", jobs, str(data['citizen']))
+        return self._post_economy_job_market_apply(**data)
+
+    def apply_to_employer(self, employer_id: int, salary: float) -> bool:
+        data = dict(citizenId=employer_id, salary=salary)
+        self.reporter.report_action("APPLYING_FOR_JOB", data)
+        r = self._post_economy_job_market_apply(employer_id, salary)
+        return bool(r.json().get('status'))
+
+    def update_job_info(self):
+        ot = self._get_main_job_data().json().get("overTime", {})
+        if ot:
+            self.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
+            self.ot_points = ot.get("points", 0)
+
+
+class Citizen(
+    CitizenAnniversary, CitizenEconomy, CitizenLeaderboard, CitizenMedia, CitizenMilitary,
+    CitizenPolitics, CitizenSocial, CitizenTasks
+):
     debug: bool = False
 
     def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
