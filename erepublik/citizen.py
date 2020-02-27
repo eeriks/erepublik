@@ -1888,6 +1888,19 @@ class CitizenMilitary(CitizenTravel):
                     ret.update({user["citizenId"]: user["name"]})
         return ret
 
+    def get_citizen_weekly_daily_orders_done(self, citizen_id: int = None, weeks_ago: int = 0) -> int:
+        if citizen_id is None:
+            citizen_id = self.details.citizen_id
+        profile = self._get_main_citizen_profile_json(citizen_id).json()
+        mu_id = profile.get('military', {}).get('militaryUnit', {}).get('id', 0)
+        if mu_id:
+            name = profile.get('citizen', {}).get('name')
+            params = dict(currentPage=1, panel="members", sortBy="dailyOrdersCompleted",
+                          weekFilter=f"week{weeks_ago}", search=name)
+            member = self._get_military_unit_data(mu_id, **params).json()
+            return member.get('panelContents', {}).get('members', [{}])[0].get('dailyOrdersCompleted')
+        return 0
+
 
 class CitizenPolitics(BaseCitizen):
     def get_country_parties(self, country_id: int = None) -> dict:
@@ -2003,6 +2016,15 @@ class CitizenSocial(BaseCitizen):
         if player_id is None:
             player_id = self.details.citizen_id
         return self._get_main_citizen_profile_json(player_id).json()
+
+    def get_citizen_residency_data(self, citizen_id: int = None) -> Optional[Dict[str, Any]]:
+        if citizen_id is None:
+            citizen_id = self.details.citizen_id
+        profile = self.get_citizen_profile(citizen_id)
+        name = profile.get('citizen', {}).get('name', '')
+        city_id = profile.get('citizen', {}).get('residenceCityId')
+        if city_id:
+            return self._get_main_city_data_residents(city_id, params={"search": name}).json()
 
 
 class CitizenTasks(BaseCitizen):
