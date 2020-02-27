@@ -2135,10 +2135,8 @@ class Citizen(
     debug: bool = False
 
     def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
-        super().__init__()
+        super().__init__(email, password)
         self.__last_full_update = utils.good_timedelta(self.now, - timedelta(minutes=5))
-        self.config.email = email
-        self.config.password = password
         self.set_debug(True)
         if auto_login:
             self.login()
