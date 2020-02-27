@@ -114,9 +114,7 @@ class CitizenBaseAPI:
     token: str = ""
 
     def __init__(self):
-        """
-Class for unifying eRepublik known endpoints and their required/optional parameters
-        """
+        """ Class for unifying eRepublik known endpoints and their required/optional parameters """
         self._req = SlowRequests()
 
     def post(self, url: str, data=None, json=None, **kwargs) -> Response:

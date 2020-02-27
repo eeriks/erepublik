@@ -42,6 +42,18 @@ class BaseCitizen(CitizenAPI):
     logged_in: bool = False
     commit_id: str = ""
 
+    def __init__(self):
+        super().__init__()
+        self.commit_id = utils.COMMIT_ID
+        self.config = Config()
+        self.energy = Energy()
+        self.details = Details()
+        self.politics = Politics()
+        self.my_companies = MyCompanies()
+        self.reporter = Reporter()
+        self.stop_threads = Event()
+        self.telegram = TelegramBot(stop_event=self.stop_threads)
+
     def get_csrf_token(self):
         """
         get_csrf_token is the function which logs you in, and updates csrf tokens
@@ -69,42 +81,6 @@ class BaseCitizen(CitizenAPI):
             self.update_citizen_info(resp.text)
         except (AttributeError, utils.json.JSONDecodeError, ValueError, KeyError):
             pass
-
-    def _login(self):
-        # MUST BE CALLED TROUGH self.get_csrf_token()
-        r = self._post_login(self.config.email, self.config.password)
-        self.r = r
-
-        if r.url == f"{self.url}/login":
-            self.write_log("Citizen email and/or password is incorrect!")
-            raise KeyboardInterrupt
-        else:
-            re_name_id = re.search(r'<a data-fblog="profile_avatar" href="/en/citizen/profile/(\d+)" '
-                                   r'class="user_avatar" title="(.*?)">', r.text)
-            self.name = re_name_id.group(2)
-            self.details.citizen_id = re_name_id.group(1)
-
-            self.write_log(f"Logged in as: {self.name}")
-            self.get_csrf_token()
-            self.logged_in = True
-
-    def _errors_in_response(self, response: Response):
-        try:
-            j = response.json()
-            if j['error'] and j["message"] == 'Too many requests':
-                self.write_log("Made too many requests! Sleeping for 30 seconds.")
-                self.sleep(30)
-        except (utils.json.JSONDecodeError, KeyError, TypeError):
-            pass
-        if response.status_code >= 400:
-            self.r = response
-            if response.status_code >= 500:
-                self.write_log("eRepublik servers are having internal troubles. Sleeping for 5 minutes")
-                self.sleep(5 * 60)
-            else:
-                raise ErepublikException(f"HTTP {response.status_code} error!")
-        return bool(re.search(r'body id="error"|Internal Server Error|'
-                              r'CSRF attack detected|meta http-equiv="refresh"|not_authenticated', response.text))
 
     def get(self, url: str, **kwargs) -> Response:
         if (self.now - self._req.last_time).seconds >= 15 * 60:
@@ -451,6 +427,29 @@ class BaseCitizen(CitizenAPI):
         else:
             sleep(seconds)
 
+    def to_json(self, indent: bool = False) -> str:
+        return utils.json.dumps(self.__dict__, cls=MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+
+    def get_industry_id(self, industry_name: str) -> int:
+        """Returns industry id
+
+        :type industry_name: str
+        :return: int
+        """
+        return self.available_industries.get(industry_name, 0)
+
+    def get_industry_name(self, industry_id: int) -> str:
+        """Returns industry name from industry ID
+
+        :type industry_id: int
+        :return: industry name
+        :rtype: str
+        """
+        for iname, iid in self.available_industries.items():
+            if iid == industry_id:
+                return iname
+        return ""
+
     def __str__(self) -> str:
         return f"Citizen {self.name}"
 
@@ -465,29 +464,11 @@ class BaseCitizen(CitizenAPI):
 
         return ret
 
-    def _travel(self, country_id: int, region_id: int = 0) -> Response:
-        data = {
-            "toCountryId": country_id,
-            "inRegionId": region_id,
-        }
-        return self._post_main_travel("moveAction", **data)
-
     @property
     def health_info(self):
         ret = f"{self.energy.recovered}/{self.energy.limit} + {self.energy.recoverable}, " \
               f"{self.energy.interval}hp/6m. {self.details.xp_till_level_up}xp until level up"
         return ret
-
-    @property
-    def now(self) -> datetime:
-        """
-        Returns aware datetime object localized to US/Pacific (eRepublik time)
-        :return: datetime
-        """
-        return utils.now()
-
-    def to_json(self, indent: bool = False) -> str:
-        return utils.json.dumps(self.__dict__, cls=MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
 
     @property
     def next_reachable_energy(self) -> int:
@@ -572,6 +553,21 @@ class BaseCitizen(CitizenAPI):
                 18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
                 24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }
 
+    @property
+    def now(self) -> datetime:
+        """
+        Returns aware datetime object localized to US/Pacific (eRepublik time)
+        :return: datetime
+        """
+        return utils.now()
+
+    def _travel(self, country_id: int, region_id: int = 0) -> Response:
+        data = {
+            "toCountryId": country_id,
+            "inRegionId": region_id,
+        }
+        return self._post_main_travel("moveAction", **data)
+
     def _get_main_party_members(self, party_id: int) -> Dict[int, str]:
         ret = {}
         r = super()._get_main_party_members(party_id)
@@ -583,6 +579,15 @@ class BaseCitizen(CitizenAPI):
     def _eat(self, colour: str = "blue") -> Response:
         response = self._post_eat(colour)
         r_json = response.json()
+        for q, amount in r_json.get("units_consumed").items():
+            if f"q{q}" in self.food:
+                self.food[f"q{q}"] -= amount
+            elif q == "10":
+                self.eb_normal -= amount
+            elif q == "11":
+                self.eb_double -= amount
+            elif q == "12":
+                self.eb_small -= amount
         next_recovery = r_json.get("food_remaining_reset").split(":")
         self.energy.set_reference_time(
             utils.good_timedelta(self.now, timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
@@ -591,25 +596,41 @@ class BaseCitizen(CitizenAPI):
         self.energy.recoverable = r_json.get("food_remaining")
         return response
 
-    def get_industry_id(self, industry_name: str) -> int:
-        """Returns industry id
+    def _login(self):
+        # MUST BE CALLED TROUGH self.get_csrf_token()
+        r = self._post_login(self.config.email, self.config.password)
+        self.r = r
 
-        :type industry_name: str
-        :return: int
-        """
-        return self.available_industries.get(industry_name, 0)
+        if r.url == f"{self.url}/login":
+            self.write_log("Citizen email and/or password is incorrect!")
+            raise KeyboardInterrupt
+        else:
+            re_name_id = re.search(r'<a data-fblog="profile_avatar" href="/en/citizen/profile/(\d+)" '
+                                   r'class="user_avatar" title="(.*?)">', r.text)
+            self.name = re_name_id.group(2)
+            self.details.citizen_id = re_name_id.group(1)
 
-    def get_industry_name(self, industry_id: int) -> str:
-        """Returns industry name from industry ID
+            self.write_log(f"Logged in as: {self.name}")
+            self.get_csrf_token()
+            self.logged_in = True
 
-        :type industry_id: int
-        :return: industry name
-        :rtype: str
-        """
-        for iname, iid in self.available_industries.items():
-            if iid == industry_id:
-                return iname
-        return ""
+    def _errors_in_response(self, response: Response):
+        try:
+            j = response.json()
+            if j['error'] and j["message"] == 'Too many requests':
+                self.write_log("Made too many requests! Sleeping for 30 seconds.")
+                self.sleep(30)
+        except (utils.json.JSONDecodeError, KeyError, TypeError):
+            pass
+        if response.status_code >= 400:
+            self.r = response
+            if response.status_code >= 500:
+                self.write_log("eRepublik servers are having internal troubles. Sleeping for 5 minutes")
+                self.sleep(5 * 60)
+            else:
+                raise ErepublikException(f"HTTP {response.status_code} error!")
+        return bool(re.search(r'body id="error"|Internal Server Error|'
+                              r'CSRF attack detected|meta http-equiv="refresh"|not_authenticated', response.text))
 
 
 class CitizenAnniversary(BaseCitizen):
@@ -715,18 +736,9 @@ class CitizenTasks(BaseCitizen):
     ot_points: int = 0
     next_ot_time: datetime = None
 
-    def _eat(self, colour: str = "blue") -> Response:
-        resp = super()._eat(colour)
-        for q, amount in resp.json().get("units_consumed").items():
-            if f"q{q}" in self.food:
-                self.food[f"q{q}"] -= amount
-            elif q == "10":
-                self.eb_normal -= amount
-            elif q == "11":
-                self.eb_double -= amount
-            elif q == "12":
-                self.eb_small -= amount
-        return resp
+    def eat(self):
+        """ Eat food """
+        self._eat("blue")
 
     def work(self):
         if self.energy.food_fights >= 1:
@@ -1394,7 +1406,7 @@ class CitizenMedia(BaseCitizen):
             ))
 
 
-class CitizenMilitary(CitizenTravel, CitizenTasks):
+class CitizenMilitary(CitizenTravel):
     all_battles: Dict[int, Battle] = None
     countries: Dict[int, Dict[str, Union[str, List[int]]]] = None
     __last_war_update_data = None
@@ -2094,24 +2106,15 @@ class CitizenSocial(BaseCitizen):
                     self.report_error(f"Unsupported notification kind: \"{kind}\"!")
 
 
-class Citizen(CitizenAnniversary, CitizenEconomy, CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial):
+class Citizen(CitizenAnniversary, CitizenEconomy, CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
     debug: bool = False
 
     def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
         super().__init__()
         self.__last_full_update = utils.good_timedelta(self.now, - timedelta(minutes=5))
-        self.commit_id = utils.COMMIT_ID
-        self.config = Config()
         self.config.email = email
         self.config.password = password
-        self.energy = Energy()
-        self.details = Details()
-        self.politics = Politics()
-        self.my_companies = MyCompanies()
         self.set_debug(True)
-        self.reporter = Reporter()
-        self.stop_threads = Event()
-        self.telegram = TelegramBot(stop_event=self.stop_threads)
         if auto_login:
             self.login()
 
@@ -2292,3 +2295,28 @@ class Citizen(CitizenAnniversary, CitizenEconomy, CitizenMedia, CitizenMilitary,
     def send_inventory_update(self):
         to_report = self.update_inventory()
         self.reporter.report_action("INVENTORY", json_val=to_report)
+
+    def eat(self):
+        """
+        Try to eat food
+        """
+        self._eat("blue")
+        if self.food["total"] > self.energy.interval:
+            if self.energy.limit - self.energy.recovered > self.energy.interval or not self.energy.recoverable % 2:
+                super().eat()
+            else:
+                self.write_log("I don't want to eat right now!")
+        else:
+            self.write_log(f"I'm out of food! But I'll try to buy some!\n{self.food}")
+            self.buy_food()
+            if self.food["total"] > self.energy.interval:
+                super().eat()
+            else:
+                self.write_log("I failed to buy food")
+
+    def eat_eb(self):
+        self.write_log("Eating energy bar")
+        if self.energy.recoverable:
+            self._eat("blue")
+        self._eat("orange")
+        self.write_log(self.health_info)
