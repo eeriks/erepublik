@@ -3,6 +3,7 @@ import inspect
 import os
 import re
 import sys
+import textwrap
 import time
 import traceback
 import unicodedata
@@ -187,7 +188,7 @@ silent_sleep = time.sleep
 
 def _write_log(msg, timestamp: bool = True, should_print: bool = False):
     erep_time_now = now()
-    txt = "[{}] {}".format(erep_time_now.strftime('%F %T'), msg) if timestamp else msg
+    txt = textwrap.fill("[{}] {}".format(erep_time_now.strftime('%F %T'), msg) if timestamp else msg, 120)
     if not os.path.isdir('log'):
         os.mkdir('log')
     with open("log/%s.log" % erep_time_now.strftime('%F'), 'a', encoding="utf-8") as f:

@@ -1,10 +1,11 @@
 import re
 import sys
+import warnings
 from datetime import datetime, timedelta
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable
 
 from requests import RequestException, Response
 
@@ -405,6 +406,14 @@ class BaseCitizen(CitizenAPI):
                 return iname
         return ""
 
+    def get_countries_with_regions(self) -> Set[int]:
+        response_json = self._post_main_travel_data().json()
+        return_list = {*[]}
+        for country_data in response_json['countries'].values():
+            if country_data['currentRegions']:
+                return_list.add(country_data['id'])
+        return return_list
+
     def __str__(self) -> str:
         return f"Citizen {self.name}"
 
@@ -653,6 +662,32 @@ class CitizenAnniversary(BaseCitizen):
         node = self.get_anniversary_quest_data().get('cities', {}).get(str(node_id), {})
         return self._post_map_rewards_speedup(node_id, node.get("skipCost", 0))
 
+    def spin_wheel_of_fortune(self, max_cost=0, spin_count=0):
+        def _write_spin_data(cost, cc, prize):
+            self.write_log(f"Cost: {cost:4d} | Currency left: {cc:,} | Prize: {prize}")
+
+        base = self._post_main_wheel_of_fortune_build().json()
+        current_cost = 0 if base.get('progress').get('free_spin') else base.get('cost')
+        current_count = base.get('progress').get('spins')
+        if not max_cost and not spin_count:
+            r = self._post_main_wheel_of_fortune_spin(current_cost).json()
+            _write_spin_data(current_cost, r.get('account'),
+                             base.get('prizes').get('prizes').get(str(r.get('result'))).get('tooltip'))
+        else:
+            is_cost: Callable[[], bool] = lambda: (max_cost != current_cost if max_cost else True)
+            is_count: Callable[[], bool] = lambda: (spin_count != current_count if spin_count else True)
+            while is_cost() or is_count():
+                r = self._spin_wheel_of_loosing(current_cost)
+                current_count += 1
+                current_cost = r.get('cost')
+                _write_spin_data(current_cost, r.get('account'),
+                                 base.get('prizes').get('prizes').get(str(r.get('result'))).get('tooltip'))
+
+    def _spin_wheel_of_loosing(self, current_cost: int) -> Dict[str, Any]:
+        r = self._post_main_wheel_of_fortune_spin(current_cost).json()
+        self.details.cc = r.get('account')
+        return r.get('result')
+
 
 class CitizenTravel(BaseCitizen):
     def _update_citizen_location(self, country_id: int, region_id: int):
@@ -726,75 +761,34 @@ class CitizenTravel(BaseCitizen):
         return d.get('regions', [])
 
     def get_travel_countries(self) -> Set[int]:
-        response_json = self._post_main_travel_data().json()
-        return_list = {*[]}
-        for country_data in response_json['countries'].values():
-            if country_data['currentRegions']:
-                return_list.add(country_data['id'])
-        return return_list
+        warnings.simplefilter('always')
+        warnings.warn('CitizenTravel.get_travel_countries() are being deprecated, '
+                      'please use BaseCitizen.get_countries_with_regions()', DeprecationWarning)
+        return self.get_countries_with_regions()
 
 
-class CitizenEconomy(CitizenTravel):
-    food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
-    inventory: Dict[str, int] = {"used": 0, "total": 0}
-    boosters: Dict[int, Dict[int, int]] = {100: {}, 50: {}}
-
-    work_units = 0
-    ot_points = 0
-
-    my_companies: MyCompanies = None
-
-    def __init__(self):
-        super().__init__()
-        self.my_companies = MyCompanies()
-
-    def work_employees(self) -> bool:
+class CitizenCompanies(BaseCitizen):
+    def employ_employees(self) -> bool:
         self.update_companies()
         ret = True
-        work_units_needed = 0
         employee_companies = self.my_companies.get_employable_factories()
-        for c_id, preset_count in employee_companies.items():
-            work_units_needed += preset_count
+        work_units_needed = sum(employee_companies.values())
 
         if work_units_needed:
             if work_units_needed <= self.my_companies.work_units:
-                self._do_wam_and_employee_work(employee_companies=employee_companies)
+                response = self._post_economy_work("production", employ=employee_companies).json()
+                self.reporter.report_action("WORK_EMPLOYEES", response, response.get('status', False))
             self.update_companies()
-            if self.my_companies.get_employable_factories():
-                ret = False
-            else:
-                ret = True
+            ret = bool(self.my_companies.get_employable_factories())
 
         return ret
 
-    def work_wam(self) -> bool:
+    def work_as_manager_in_holding(self, holding_id: int) -> Optional[Dict[str, Any]]:
+        return self._work_as_manager(holding_id)
+
+    def _work_as_manager(self, wam_holding_id: int = 0) -> Optional[Dict[str, Any]]:
         self.update_citizen_info()
-        self.update_companies()
-        # Prevent messing up levelup with wam
-        if not (self.is_levelup_close and self.config.fight) or self.config.force_wam:
-            # Check for current region
-            regions = {}
-            for holding_id, holding in self.my_companies.holdings.items():
-                if self.my_companies.get_holding_wam_companies(holding_id):
-                    regions.update({holding["region_id"]: holding_id})
-
-            if self.details.current_region in regions:
-                self._do_wam_and_employee_work(regions.pop(self.details.current_region, None))
-
-            for holding_id in regions.values():
-                self._do_wam_and_employee_work(holding_id)
-
-            self.travel_to_residence()
-        else:
-            self.write_log("Did not wam because I would mess up levelup!")
-
-        self.update_companies()
-        return not self.my_companies.get_total_wam_count()
-
-    def _do_wam_and_employee_work(self, wam_holding_id: int = 0, employee_companies: dict = None) -> bool:
-        self.update_citizen_info()
-        if employee_companies is None:
-            employee_companies = {}
+        self.update_inventory()
         data = {"action_type": "production"}
         extra = {}
         wam_list = []
@@ -816,80 +810,18 @@ class CitizenEconomy(CitizenTravel):
                 extra_needed = self.my_companies.get_needed_inventory_usage(companies=wam_list)
                 has_space = extra_needed < free_inventory
                 if not has_space:
-                    inv_w = len(str(self.inventory["total"]))
-                    self.write_log(
-                        "Inv: {:{inv_w}}/{:{inv_w}} ({:4.2f}), Energy: {}/{} + {} (+{}hp/6min) WAM count {:3}".format(
-                            self.inventory["used"], self.inventory["total"], extra_needed,
-                            self.energy.recovered, self.energy.limit, self.energy.recoverable, self.energy.interval,
-                            len(wam_list), inv_w=inv_w
-                        ))
                     wam_list.pop(-1)
 
-        if wam_list or employee_companies:
+        if wam_list:
             data.update(extra)
             if wam_list:
                 wam_holding = self.my_companies.holdings.get(wam_holding_id)
                 if not self.details.current_region == wam_holding['region_id']:
-                    if not self.travel_to_region(wam_holding['region_id']):
-                        return False
-            response = self._post_economy_work("production", wam=wam_list, employ=employee_companies).json()
-            if response.get("status"):
-                self.reporter.report_action("WORK_WAM_EMPLOYEES", response)
-                if self.config.auto_sell:
-                    for kind, data in response.get("result", {}).get("production", {}).items():
-                        if kind in self.config.auto_sell and data:
-                            if kind in ["food", "weapon", "house", "airplane"]:
-                                for quality, amount in data.items():
-                                    self.sell_produced_product(kind, quality)
-
-                            elif kind.endswith("Raw"):
-                                self.sell_produced_product(kind, 1)
-
-                            else:
-                                raise ErepublikException("Unknown kind produced '{kind}'".format(kind=kind))
-            elif self.config.auto_buy_raw and re.search(r"not_enough_[^_]*_raw", response.get("message")):
-                raw_kind = re.search(r"not_enough_(\w+)_raw", response.get("message"))
-                if raw_kind:
-                    raw_kind = raw_kind.group(1)
-                    result = response.get("result", {})
-                    amount_remaining = round(result.get("consume") + 0.49) - round(result.get("stock") - 0.49)
-                    industry = "{}Raw".format(raw_kind)
-                    while amount_remaining > 0:
-                        amount = amount_remaining
-                        best_offer = self.get_market_offers(self.details.citizenship, industry, 1)
-                        amount = best_offer['amount'] if amount >= best_offer['amount'] else amount
-                        rj = self.buy_from_market(amount=best_offer['amount'], offer=best_offer['offer_id'])
-                        if not rj.get('error'):
-                            amount_remaining -= amount
-                        else:
-                            self.write_log(rj.get('message', ""))
-                            break
-                    else:
-                        return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
-            elif response.get("message") == "not_enough_health_food":
-                self.buy_food()
-                return self._do_wam_and_employee_work(wam_holding_id, employee_companies)
-            else:
-                msg = "I was not able to wam and or employ because:\n{}".format(response)
-                self.reporter.report_action("WORK_WAM_EMPLOYEES", response, msg)
-                self.write_log(msg)
-        wam_count = self.my_companies.get_total_wam_count()
-        if wam_count:
-            self.write_log("Wam ff lockdown is now {}, was {}".format(wam_count, self.my_companies.ff_lockdown))
-        self.my_companies.ff_lockdown = wam_count
-        return bool(wam_count)
-
-    def update_money(self, page: int = 0, currency: int = 62) -> Dict[str, Any]:
-        """
-        Gets monetary market offers to get exact amount of CC and Gold available
-        """
-        if currency not in [1, 62]:
-            currency = 62
-        resp = self._post_economy_exchange_retrieve(False, page, currency)
-        resp_data = resp.json()
-        self.details.cc = float(resp_data.get("ecash").get("value"))
-        self.details.gold = float(resp_data.get("gold").get("value"))
-        return resp_data
+                    self.write_log("Unable to work as manager because of location - please travel!")
+                    return
+            response = self._post_economy_work("production", wam=wam_list,
+                                               employ=self.my_companies.get_employable_factories()).json()
+            return response
 
     def update_companies(self):
         html = self._get_economy_my_companies().text
@@ -902,6 +834,56 @@ class CitizenEconomy(CitizenTravel):
             self.my_companies.prepare_companies(utils.json.loads(have_companies.group(1)))
             self.my_companies.prepare_holdings(utils.json.loads(have_holdings.group(1)))
             self.my_companies.update_holding_companies()
+
+    def assign_factory_to_holding(self, factory_id: int, holding_id: int) -> Response:
+        """
+        Assigns factory to new holding
+        """
+        company = self.my_companies.companies[factory_id]
+        company_name = self.factories[company['industry_id']]
+        if not company['is_raw']:
+            company_name += f" q{company['quality']}"
+        self.write_log(f"{company_name} moved to {holding_id}")
+        return self._post_economy_assign_to_holding(factory_id, holding_id)
+
+    def upgrade_factory(self, factory_id: int, level: int) -> Response:
+        return self._post_economy_upgrade_company(factory_id, level, self.details.pin)
+
+    def create_factory(self, industry_id: int, building_type: int = 1) -> Response:
+        """
+        param industry_ids: FRM={q1:7, q2:8, q3:9, q4:10, q5:11} WRM={q1:12, q2:13, q3:14, q4:15, q5:16}
+                            HRM={q1:18, q2:19, q3:20, q4:21, q5:22} ARM={q1:24, q2:25, q3:26, q4:27, q5:28}
+                            Factories={Food:1, Weapons:2, House:4, Aircraft:23} <- Building_type 1
+
+                            Storage={1000: 1, 2000: 2} <- Building_type 2
+        """
+        company_name = self.factories[industry_id]
+        if building_type == 2:
+            company_name = f"Storage"
+        self.write_log(f"{company_name} created!")
+        return self._post_economy_create_company(industry_id, building_type)
+
+    def dissolve_factory(self, factory_id: int) -> Response:
+        company = self.my_companies.companies[factory_id]
+        company_name = self.factories[company['industry_id']]
+        if not company['is_raw']:
+            company_name += f" q{company['quality']}"
+        self.write_log(f"{company_name} dissolved!")
+        return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
+
+
+class CitizenEconomy(CitizenTravel):
+    def update_money(self, page: int = 0, currency: int = 62) -> Dict[str, Any]:
+        """
+        Gets monetary market offers to get exact amount of CC and Gold available
+        """
+        if currency not in [1, 62]:
+            currency = 62
+        resp = self._post_economy_exchange_retrieve(False, page, currency)
+        resp_data = resp.json()
+        self.details.cc = float(resp_data.get("ecash").get("value"))
+        self.details.gold = float(resp_data.get("gold").get("value"))
+        return resp_data
 
     def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
@@ -1031,42 +1013,6 @@ class CitizenEconomy(CitizenTravel):
             self.reporter.report_action("BUY_PRODUCT", ret.json())
         return json_ret
 
-    def assign_factory_to_holding(self, factory_id: int, holding_id: int) -> Response:
-        """
-        Assigns factory to new holding
-        """
-        company = self.my_companies.companies[factory_id]
-        company_name = self.factories[company['industry_id']]
-        if not company['is_raw']:
-            company_name += f" q{company['quality']}"
-        self.write_log(f"{company_name} moved to {holding_id}")
-        return self._post_economy_assign_to_holding(factory_id, holding_id)
-
-    def upgrade_factory(self, factory_id: int, level: int) -> Response:
-        return self._post_economy_upgrade_company(factory_id, level, self.details.pin)
-
-    def create_factory(self, industry_id: int, building_type: int = 1) -> Response:
-        """
-        param industry_ids: FRM={q1:7, q2:8, q3:9, q4:10, q5:11} WRM={q1:12, q2:13, q3:14, q4:15, q5:16}
-                            HRM={q1:18, q2:19, q3:20, q4:21, q5:22} ARM={q1:24, q2:25, q3:26, q4:27, q5:28}
-                            Factories={Food:1, Weapons:2, House:4, Aircraft:23} <- Building_type 1
-
-                            Storage={1000: 1, 2000: 2} <- Building_type 2
-        """
-        company_name = self.factories[industry_id]
-        if building_type == 2:
-            company_name = f"Storage"
-        self.write_log(f"{company_name} created!")
-        return self._post_economy_create_company(industry_id, building_type)
-
-    def dissolve_factory(self, factory_id: int) -> Response:
-        company = self.my_companies.companies[factory_id]
-        company_name = self.factories[company['industry_id']]
-        if not company['is_raw']:
-            company_name += f" q{company['quality']}"
-        self.write_log(f"{company_name} dissolved!")
-        return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
-
     def get_market_offers(self, country_id: int = None, product_name: str = None, quality: int = None) -> dict:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
@@ -1095,7 +1041,7 @@ class CitizenEconomy(CitizenTravel):
         if country_id:
             countries = [country_id]
         else:
-            countries = self.get_travel_countries()
+            countries = self.get_countries_with_regions()
 
         start_dt = self.now
         iterable = [countries, product_name or items, [quality] if quality else range(1, 8)]
@@ -1130,9 +1076,9 @@ class CitizenEconomy(CitizenTravel):
             ret = items
         return ret
 
-    def buy_food(self):
+    def buy_food(self, energy_amount: int = 0):
         hp_per_quality = {"q1": 2, "q2": 4, "q3": 6, "q4": 8, "q5": 10, "q6": 12, "q7": 20}
-        hp_needed = 48 * self.energy.interval * 10 - self.food["total"]
+        hp_needed = energy_amount if energy_amount else 48 * self.energy.interval * 10 - self.food["total"]
         local_offers = self.get_market_offers(country_id=self.details.current_country, product_name="food")
 
         cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1]["price"] / hp_per_quality[v[0]])[0]
@@ -1196,25 +1142,6 @@ class CitizenEconomy(CitizenTravel):
                                   rf"storage.", response.text).group(1)
             return self.donate_items(citizen_id, int(available), industry_id, quality)
 
-    def sell_produced_product(self, kind: str, quality: int = 1, amount: int = 0):
-        if not amount:
-            inv_resp = self._get_economy_inventory_items().json()
-            category = "rawMaterials" if kind.endswith("Raw") else "finalProducts"
-            item = "{}_{}".format(self.available_industries[kind], quality)
-            amount = inv_resp.get("inventoryItems").get(category).get("items").get(item).get("amount", 0)
-
-        if amount >= 1:
-            lowest_price = self.get_market_offers(country_id=self.details.citizenship,
-                                                  product_name=kind, quality=int(quality))
-
-            if lowest_price["citizen_id"] == self.details.citizen_id:
-                price = lowest_price["price"]
-            else:
-                price = lowest_price["price"] - 0.01
-
-            self.post_market_offer(industry=self.available_industries[kind], amount=int(amount),
-                                   quality=int(quality), price=price)
-
     def contribute_cc_to_country(self, amount=0., country_id: int = 71) -> bool:
         self.update_money()
         amount = int(amount)
@@ -1272,18 +1199,8 @@ class CitizenMedia(BaseCitizen):
         resp = self._post_main_vote_article(article_id).json()
         return not bool(resp.get('error'))
 
-    def get_article_comments(self, article_id: int, page_id: int = 1) -> Response:
-        return self._post_main_article_comments(article_id, page_id)
-
-    def comment_article(self, article_id: int = 2645676, msg: str = None) -> Response:
-        if msg is None:
-            msg = self.eday
-        r = self.get_article_comments(article_id, 2)
-        r = self.get_article_comments(article_id, r.json()["pages"])
-        comments = r.json()["comments"]
-        if not comments[max(comments.keys())]["isMyComment"]:
-            r = self.write_article_comment(msg, article_id)
-        return r
+    def get_article_comments(self, article_id: int, page_id: int = 1) -> Dict[str, Any]:
+        return self._post_main_article_comments(article_id, page_id).json()
 
     def write_article_comment(self, message: str, article_id: int, parent_id: int = None) -> Response:
         return self._post_main_article_comments_create(message, article_id, parent_id)
@@ -2150,10 +2067,8 @@ class CitizenTasks(BaseCitizen):
             self.ot_points = ot.get("points", 0)
 
 
-class Citizen(
-    CitizenAnniversary, CitizenEconomy, CitizenLeaderboard, CitizenMedia, CitizenMilitary,
-    CitizenPolitics, CitizenSocial, CitizenTasks
-):
+class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeaderboard,
+              CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
     debug: bool = False
 
     def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
@@ -2365,3 +2280,95 @@ class Citizen(
             self._eat("blue")
         self._eat("orange")
         self.write_log(self.health_info)
+
+    def sell_produced_product(self, kind: str, quality: int = 1, amount: int = 0):
+        if not amount:
+            inv_resp = self._get_economy_inventory_items().json()
+            category = "rawMaterials" if kind.endswith("Raw") else "finalProducts"
+            item = "{}_{}".format(self.available_industries[kind], quality)
+            amount = inv_resp.get("inventoryItems").get(category).get("items").get(item).get("amount", 0)
+
+        if amount >= 1:
+            lowest_price = self.get_market_offers(country_id=self.details.citizenship,
+                                                  product_name=kind, quality=int(quality))
+
+            if lowest_price["citizen_id"] == self.details.citizen_id:
+                price = lowest_price["price"]
+            else:
+                price = lowest_price["price"] - 0.01
+
+            self.post_market_offer(industry=self.available_industries[kind], amount=int(amount),
+                                   quality=int(quality), price=price)
+
+    def _wam(self, holding_id: int):
+        response = self.work_as_manager_in_holding(holding_id)
+        if response.get("status"):
+            self.reporter.report_action("WORK_AS_MANAGER", response, response.get("status"))
+            if self.config.auto_sell:
+                for kind, data in response.get("result", {}).get("production", {}).items():
+                    if data and kind in self.config.auto_sell:
+                        if kind in ["food", "weapon", "house", "airplane"]:
+                            for quality, amount in data.items():
+                                self.sell_produced_product(kind, quality)
+                        elif kind.endswith("Raw"):
+                            self.sell_produced_product(kind, 1)
+                        else:
+                            raise ErepublikException("Unknown kind produced '{kind}'".format(kind=kind))
+        elif self.config.auto_buy_raw and re.search(r"not_enough_[^_]*_raw", response.get("message")):
+            raw_kind = re.search(r"not_enough_(\w+)_raw", response.get("message"))
+            if raw_kind:
+                raw_kind = raw_kind.group(1)
+                result = response.get("result", {})
+                amount_remaining = round(result.get("consume") + 0.49) - round(result.get("stock") - 0.49)
+                while amount_remaining > 0:
+                    amount = amount_remaining
+                    best_offer = self.get_market_offers(self.details.citizenship, f"{raw_kind}Raw", 1)
+                    amount = best_offer['amount'] if amount >= best_offer['amount'] else amount
+                    rj = self.buy_from_market(amount=best_offer['amount'], offer=best_offer['offer_id'])
+                    if not rj.get('error'):
+                        amount_remaining -= amount
+                    else:
+                        self.write_log(rj.get('message', ""))
+                        break
+                else:
+                    return self._wam(holding_id)
+        elif response.get("message") == "not_enough_health_food":
+            self.buy_food()
+            return self._wam(holding_id)
+        else:
+            msg = "I was not able to wam and or employ because:\n{}".format(response)
+            self.reporter.report_action("WORK_WAM_EMPLOYEES", response, msg)
+            self.write_log(msg)
+
+        self.update_companies()
+
+    def work_as_manager(self):
+        self.update_citizen_info()
+        self.update_companies()
+        # Prevent messing up levelup with wam
+        if not (self.is_levelup_close and self.config.fight) or self.config.force_wam:
+            regions = {}
+            for holding_id, holding in self.my_companies.holdings.items():
+                if self.my_companies.get_holding_wam_companies(holding_id):
+                    regions.update({holding["region_id"]: holding_id})
+
+            # Check for current region
+            if self.details.current_region in regions:
+                response = self._wam(regions.pop(self.details.current_region))
+
+            for holding_id in regions.values():
+                self.travel_to_holding(holding_id)
+                response = self._wam(holding_id)
+
+            wam_count = self.my_companies.get_total_wam_count()
+            if wam_count:
+                self.write_log("Wam ff lockdown is now {}, was {}".format(wam_count, self.my_companies.ff_lockdown))
+            self.my_companies.ff_lockdown = wam_count
+            return bool(wam_count)
+        else:
+            self.write_log("Did not WAM because I would mess up levelup!")
+            self.my_companies.ff_lockdown = 0
+
+        self.travel_to_residence()
+        self.update_companies()
+        return not self.my_companies.get_total_wam_count()

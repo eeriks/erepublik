@@ -7,7 +7,6 @@ from requests import Response, Session
 
 from erepublik import utils
 
-
 __all__ = ['SlowRequests', 'CitizenAPI']
 
 
@@ -147,6 +146,12 @@ class ErepublikAnniversaryAPI(CitizenBaseAPI):
         data = {'nodeId': node_id, '_token': self.token}
         return self.post("{}/main/map-rewards-claim".format(self.url), data=data)
 
+    def _post_main_wheel_of_fortune_spin(self, cost) -> Response:
+        return self.post(f"{self.url}/wheeloffortune-spin", data={'_token': self.token, "cost": cost})
+
+    def _post_main_wheel_of_fortune_build(self) -> Response:
+        return self.post(f"{self.url}/wheeloffortune-build", data={'_token': self.token})
+
 
 class ErepublikArticleAPI(CitizenBaseAPI):
     def _get_main_article_json(self, article_id: int) -> Response:
@@ -211,28 +216,25 @@ class ErepublikCompanyAPI(CitizenBaseAPI):
         return self.post("{}/economy/upgrade-company".format(self.url), data=data)
 
     def _post_economy_work(self, action_type: str, wam: List[int] = None, employ: Dict[int, int] = None) -> Response:
-        """
-        :return: requests.Response or None
-        """
-        if employ is None:
-            employ = {}
-        if wam is None:
-            wam = []
         data: Dict[str, Union[int, str]] = dict(action_type=action_type, _token=self.token)
         if action_type == "production":
+            if employ is None:
+                employ = {}
+            if wam is None:
+                wam = []
             max_idx = 0
             for company_id in sorted(wam or []):
                 data.update({
-                    "companies[%i][id]" % max_idx: company_id,
-                    "companies[%i][employee_works]" % max_idx: employ.pop(company_id, 0),
-                    "companies[%i][own_work]" % max_idx: 1
+                    f"companies[{max_idx}][id]": company_id,
+                    f"companies[{max_idx}][employee_works]": employ.pop(company_id, 0),
+                    f"companies[{max_idx}][own_work]": 1
                 })
                 max_idx += 1
             for company_id in sorted(employ or []):
                 data.update({
-                    "companies[%i][id]" % max_idx: company_id,
-                    "companies[%i][employee_works]" % max_idx: employ.pop(company_id),
-                    "companies[%i][own_work]" % max_idx: 0
+                    f"companies[{max_idx}][id]": company_id,
+                    f"companies[{max_idx}][employee_works]": employ.pop(company_id, 0),
+                    f"companies[{max_idx}][own_work]": 0
                 })
                 max_idx += 1
         return self.post("{}/economy/work".format(self.url), data=data)

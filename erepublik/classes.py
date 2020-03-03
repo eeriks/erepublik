@@ -88,8 +88,7 @@ class MyCompanies:
         ret = {}
         for company_id, company in self.companies.items():
             if company.get('preset_works'):
-                preset_works: int = int(company.get('preset_works', 0))
-                ret.update({company_id: preset_works})
+                ret[company_id] = int(company.get('preset_works', 0))
         return ret
 
     def get_total_wam_count(self) -> int:
@@ -455,9 +454,8 @@ class Reporter:
             self.__bot_update(data)
 
     def report_action(self, action: str, json_val: Dict[Any, Any] = None, value: str = None):
-        if not self.key:
-            if not all([self.email, self.name, self.citizen_id]):
-                pass
+        if all([self.key, self.email, self.name, self.citizen_id]):
+            return
         json_data = {'player_id': self.citizen_id, 'key': self.key, 'log': dict(action=action)}
         if json_val:
             json_data['log'].update(dict(json=json_val))
@@ -665,7 +663,8 @@ class TelegramBot:
         self._threads = []
         self.__queue = []
         self.__thread_stopper = threading.Event() if stop_event is None else stop_event
-        self._last_full_energy_report = self._next_time = self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(hours=1))
+        self._last_full_energy_report = self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(hours=1))
+        self._next_time = utils.now()
 
     @property
     def __dict__(self):
@@ -690,7 +689,7 @@ class TelegramBot:
                 self.__queue.clear()
             return True
         self._threads = [t for t in self._threads if t.is_alive()]
-        self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=1))
+        self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(seconds=20))
         if not self._threads:
             name = "telegram_{}send".format(f"{self.player_name}_" if self.player_name else "")
             send_thread = threading.Thread(target=self.__send_messages, name=name)
@@ -736,7 +735,7 @@ class TelegramBot:
             message = f"Player *{self.player_name}*\n" + message
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         self._last_time = utils.now()
-        if response.json().get('ok'):
-            self.__queue = []
+        if response.json().get('ok') and not self.__queue:
+            self.__queue.clear()
             return True
         return False
