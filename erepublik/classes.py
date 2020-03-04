@@ -735,7 +735,7 @@ class TelegramBot:
             message = f"Player *{self.player_name}*\n" + message
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         self._last_time = utils.now()
-        if response.json().get('ok') and not self.__queue:
+        if response.json().get('ok'):
             self.__queue.clear()
             return True
         return False
