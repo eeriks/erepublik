@@ -2337,10 +2337,9 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             return self._wam(holding_id)
         else:
             msg = "I was not able to wam and or employ because:\n{}".format(response)
-            self.reporter.report_action("WORK_WAM_EMPLOYEES", response, msg)
+            self.reporter.report_action("WORK_AS_MANAGER", response, msg)
             self.write_log(msg)
 
-        self.update_companies()
 
     def work_as_manager(self):
         self.update_citizen_info()
@@ -2364,11 +2363,11 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             if wam_count:
                 self.write_log("Wam ff lockdown is now {}, was {}".format(wam_count, self.my_companies.ff_lockdown))
             self.my_companies.ff_lockdown = wam_count
+            self.travel_to_residence()
             return bool(wam_count)
         else:
             self.write_log("Did not WAM because I would mess up levelup!")
             self.my_companies.ff_lockdown = 0
 
-        self.travel_to_residence()
         self.update_companies()
         return not self.my_companies.get_total_wam_count()
