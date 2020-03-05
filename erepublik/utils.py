@@ -188,7 +188,8 @@ silent_sleep = time.sleep
 
 def _write_log(msg, timestamp: bool = True, should_print: bool = False):
     erep_time_now = now()
-    txt = textwrap.fill("[{}] {}".format(erep_time_now.strftime('%F %T'), msg) if timestamp else msg, 120)
+    txt = "[{}] {}".format(erep_time_now.strftime('%F %T'), msg) if timestamp else msg
+    txt = "\n".join(["\n".join(textwrap.wrap(line, 120)) for line in txt.splitlines()])
     if not os.path.isdir('log'):
         os.mkdir('log')
     with open("log/%s.log" % erep_time_now.strftime('%F'), 'a', encoding="utf-8") as f:
