@@ -538,7 +538,7 @@ class BaseCitizen(CitizenAPI):
                 title = info.group(2).strip()
                 award_id = re.search(r'"wall_enable_alerts_(\d+)', medal)
                 if award_id:
-                    self._post_main_wall_post_automatic(**{'message': title, 'awardId': award_id.group(1)})
+                    self._post_main_wall_post_automatic(message=title, achievement_id=award_id.group(1))
                 reward, currency = info.group(3).strip().split(" ")
                 while not isinstance(reward, float):
                     try:
