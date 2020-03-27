@@ -2128,6 +2128,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 params: dict = medal.get('details', {}).get('achievement')
                 about: str = medal.get('body')
                 title: str = medal.get('title')
+                count: int = medal.get('details', {}).get('achievementAmount', 1)
 
                 award_id: int = medal.get('id')
                 if award_id and title and medal.get('details').get('isWallMaterial'):
@@ -2144,10 +2145,10 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                     currency = "Energy"
 
                 if (title, reward) not in data:
-                    data[(title, reward)] = {'about': about, 'kind': title, 'reward': reward, "count": 1,
+                    data[(title, reward)] = {'about': about, 'kind': title, 'reward': reward, "count": count,
                                              "currency": currency, "params": params}
                 else:
-                    data[(title, reward)]['count'] += 1
+                    data[(title, reward)]['count'] += count
             self._post_main_global_alerts_close(medal.get('id'))
         if data:
             msgs = ["{count} x {kind},"
