@@ -1473,14 +1473,20 @@ class CitizenMilitary(CitizenTravel):
                 self.travel_to_residence()
                 break
 
-    def fight(self, battle_id: int, side_id: int = None, count: int = None) -> int:
+    def fight(self, battle_id: int, side_id: int = None, count: int = None, division: int= None) -> int:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
         :param battle_id: int BattleId - battle to fight in
+        :type battle_id: int
         :param side_id: int or None. Battle side to fight in, If side_id not == invader id or not in invader deployed allies list, then defender's side is chosen
+        :type side_id: int
         :param count: How many hits to do, if not specified self.should_fight() is called.
+        :type count: int
+        :param division: int Division number to fight in available choices 1,2,3,4,11
+        :type division: int
         :return: None if no errors while fighting, otherwise error count.
+        :rtype: int
         """
         if not isinstance(battle_id, int):
             self.report_error(f"WARNINNG! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
@@ -1488,7 +1494,8 @@ class CitizenMilitary(CitizenTravel):
         if battle_id not in self.all_battles:
             self.update_war_info()
         battle = self.all_battles.get(battle_id)
-        zone_id = battle.div[11 if battle.is_air else self.division].battle_zone_id
+        division = self.division if division is None else division
+        zone_id = battle.div[11 if battle.is_air else division].battle_zone_id
         if not battle.is_air and self.config.boosters:
             self.activate_dmg_booster()
         error_count = 0
