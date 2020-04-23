@@ -180,7 +180,7 @@ class BaseCitizen(CitizenAPI):
             active_promos = []
             for kind, time_until in self.promos.items():
                 active_promos.append(f"{kind} active until {time_until}")
-                utils.report_promo(kind, time_until)
+                self.reporter.report_promo(kind, time_until)
             utils.send_email(self.name, active_promos, player=self, promo=True)
 
         new_date = re.search(r"var new_date = '(\d*)';", html)

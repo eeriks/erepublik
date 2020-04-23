@@ -467,6 +467,9 @@ class Reporter:
         else:
             self.__to_update.append(json_data)
 
+    def report_promo(self, kind: str, time_untill: datetime.datetime):
+        self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_untill))
+
 
 class MyJSONEncoder(json.JSONEncoder):
     def default(self, o):

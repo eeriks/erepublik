@@ -9,7 +9,7 @@ import traceback
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, List, Mapping, NoReturn, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 import pytz
 import requests
@@ -25,7 +25,7 @@ __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
-           "send_email", "normalize_html_json", "process_error", "process_warning", 'report_promo', 'calculate_hit']
+           "send_email", "normalize_html_json", "process_error", "process_warning", 'calculate_hit']
 
 if not sys.version_info >= (3, 7):
     raise AssertionError('This script requires Python version 3.7 and higher\n'
@@ -393,10 +393,6 @@ def process_warning(log_info: str, name: str, exc_info: tuple, citizen=None, com
     else:
         trace = dict()
     send_email(name, content, citizen, local_vars=trace)
-
-
-def report_promo(kind: str, time_untill: datetime.datetime) -> NoReturn:
-    requests.post('https://api.erep.lv/promos/add/', data=dict(kind=kind, time_untill=time_untill))
 
 
 def slugify(value, allow_unicode=False) -> str:
