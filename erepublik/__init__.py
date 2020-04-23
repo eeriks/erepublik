@@ -5,7 +5,9 @@
 __author__ = """Eriks Karls"""
 __email__ = 'eriks@72.lv'
 __version__ = '0.20.0'
-__commit_id__ = "2eecd9f"
+__commit_id__ = "2aa1cbd"
 
 from erepublik import classes, utils
 from erepublik.citizen import Citizen
+
+__all__ = [classes, utils, Citizen]

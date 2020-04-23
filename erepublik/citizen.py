@@ -10,8 +10,9 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, NoRet
 from requests import RequestException, Response, HTTPError
 
 from erepublik import utils
-from erepublik.classes import (Battle, BattleDivision, CitizenAPI, Config, Details, Energy, ErepublikException,
+from erepublik.classes import (Battle, BattleDivision, Config, Details, Energy, ErepublikException,
                                MyCompanies, MyJSONEncoder, Politics, Reporter, TelegramBot)
+from erepublik.access_points import CitizenAPI
 
 
 class BaseCitizen(CitizenAPI):
