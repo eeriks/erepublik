@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, NoReturn
 
 from requests import RequestException, Response
 
@@ -787,7 +787,7 @@ class CitizenCompanies(BaseCitizen):
         return self._work_as_manager(holding_id)
 
     def _work_as_manager(self, wam_holding_id: int = 0) -> Optional[Dict[str, Any]]:
-        self.update_citizen_info()
+        self.update_companies()
         self.update_inventory()
         data = {"action_type": "production"}
         extra = {}
@@ -1023,7 +1023,6 @@ class CitizenEconomy(CitizenTravel):
             elif product_name in raw_short_names:
                 quality = 1
                 product_name = raw_short_names[product_name]
-            product_name = [product_name]
         elif quality:
             raise ErepublikException("Quality without product not allowed")
 
@@ -1044,7 +1043,7 @@ class CitizenEconomy(CitizenTravel):
             countries = self.get_countries_with_regions()
 
         start_dt = self.now
-        iterable = [countries, product_name or items, [quality] if quality else range(1, 8)]
+        iterable = [countries, [product_name] or items, [quality] if quality else range(1, 8)]
         for country, industry, q in product(*iterable):
             if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
                 continue
@@ -2308,7 +2307,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self.post_market_offer(industry=self.available_industries[kind], amount=int(amount),
                                    quality=int(quality), price=price)
 
-    def _wam(self, holding_id: int):
+    def _wam(self, holding_id: int) -> NoReturn:
         response = self.work_as_manager_in_holding(holding_id)
         if response.get("status"):
             self.reporter.report_action("WORK_AS_MANAGER", response, response.get("status"))
@@ -2327,29 +2326,34 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             if raw_kind:
                 raw_kind = raw_kind.group(1)
                 result = response.get("result", {})
-                amount_remaining = round(result.get("consume") + 0.49) - round(result.get("stock") - 0.49)
-                while amount_remaining > 0:
-                    amount = amount_remaining
-                    best_offer = self.get_market_offers(self.details.citizenship, f"{raw_kind}Raw", 1)
+                amount_needed = round(result.get("consume",0) - result.get("stock", 0) + 0.49)
+                start_place = (self.details.current_country, self.details.current_region)
+                while amount_needed > 0:
+                    amount = amount_needed
+                    best_offer = self.get_market_offers(product_name=f"{raw_kind}Raw")
                     amount = best_offer['amount'] if amount >= best_offer['amount'] else amount
+
+                    if not best_offer['country'] == self.details.current_country:
+                        self.travel_to_country(best_offer['country'])
                     rj = self.buy_from_market(amount=best_offer['amount'], offer=best_offer['offer_id'])
                     if not rj.get('error'):
-                        amount_remaining -= amount
+                        amount_needed -= amount
                     else:
                         self.write_log(rj.get('message', ""))
                         break
                 else:
+                    if not start_place == (self.details.current_country, self.details.current_region):
+                        self.travel_to_holding(holding_id)
                     return self._wam(holding_id)
         elif response.get("message") == "not_enough_health_food":
             self.buy_food()
-            return self._wam(holding_id)
+            self._wam(holding_id)
         else:
             msg = "I was not able to wam and or employ because:\n{}".format(response)
             self.reporter.report_action("WORK_AS_MANAGER", response, msg)
             self.write_log(msg)
 
-
-    def work_as_manager(self):
+    def work_as_manager(self) -> bool:
         self.update_citizen_info()
         self.update_companies()
         # Prevent messing up levelup with wam
@@ -2361,11 +2365,13 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
             # Check for current region
             if self.details.current_region in regions:
-                response = self._wam(regions.pop(self.details.current_region))
+                self._wam(regions.pop(self.details.current_region))
+                self.update_companies()
 
             for holding_id in regions.values():
                 self.travel_to_holding(holding_id)
-                response = self._wam(holding_id)
+                self._wam(holding_id)
+                self.update_companies()
 
             wam_count = self.my_companies.get_total_wam_count()
             if wam_count:
