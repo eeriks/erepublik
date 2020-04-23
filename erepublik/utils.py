@@ -21,7 +21,6 @@ try:
 except ImportError:
     import json
 
-
 __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",

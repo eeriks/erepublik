@@ -7,7 +7,7 @@ from threading import Event
 from time import sleep
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, NoReturn
 
-from requests import RequestException, Response
+from requests import RequestException, Response, HTTPError
 
 from erepublik import utils
 from erepublik.classes import (Battle, BattleDivision, CitizenAPI, Config, Details, Energy, ErepublikException,
@@ -538,7 +538,11 @@ class BaseCitizen(CitizenAPI):
                 title = info.group(2).strip()
                 award_id = re.search(r'"wall_enable_alerts_(\d+)', medal)
                 if award_id:
-                    self._post_main_wall_post_automatic(message=title, achievement_id=award_id.group(1))
+                    try:
+                        award_id = int(award_id.group(1))
+                        self._post_main_wall_post_automatic(message=title, achievement_id=award_id)
+                    except ValueError:
+                        pass
                 reward, currency = info.group(3).strip().split(" ")
                 while not isinstance(reward, float):
                     try:
@@ -957,7 +961,7 @@ class CitizenEconomy(CitizenTravel):
         return {"gold": 0, "cc": 0, 'ok': False}
 
     def accept_money_donations(self):
-        for notification in self._get_main_notifications_ajax_system():
+        for notification in self._get_main_notifications_ajax_system().json():
             don_id = re.search(r"erepublik.functions.acceptRejectDonation\(\"accept\", (\d+)\)", notification)
             if don_id:
                 self._get_main_money_donation_accept(int(don_id.group(1)))
@@ -1472,13 +1476,14 @@ class CitizenMilitary(CitizenTravel):
                 self.travel_to_residence()
                 break
 
-    def fight(self, battle_id: int, side_id: int = None, count: int = None, division: int= None) -> int:
+    def fight(self, battle_id: int, side_id: int = None, count: int = None, division: int = None) -> int:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
         :param battle_id: int BattleId - battle to fight in
         :type battle_id: int
-        :param side_id: int or None. Battle side to fight in, If side_id not == invader id or not in invader deployed allies list, then defender's side is chosen
+        :param side_id: int or None. Battle side to fight in, If side_id not == invader id or not in invader deployed
+                                     allies list, then defender's side is chosen
         :type side_id: int
         :param count: How many hits to do, if not specified self.should_fight() is called.
         :type count: int
@@ -1535,7 +1540,7 @@ class CitizenMilitary(CitizenTravel):
             return 0, 1, 0
         try:
             j_resp = response.json()
-        except:
+        except (ValueError, HTTPError, RequestException):
             return 0, 10, 0
         hits = 0
         damage = 0
@@ -2250,7 +2255,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 self.send_inventory_update()
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
-        except:
+        except:  # noqa
             self.report_error("State updater crashed")
 
     def send_state_update(self):
@@ -2326,7 +2331,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             if raw_kind:
                 raw_kind = raw_kind.group(1)
                 result = response.get("result", {})
-                amount_needed = round(result.get("consume",0) - result.get("stock", 0) + 0.49)
+                amount_needed = round(result.get("consume", 0) - result.get("stock", 0) + 0.49)
                 start_place = (self.details.current_country, self.details.current_region)
                 while amount_needed > 0:
                     amount = amount_needed

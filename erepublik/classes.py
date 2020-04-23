@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterable, List, Tuple, Union
 from requests import Response, Session, post
 
 from erepublik import utils
-from erepublik.access_points import CitizenAPI
 
 try:
     import simplejson as json
@@ -435,8 +434,8 @@ class Reporter:
             try:
                 r = self.__bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
                 if not r.json().get("status"):
-                    r = self._req.post("{}/bot/register".format(self.url), json=dict(name=self.name, email=self.email,
-                                                                                     player_id=self.citizen_id))
+                    self._req.post("{}/bot/register".format(self.url), json=dict(name=self.name, email=self.email,
+                                                                                 player_id=self.citizen_id))
             finally:
                 self.__registered = True
                 self.__allowed = True
@@ -476,7 +475,7 @@ class MyJSONEncoder(json.JSONEncoder):
             return float("{:.02f}".format(o))
         elif isinstance(o, datetime.datetime):
             return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
-                        tzinfo=o.tzinfo.zone if o.tzinfo else None)
+                        tzinfo=o.tzinfo.tzname if o.tzinfo else None)
         elif isinstance(o, datetime.date):
             return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
         elif isinstance(o, datetime.timedelta):
@@ -722,7 +721,7 @@ class TelegramBot:
             message = f"Full energy ({available}hp/{limit}hp +{interval}hp/6min)"
             self.send_message(message)
 
-    def report_medal(self, msg, multiple: bool=True):
+    def report_medal(self, msg, multiple: bool = True):
         new_line = '\n' if multiple else ''
         self.send_message(f"New award: {new_line}*{msg}*")
 
