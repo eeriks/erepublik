@@ -25,7 +25,8 @@ __all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
-           "send_email", "normalize_html_json", "process_error", "process_warning", 'calculate_hit']
+           "send_email", "normalize_html_json", "process_error", "process_warning",
+           'calculate_hit', 'get_ground_hit_dmg_value', 'get_air_hit_dmg_value']
 
 if not sys.version_info >= (3, 7):
     raise AssertionError('This script requires Python version 3.7 and higher\n'
@@ -332,6 +333,10 @@ def normalize_html_json(js: str) -> str:
     return js
 
 
+def caught_error(e: Exception):
+    process_error(str(e), "Unclassified", sys.exc_info(), None, COMMIT_ID, False)
+
+
 def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None,
                   interactive: Optional[bool] = None):
     """
@@ -351,8 +356,9 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     """
     type_, value_, traceback_ = exc_info
     content = [log_info]
-    if commit_id:
-        content += ["Commit id: %s" % commit_id]
+    if not commit_id:
+        commit_id = COMMIT_ID
+    content += ["Commit id: %s" % commit_id]
     content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
 
     if interactive:
