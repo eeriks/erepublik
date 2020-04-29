@@ -2360,6 +2360,11 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self.write_log(msg)
 
     def work_as_manager(self) -> bool:
+        """ Does Work as Manager in all holdings with wam. If employees assigned - work them also
+
+        :return: if has more wam work to do
+        :rtype: bool
+        """
         self.update_citizen_info()
         self.update_companies()
         # Prevent messing up levelup with wam
@@ -2390,4 +2395,4 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self.my_companies.ff_lockdown = 0
 
         self.update_companies()
-        return not self.my_companies.get_total_wam_count()
+        return bool(self.my_companies.get_total_wam_count())
