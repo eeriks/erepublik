@@ -1139,11 +1139,16 @@ class CitizenEconomy(CitizenTravel):
         response = self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
         if re.search(rf"Successfully transferred {amount} item\(s\) to", response.text):
             return amount
+        elif re.search('You must wait 5 seconds before donating again', response.text):
+            self.write_log(f"Previous donation failed! Must wait at least 5 seconds before next donation!")
+            self.sleep(5)
+            return self.donate_items(citizen_id, int(amount), industry_id, quality)
         else:
             if re.search(r"You do not have enough items in your inventory to make this donation", response.text):
                 return 0
             available = re.search(rf"Cannot transfer the items because the user has only (\d+) free slots in (his|her) "
                                   rf"storage.", response.text).group(1)
+            self.sleep(5)
             return self.donate_items(citizen_id, int(available), industry_id, quality)
 
     def contribute_cc_to_country(self, amount=0., country_id: int = 71) -> bool:
