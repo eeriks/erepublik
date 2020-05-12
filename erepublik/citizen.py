@@ -1054,8 +1054,10 @@ class CitizenEconomy(CitizenTravel):
                     if (obj.price > float(offer["priceWithTaxes"]) or (
                         obj.price == float(offer["priceWithTaxes"]) and obj.amount < int(offer["amount"])
                     )):
-                        offers[f"q{q}"] = OfferItem(float(offer["priceWithTaxes"]), int(offer["country_id"]),
-                                                    int(offer["amount"]), int(offer["id"]), int(offer["citizen_id"]))
+                        offers[f"q{q}"] = obj = OfferItem(
+                            float(offer["priceWithTaxes"]), int(offer["country_id"]), int(offer["amount"]),
+                            int(offer["id"]), int(offer["citizen_id"])
+                        )
         self.write_log(f"Scraped market in {self.now - start_dt}!")
 
         return offers
