@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, NoReturn
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
-from requests import RequestException, Response, HTTPError
+from requests import HTTPError, RequestException, Response
 
 from erepublik import utils
-from erepublik.classes import (Battle, BattleDivision, Config, Details, Energy, ErepublikException,
-                               MyCompanies, MyJSONEncoder, Politics, Reporter, TelegramBot)
 from erepublik.access_points import CitizenAPI
+from erepublik.classes import (Battle, BattleDivision, Config, Details, Energy, ErepublikException,
+                               MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot)
 
 
 class BaseCitizen(CitizenAPI):
@@ -900,22 +900,21 @@ class CitizenEconomy(CitizenTravel):
 
     def buy_and_activate_house(self, q: int) -> Dict[int, datetime]:
         inventory = self.update_inventory()
+        original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
         if not inventory['items']['final'].get('house', {}).get(q, {}):
-            offers = []
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
                 countries.append(self.details.current_country)
-            for country in countries:
-                offers += [self.get_market_offers(country, "house", q)]
-            global_cheapest = self.get_market_offers(product_name="house", quality=q)
-            cheapest_offer = sorted(offers, key=lambda o: o["price"])[0]
-            region = self.get_country_travel_region(global_cheapest['country'])
-            if global_cheapest['price'] + 200 < cheapest_offer['price'] and region:
-                self._travel(global_cheapest['country'], region)
-                buy = self.buy_from_market(global_cheapest['offer_id'], 1)
+            offers = [self.get_market_offers("house", q, country)[f"q{q}"] for country in countries]
+            local_cheapest = sorted(offers, key=lambda o: o.price)[0]
+
+            global_cheapest = self.get_market_offers("house", q)[f"q{q}"]
+            if global_cheapest.price + 200 < local_cheapest.price:
+                self._travel(global_cheapest.country)
+                buy = self.buy_from_market(global_cheapest.offer_id, 1)
             else:
-                buy = self.buy_from_market(cheapest_offer['offer_id'], 1)
+                buy = self.buy_from_market(local_cheapest.offer_id, 1)
             if buy["error"]:
                 msg = f"Unable to buy q{q} house! \n{buy['message']}"
                 self.write_log(msg)
@@ -925,6 +924,8 @@ class CitizenEconomy(CitizenTravel):
             ok_to_activate = True
         if ok_to_activate:
             self.activate_house(q)
+        if original_region[1] != self.details.current_region:
+            self._travel(*original_region)
         return self.check_house_durability()
 
     def renew_houses(self, forced: bool = False) -> Dict[int, datetime]:
@@ -1018,29 +1019,25 @@ class CitizenEconomy(CitizenTravel):
             self.reporter.report_action("BUY_PRODUCT", ret.json())
         return json_ret
 
-    def get_market_offers(self, country_id: int = None, product_name: str = None, quality: int = None) -> dict:
+    def get_market_offers(self, product_name: str, quality: int = None, country_id: int = None) -> Dict[str, OfferItem]:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
-        if product_name:
-            if product_name not in self.available_industries and product_name not in raw_short_names:
-                self.write_log(f"Industry '{product_name}' not implemented")
-                raise ErepublikException(f"Industry '{product_name}' not implemented")
-            elif product_name in raw_short_names:
-                quality = 1
-                product_name = raw_short_names[product_name]
-        elif quality:
-            raise ErepublikException("Quality without product not allowed")
+        if product_name not in self.available_industries and product_name not in raw_short_names:
+            self.write_log(f"Industry '{product_name}' not implemented")
+            raise ErepublikException(f"Industry '{product_name}' not implemented")
+        elif product_name in raw_short_names:
+            quality = 1
+            product_name = raw_short_names[product_name]
 
-        item_data = dict(price=999999., country=0, amount=0, offer_id=0, citizen_id=0)
+        offers: Dict[str, OfferItem] = {}
 
-        items = {"food": dict(q1=item_data.copy(), q2=item_data.copy(), q3=item_data.copy(), q4=item_data.copy(),
-                              q5=item_data.copy(), q6=item_data.copy(), q7=item_data.copy()),
-                 "weapon": dict(q1=item_data.copy(), q2=item_data.copy(), q3=item_data.copy(), q4=item_data.copy(),
-                                q5=item_data.copy(), q6=item_data.copy(), q7=item_data.copy()),
-                 "house": dict(q1=item_data.copy(), q2=item_data.copy(), q3=item_data.copy(), q4=item_data.copy(),
-                               q5=item_data.copy()), "aircraft": dict(q1=item_data.copy()),
-                 "foodRaw": dict(q1=item_data.copy()), "weaponRaw": dict(q1=item_data.copy()),
-                 "houseRaw": dict(q1=item_data.copy()), "airplaneRaw": dict(q1=item_data.copy())}
+        max_quality = 0
+        if quality:
+            offers[f"q{quality}"] = OfferItem()
+        else:
+            max_quality = 1 if product_name in q1_industries else 5 if product_name == 'house' else 7
+            for q in range(max_quality):
+                offers[f"q{q + 1}"] = OfferItem()
 
         if country_id:
             countries = [country_id]
@@ -1048,58 +1045,41 @@ class CitizenEconomy(CitizenTravel):
             countries = self.get_countries_with_regions()
 
         start_dt = self.now
-        iterable = [countries, [product_name] or items, [quality] if quality else range(1, 8)]
-        for country, industry, q in product(*iterable):
-            if (q > 1 and industry in q1_industries) or (q > 5 and industry == "house"):
-                continue
-
-            r = self._post_economy_marketplace(country, self.available_industries[industry], q).json()
-            obj = items[industry][f"q{q}"]
+        iterable = [countries, [quality] if quality else range(1, max_quality + 1)]
+        for country, q in product(*iterable):
+            r = self._post_economy_marketplace(country, self.available_industries[product_name], q).json()
+            obj = offers[f"q{q}"]
             if not r.get("error", False):
                 for offer in r["offers"]:
-                    if obj["price"] > float(offer["priceWithTaxes"]):
-                        obj["price"] = float(offer["priceWithTaxes"])
-                        obj["country"] = int(offer["country_id"])
-                        obj["amount"] = int(offer["amount"])
-                        obj["offer_id"] = int(offer["id"])
-                        obj["citizen_id"] = int(offer["citizen_id"])
-                    elif obj["price"] == float(offer["priceWithTaxes"]) and obj["amount"] < int(offer["amount"]):
-                        obj["country"] = int(offer["country_id"])
-                        obj["amount"] = int(offer["amount"])
-                        obj["offer_id"] = int(offer["id"])
+                    if (obj.price > float(offer["priceWithTaxes"]) or (
+                        obj.price == float(offer["priceWithTaxes"]) and obj.amount < int(offer["amount"])
+                    )):
+                        offers[f"q{q}"] = OfferItem(float(offer["priceWithTaxes"]), int(offer["country_id"]),
+                                                    int(offer["amount"]), int(offer["id"]), int(offer["citizen_id"]))
         self.write_log(f"Scraped market in {self.now - start_dt}!")
 
-        if quality:
-            ret = items[product_name[0]]["q%i" % quality]
-        elif product_name:
-            if product_name[0] in raw_short_names.values():
-                ret = items[product_name[0]]["q1"]
-            else:
-                ret = items[product_name[0]]
-        else:
-            ret = items
-        return ret
+        return offers
 
     def buy_food(self, energy_amount: int = 0):
         hp_per_quality = {"q1": 2, "q2": 4, "q3": 6, "q4": 8, "q5": 10, "q6": 12, "q7": 20}
         hp_needed = energy_amount if energy_amount else 48 * self.energy.interval * 10 - self.food["total"]
-        local_offers = self.get_market_offers(country_id=self.details.current_country, product_name="food")
+        local_offers = self.get_market_offers("food", country_id=self.details.current_country)
 
-        cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1]["price"] / hp_per_quality[v[0]])[0]
+        cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1].price / hp_per_quality[v[0]])[0]
 
         if cheapest["amount"] * hp_per_quality[cheapest_q] < hp_needed:
-            amount = cheapest["amount"]
+            amount = cheapest.amount
         else:
             amount = hp_needed // hp_per_quality[cheapest_q]
 
-        if amount * cheapest["price"] < self.details.cc:
-            data = dict(offer=cheapest["offer_id"], amount=amount, price=cheapest["price"],
-                        cost=amount * cheapest["price"], quality=cheapest_q, energy=amount * hp_per_quality[cheapest_q])
+        if amount * cheapest.price < self.details.cc:
+            data = dict(offer=cheapest.offer_id, amount=amount, price=cheapest.price,
+                        cost=amount * cheapest.price, quality=cheapest_q, energy=amount * hp_per_quality[cheapest_q])
             self.reporter.report_action("BUY_FOOD", json_val=data)
-            self.buy_from_market(cheapest["offer_id"], amount)
+            self.buy_from_market(cheapest.offer_id, amount)
             self.update_inventory()
         else:
-            s = f"Don't have enough money! Needed: {amount * cheapest['price']}cc, Have: {self.details.cc}cc"
+            s = f"Don't have enough money! Needed: {amount * cheapest.price}cc, Have: {self.details.cc}cc"
             self.write_log(s)
             self.reporter.report_action("BUY_FOOD", value=s)
 
@@ -2307,13 +2287,12 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             amount = inv_resp.get("inventoryItems").get(category).get("items").get(item).get("amount", 0)
 
         if amount >= 1:
-            lowest_price = self.get_market_offers(country_id=self.details.citizenship,
-                                                  product_name=kind, quality=int(quality))
+            lowest_price = self.get_market_offers(kind, int(quality), self.details.citizenship)[f'q{int(quality)}']
 
-            if lowest_price["citizen_id"] == self.details.citizen_id:
-                price = lowest_price["price"]
+            if lowest_price.citizen_id == self.details.citizen_id:
+                price = lowest_price.price
             else:
-                price = lowest_price["price"] - 0.01
+                price = lowest_price.price - 0.01
 
             self.post_market_offer(industry=self.available_industries[kind], amount=int(amount),
                                    quality=int(quality), price=price)
@@ -2341,12 +2320,12 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 start_place = (self.details.current_country, self.details.current_region)
                 while amount_needed > 0:
                     amount = amount_needed
-                    best_offer = self.get_market_offers(product_name=f"{raw_kind}Raw")
-                    amount = best_offer['amount'] if amount >= best_offer['amount'] else amount
+                    best_offer = self.get_market_offers(f"{raw_kind}Raw")['q1']
+                    amount = best_offer.amount if amount >= best_offer.amount else amount
 
-                    if not best_offer['country'] == self.details.current_country:
-                        self.travel_to_country(best_offer['country'])
-                    rj = self.buy_from_market(amount=best_offer['amount'], offer=best_offer['offer_id'])
+                    if not best_offer.country == self.details.current_country:
+                        self.travel_to_country(best_offer.country)
+                    rj = self.buy_from_market(amount=best_offer.amount, offer=best_offer.offer_id)
                     if not rj.get('error'):
                         amount_needed -= amount
                     else:

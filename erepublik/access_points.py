@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from typing import Mapping, Any, Union, Dict, List
+from typing import Any, Dict, List, Mapping, Union
 
 from requests import Response, Session
 

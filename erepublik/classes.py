@@ -3,7 +3,7 @@ import decimal
 import hashlib
 import threading
 from collections import defaultdict, deque
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, NamedTuple, Tuple, Union
 
 from requests import Response, Session, post
 
@@ -492,7 +492,14 @@ class MyJSONEncoder(json.JSONEncoder):
             return list(o)
         elif isinstance(o, Citizen):
             return o.to_json()
-        return super().default(o)
+        try:
+            return super().default(o)
+        except TypeError as e:
+            name = None
+            for ___, ____ in globals().copy().items():
+                if id(o) == id(____):
+                    name = ___
+            return dict(__error__=str(e), __type__=str(type(o)), __name__=name)
 
 
 class BattleSide:
@@ -743,3 +750,11 @@ class TelegramBot:
             self.__queue.clear()
             return True
         return False
+
+
+class OfferItem(NamedTuple):
+    price: float = 99_999.
+    country: int = 0
+    amount: int = 0
+    offer_id: int = 0
+    citizen_id: int = 0
