@@ -9,7 +9,7 @@ import traceback
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union, Dict
 
 import pytz
 import requests
@@ -32,102 +32,90 @@ if not sys.version_info >= (3, 7):
     raise AssertionError('This script requires Python version 3.7 and higher\n'
                          'But Your version is v{}.{}.{}'.format(*sys.version_info))
 
-FOOD_ENERGY = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
-COMMIT_ID = __commit_id__
+FOOD_ENERGY: Dict[str, int] = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
+COMMIT_ID: str = __commit_id__
 
 erep_tz = pytz.timezone('US/Pacific')
-AIR_RANKS = {1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**",
-             5: "Airman 1st Class***", 6: "Airman 1st Class****", 7: "Airman 1st Class*****",
-             8: "Senior Airman", 9: "Senior Airman*", 10: "Senior Airman**", 11: "Senior Airman***",
-             12: "Senior Airman****", 13: "Senior Airman*****",
-             14: "Staff Sergeant", 15: "Staff Sergeant*", 16: "Staff Sergeant**", 17: "Staff Sergeant***",
-             18: "Staff Sergeant****", 19: "Staff Sergeant*****",
-             20: "Aviator", 21: "Aviator*", 22: "Aviator**", 23: "Aviator***", 24: "Aviator****", 25: "Aviator*****",
-             26: "Flight Lieutenant", 27: "Flight Lieutenant*", 28: "Flight Lieutenant**", 29: "Flight Lieutenant***",
-             30: "Flight Lieutenant****", 31: "Flight Lieutenant*****",
-             32: "Squadron Leader", 33: "Squadron Leader*", 34: "Squadron Leader**", 35: "Squadron Leader***",
-             36: "Squadron Leader****", 37: "Squadron Leader*****",
-             38: "Chief Master Sergeant", 39: "Chief Master Sergeant*", 40: "Chief Master Sergeant**",
-             41: "Chief Master Sergeant***", 42: "Chief Master Sergeant****", 43: "Chief Master Sergeant*****",
-             44: "Wing Commander", 45: "Wing Commander*", 46: "Wing Commander**", 47: "Wing Commander***",
-             48: "Wing Commander****", 49: "Wing Commander*****",
-             50: "Group Captain", 51: "Group Captain*", 52: "Group Captain**", 53: "Group Captain***",
-             54: "Group Captain****", 55: "Group Captain*****",
-             56: "Air Commodore", 57: "Air Commodore*", 58: "Air Commodore**", 59: "Air Commodore***",
-             60: "Air Commodore****", 61: "Air Commodore*****", }
+AIR_RANKS: Dict[int, str] = {1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**",5: "Airman 1st Class***", 6: "Airman 1st Class****", 7: "Airman 1st Class*****",8: "Senior Airman", 9: "Senior Airman*", 10: "Senior Airman**", 11: "Senior Airman***",12: "Senior Airman****", 13: "Senior Airman*****",14: "Staff Sergeant", 15: "Staff Sergeant*", 16: "Staff Sergeant**", 17: "Staff Sergeant***",18: "Staff Sergeant****", 19: "Staff Sergeant*****",20: "Aviator", 21: "Aviator*", 22: "Aviator**", 23: "Aviator***", 24: "Aviator****", 25: "Aviator*****",26: "Flight Lieutenant", 27: "Flight Lieutenant*", 28: "Flight Lieutenant**", 29: "Flight Lieutenant***",30: "Flight Lieutenant****", 31: "Flight Lieutenant*****",32: "Squadron Leader", 33: "Squadron Leader*", 34: "Squadron Leader**", 35: "Squadron Leader***",36: "Squadron Leader****", 37: "Squadron Leader*****",38: "Chief Master Sergeant", 39: "Chief Master Sergeant*", 40: "Chief Master Sergeant**",41: "Chief Master Sergeant***", 42: "Chief Master Sergeant****", 43: "Chief Master Sergeant*****",44: "Wing Commander", 45: "Wing Commander*", 46: "Wing Commander**", 47: "Wing Commander***",48: "Wing Commander****", 49: "Wing Commander*****",50: "Group Captain", 51: "Group Captain*", 52: "Group Captain**", 53: "Group Captain***",54: "Group Captain****", 55: "Group Captain*****",56: "Air Commodore", 57: "Air Commodore*", 58: "Air Commodore**", 59: "Air Commodore***",60: "Air Commodore****", 61: "Air Commodore*****", }
 
-GROUND_RANKS = {1: "Recruit", 2: "Private", 3: "Private*", 4: "Private**", 5: "Private***", 6: "Corporal",
-                7: "Corporal*", 8: "Corporal**", 9: "Corporal***",
-                10: "Sergeant", 11: "Sergeant*", 12: "Sergeant**", 13: "Sergeant***", 14: "Lieutenant",
-                15: "Lieutenant*", 16: "Lieutenant**", 17: "Lieutenant***",
-                18: "Captain", 19: "Captain*", 20: "Captain**", 21: "Captain***", 22: "Major", 23: "Major*",
-                24: "Major**", 25: "Major***",
-                26: "Commander", 27: "Commander*", 28: "Commander**", 29: "Commander***", 30: "Lt Colonel",
-                31: "Lt Colonel*", 32: "Lt Colonel**", 33: "Lt Colonel***",
-                34: "Colonel", 35: "Colonel*", 36: "Colonel**", 37: "Colonel***", 38: "General", 39: "General*",
-                40: "General**", 41: "General***",
-                42: "Field Marshal", 43: "Field Marshal*", 44: "Field Marshal**", 45: "Field Marshal***",
-                46: "Supreme Marshal", 47: "Supreme Marshal*", 48: "Supreme Marshal**", 49: "Supreme Marshal***",
-                50: "National Force", 51: "National Force*", 52: "National Force**", 53: "National Force***",
-                54: "World Class Force", 55: "World Class Force*", 56: "World Class Force**",
-                57: "World Class Force***", 58: "Legendary Force", 59: "Legendary Force*", 60: "Legendary Force**",
-                61: "Legendary Force***",
-                62: "God of War", 63: "God of War*", 64: "God of War**", 65: "God of War***", 66: "Titan", 67: "Titan*",
-                68: "Titan**", 69: "Titan***",
-                70: "Legends I", 71: "Legends II", 72: "Legends III", 73: "Legends IV", 74: "Legends V",
-                75: "Legends VI", 76: "Legends VII", 77: "Legends VIII", 78: "Legends IX", 79: "Legends X",
-                80: "Legends XI", 81: "Legends XII", 82: "Legends XIII", 83: "Legends XIV", 84: "Legends XV",
-                85: "Legends XVI", 86: "Legends XVII", 87: "Legends XVIII", 88: "Legends XIX", 89: "Legends XX", }
+GROUND_RANKS: Dict[int, str] = {
+    1: "Recruit", 2: "Private", 3: "Private*", 4: "Private**", 5: "Private***",
+    6: "Corporal", 7: "Corporal*", 8: "Corporal**", 9: "Corporal***",
+    10: "Sergeant", 11: "Sergeant*", 12: "Sergeant**", 13: "Sergeant***",
+    14: "Lieutenant", 15: "Lieutenant*", 16: "Lieutenant**", 17: "Lieutenant***",
+    18: "Captain", 19: "Captain*", 20: "Captain**", 21: "Captain***",
+    22: "Major", 23: "Major*", 24: "Major**", 25: "Major***",
+    26: "Commander", 27: "Commander*", 28: "Commander**", 29: "Commander***",
+    30: "Lt Colonel", 31: "Lt Colonel*", 32: "Lt Colonel**", 33: "Lt Colonel***",
+    34: "Colonel", 35: "Colonel*", 36: "Colonel**", 37: "Colonel***",
+    38: "General", 39: "General*", 40: "General**", 41: "General***",
+    42: "Field Marshal", 43: "Field Marshal*", 44: "Field Marshal**", 45: "Field Marshal***",
+    46: "Supreme Marshal", 47: "Supreme Marshal*", 48: "Supreme Marshal**", 49: "Supreme Marshal***",
+    50: "National Force", 51: "National Force*", 52: "National Force**", 53: "National Force***",
+    54: "World Class Force", 55: "World Class Force*", 56: "World Class Force**", 57: "World Class Force***",
+    58: "Legendary Force", 59: "Legendary Force*", 60: "Legendary Force**", 61: "Legendary Force***",
+    62: "God of War", 63: "God of War*", 64: "God of War**", 65: "God of War***",
+    66: "Titan", 67: "Titan*", 68: "Titan**", 69: "Titan***",
+    70: "Legends I", 71: "Legends II", 72: "Legends III", 73: "Legends IV", 74: "Legends V", 75: "Legends VI",
+    76: "Legends VII", 77: "Legends VIII", 78: "Legends IX", 79: "Legends X", 80: "Legends XI", 81: "Legends XII",
+    82: "Legends XIII", 83: "Legends XIV", 84: "Legends XV", 85: "Legends XVI", 86: "Legends XVII", 87: "Legends XVIII",
+    88: "Legends XIX", 89: "Legends XX",
+}
 
-GROUND_RANK_POINTS = {1: 0, 2: 15, 3: 45, 4: 80, 5: 120, 6: 170, 7: 250, 8: 350, 9: 450, 10: 600, 11: 800, 12: 1000,
-                      13: 1400, 14: 1850, 15: 2350, 16: 3000, 17: 3750, 18: 5000, 19: 6500, 20: 9000, 21: 12000,
-                      22: 15500, 23: 20000, 24: 25000, 25: 31000, 26: 40000, 27: 52000, 28: 67000, 29: 85000,
-                      30: 110000, 31: 140000, 32: 180000, 33: 225000, 34: 285000, 35: 355000, 36: 435000, 37: 540000,
-                      38: 660000, 39: 800000, 40: 950000, 41: 1140000, 42: 1350000, 43: 1600000, 44: 1875000,
-                      45: 2185000, 46: 2550000, 47: 3000000, 48: 3500000, 49: 4150000, 50: 4900000, 51: 5800000,
-                      52: 7000000, 53: 9000000, 54: 11500000, 55: 14500000, 56: 18000000, 57: 22000000, 58: 26500000,
-                      59: 31500000, 60: 37000000, 61: 43000000, 62: 50000000, 63: 100000000, 64: 200000000,
-                      65: 500000000, 66: 1000000000, 67: 2000000000, 68: 4000000000, 69: 10000000000, 70: 20000000000,
-                      71: 30000000000, 72: 40000000000, 73: 50000000000, 74: 60000000000, 75: 70000000000,
-                      76: 80000000000, 77: 90000000000, 78: 100000000000, 79: 110000000000, 80: 120000000000,
-                      81: 130000000000, 82: 140000000000, 83: 150000000000, 84: 160000000000, 85: 170000000000,
-                      86: 180000000000, 87: 190000000000, 88: 200000000000, 89: 210000000000}
+GROUND_RANK_POINTS: Dict[int, int] = {
+    1: 0, 2: 15, 3: 45, 4: 80, 5: 120, 6: 170, 7: 250, 8: 350, 9: 450, 10: 600, 11: 800, 12: 1000,
+    13: 1400, 14: 1850, 15: 2350, 16: 3000, 17: 3750, 18: 5000, 19: 6500, 20: 9000, 21: 12000,
+    22: 15500, 23: 20000, 24: 25000, 25: 31000, 26: 40000, 27: 52000, 28: 67000, 29: 85000,
+    30: 110000, 31: 140000, 32: 180000, 33: 225000, 34: 285000, 35: 355000, 36: 435000, 37: 540000,
+    38: 660000, 39: 800000, 40: 950000, 41: 1140000, 42: 1350000, 43: 1600000, 44: 1875000,
+    45: 2185000, 46: 2550000, 47: 3000000, 48: 3500000, 49: 4150000, 50: 4900000, 51: 5800000,
+    52: 7000000, 53: 9000000, 54: 11500000, 55: 14500000, 56: 18000000, 57: 22000000, 58: 26500000,
+    59: 31500000, 60: 37000000, 61: 43000000, 62: 50000000, 63: 100000000, 64: 200000000,
+    65: 500000000, 66: 1000000000, 67: 2000000000, 68: 4000000000, 69: 10000000000, 70: 20000000000,
+    71: 30000000000, 72: 40000000000, 73: 50000000000, 74: 60000000000, 75: 70000000000,
+    76: 80000000000, 77: 90000000000, 78: 100000000000, 79: 110000000000, 80: 120000000000,
+    81: 130000000000, 82: 140000000000, 83: 150000000000, 84: 160000000000, 85: 170000000000,
+    86: 180000000000, 87: 190000000000, 88: 200000000000, 89: 210000000000
+}
 
-COUNTRIES = {1: 'Romania', 9: 'Brazil', 10: 'Italy', 11: 'France', 12: 'Germany', 13: 'Hungary', 14: 'China',
-             15: 'Spain', 23: 'Canada', 24: 'USA', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 29: 'United Kingdom',
-             30: 'Switzerland', 31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech Republic', 35: 'Poland',
-             36: 'Slovakia', 37: 'Norway', 38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria',
-             43: 'Turkey', 44: 'Greece', 45: 'Japan', 47: 'South Korea', 48: 'India', 49: 'Indonesia', 50: 'Australia',
-             51: 'South Africa', 52: 'Republic of Moldova', 53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran',
-             57: 'Pakistan', 58: 'Israel', 59: 'Thailand', 61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia',
-             66: 'Malaysia', 67: 'Philippines', 68: 'Singapore', 69: 'Bosnia and Herzegovina', 70: 'Estonia',
-             71: 'Latvia', 72: 'Lithuania', 73: 'North Korea', 74: 'Uruguay', 75: 'Paraguay', 76: 'Bolivia', 77: 'Peru',
-             78: 'Colombia', 79: 'Republic of Macedonia (FYROM)', 80: 'Montenegro', 81: 'Republic of China (Taiwan)',
-             82: 'Cyprus', 83: 'Belarus', 84: 'New Zealand', 164: 'Saudi Arabia', 165: 'Egypt',
-             166: 'United Arab Emirates', 167: 'Albania', 168: 'Georgia', 169: 'Armenia', 170: 'Nigeria', 171: 'Cuba'}
+COUNTRIES: Dict[int, str] = {
+    1: 'Romania', 9: 'Brazil', 10: 'Italy', 11: 'France', 12: 'Germany', 13: 'Hungary', 14: 'China', 15: 'Spain',
+    23: 'Canada', 24: 'USA', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 29: 'United Kingdom', 30: 'Switzerland',
+    31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech Republic', 35: 'Poland', 36: 'Slovakia', 37: 'Norway',
+    38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria', 43: 'Turkey', 44: 'Greece', 45: 'Japan',
+    47: 'South Korea', 48: 'India', 49: 'Indonesia', 50: 'Australia', 51: 'South Africa', 52: 'Republic of Moldova',
+    53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran', 57: 'Pakistan', 58: 'Israel', 59: 'Thailand',
+    61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia', 66: 'Malaysia', 67: 'Philippines', 68: 'Singapore',
+    69: 'Bosnia and Herzegovina', 70: 'Estonia', 71: 'Latvia', 72: 'Lithuania', 73: 'North Korea', 74: 'Uruguay',
+    75: 'Paraguay', 76: 'Bolivia', 77: 'Peru', 78: 'Colombia', 79: 'Republic of Macedonia (FYROM)', 80: 'Montenegro',
+    81: 'Republic of China (Taiwan)', 82: 'Cyprus', 83: 'Belarus', 84: 'New Zealand', 164: 'Saudi Arabia', 165: 'Egypt',
+    166: 'United Arab Emirates', 167: 'Albania', 168: 'Georgia', 169: 'Armenia', 170: 'Nigeria', 171: 'Cuba'
+}
 
-COUNTRY_LINK = {1: 'Romania', 9: 'Brazil', 11: 'France', 12: 'Germany', 13: 'Hungary', 82: 'Cyprus', 168: 'Georgia',
-                15: 'Spain', 23: 'Canada', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 80: 'Montenegro', 24: 'USA',
-                29: 'United-Kingdom', 50: 'Australia', 47: 'South-Korea', 171: 'Cuba',
-                79: 'Republic-of-Macedonia-FYROM',
-                30: 'Switzerland', 31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech-Republic', 35: 'Poland',
-                36: 'Slovakia', 37: 'Norway', 38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria',
-                43: 'Turkey', 44: 'Greece', 45: 'Japan', 48: 'India', 49: 'Indonesia', 78: 'Colombia', 68: 'Singapore',
-                51: 'South Africa', 52: 'Republic-of-Moldova', 53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran',
-                57: 'Pakistan', 58: 'Israel', 59: 'Thailand', 61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia',
-                66: 'Malaysia', 67: 'Philippines', 70: 'Estonia', 165: 'Egypt', 14: 'China', 77: 'Peru', 10: 'Italy',
-                71: 'Latvia', 72: 'Lithuania', 73: 'North-Korea', 74: 'Uruguay', 75: 'Paraguay', 76: 'Bolivia',
-                81: 'Republic-of-China-Taiwan', 166: 'United-Arab-Emirates', 167: 'Albania', 69: 'Bosnia-Herzegovina',
-                169: 'Armenia', 83: 'Belarus', 84: 'New-Zealand', 164: 'Saudi-Arabia', 170: 'Nigeria', }
+COUNTRY_LINK: Dict[int, str] = {
+    1: 'Romania', 9: 'Brazil', 11: 'France', 12: 'Germany', 13: 'Hungary', 82: 'Cyprus', 168: 'Georgia', 15: 'Spain',
+    23: 'Canada', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 80: 'Montenegro', 24: 'USA', 29: 'United-Kingdom',
+    50: 'Australia', 47: 'South-Korea', 171: 'Cuba', 79: 'Republic-of-Macedonia-FYROM', 30: 'Switzerland', 165: 'Egypt',
+    31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech-Republic', 35: 'Poland', 36: 'Slovakia', 37: 'Norway',
+    38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria', 43: 'Turkey', 44: 'Greece', 45: 'Japan',
+    48: 'India', 49: 'Indonesia', 78: 'Colombia', 68: 'Singapore', 51: 'South Africa', 52: 'Republic-of-Moldova',
+    53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran', 57: 'Pakistan', 58: 'Israel', 59: 'Thailand', 10: 'Italy',
+    61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia', 66: 'Malaysia', 67: 'Philippines', 70: 'Estonia',
+    77: 'Peru', 71: 'Latvia', 72: 'Lithuania', 73: 'North-Korea', 74: 'Uruguay', 75: 'Paraguay', 76: 'Bolivia',
+    81: 'Republic-of-China-Taiwan', 166: 'United-Arab-Emirates', 167: 'Albania', 69: 'Bosnia-Herzegovina', 14: 'China',
+    169: 'Armenia', 83: 'Belarus', 84: 'New-Zealand', 164: 'Saudi-Arabia', 170: 'Nigeria'
+}
 
-ISO_CC = {1: 'ROU', 9: 'BRA', 10: 'ITA', 11: 'FRA', 12: 'DEU', 13: 'HUN', 14: 'CHN', 15: 'ESP', 23: 'CAN', 24: 'USA',
-          26: 'MEX', 27: 'ARG', 28: 'VEN', 29: 'GBR', 30: 'CHE', 31: 'NLD', 32: 'BEL', 33: 'AUT', 34: 'CZE', 35: 'POL',
-          36: 'SVK', 37: 'NOR', 38: 'SWE', 39: 'FIN', 40: 'UKR', 41: 'RUS', 42: 'BGR', 43: 'TUR', 44: 'GRC', 45: 'JPN',
-          47: 'KOR', 48: 'IND', 49: 'IDN', 50: 'AUS', 51: 'ZAF', 52: 'MDA', 53: 'PRT', 54: 'IRL', 55: 'DNK', 56: 'IRN',
-          57: 'PAK', 58: 'ISR', 59: 'THA', 61: 'SVN', 63: 'HRV', 64: 'CHL', 65: 'SRB', 66: 'MYS', 67: 'PHL', 68: 'SGP',
-          69: 'BiH', 70: 'EST', 71: 'LVA', 72: 'LTU', 73: 'PRK', 74: 'URY', 75: 'PRY', 76: 'BOL', 77: 'PER', 78: 'COL',
-          79: 'MKD', 80: 'MNE', 81: 'TWN', 82: 'CYP', 83: 'BLR', 84: 'NZL', 164: 'SAU', 165: 'EGY', 166: 'UAE',
-          167: 'ALB', 168: 'GEO', 169: 'ARM', 170: 'NGA', 171: 'CUB'}
+ISO_CC: Dict[int, str] = {
+    1:  'ROU',  9: 'BRA', 10: 'ITA', 11: 'FRA', 12: 'DEU', 13: 'HUN',  14: 'CHN',  15: 'ESP',  23: 'CAN',  24: 'USA',
+    26: 'MEX', 27: 'ARG', 28: 'VEN', 29: 'GBR', 30: 'CHE', 31: 'NLD',  32: 'BEL',  33: 'AUT',  34: 'CZE',  35: 'POL',
+    36: 'SVK', 37: 'NOR', 38: 'SWE', 39: 'FIN', 40: 'UKR', 41: 'RUS',  42: 'BGR',  43: 'TUR',  44: 'GRC',  45: 'JPN',
+    47: 'KOR', 48: 'IND', 49: 'IDN', 50: 'AUS', 51: 'ZAF', 52: 'MDA',  53: 'PRT',  54: 'IRL',  55: 'DNK',  56: 'IRN',
+    57: 'PAK', 58: 'ISR', 59: 'THA', 61: 'SVN', 63: 'HRV', 64: 'CHL',  65: 'SRB',  66: 'MYS',  67: 'PHL',  68: 'SGP',
+    69: 'BiH', 70: 'EST', 71: 'LVA', 72: 'LTU', 73: 'PRK', 74: 'URY',  75: 'PRY',  76: 'BOL',  77: 'PER',  78: 'COL',
+    79: 'MKD', 80: 'MNE', 81: 'TWN', 82: 'CYP', 83: 'BLR', 84: 'NZL', 164: 'SAU', 165: 'EGY', 166: 'UAE', 167: 'ALB',
+    168: 'GEO', 169: 'ARM', 170: 'NGA', 171: 'CUB',
+}
 
 
 def now() -> datetime.datetime:
@@ -418,7 +406,7 @@ def slugify(value, allow_unicode=False) -> str:
 
 
 def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, booster: int = 0,
-                  weapon: int = 200, is_deploy: bool = False) -> float:
+                  weapon: int = 200, is_deploy: bool = False) -> Decimal:
     dec = 3 if is_deploy else 0
     base_str = (1 + Decimal(str(round(strength, 3))) / 400)
     base_rnk = (1 + Decimal(str(rang / 5)))
@@ -439,7 +427,7 @@ def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, b
 
 
 def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
-                             booster: int = 0, weapon_power: int = 200) -> float:
+                             booster: int = 0, weapon_power: int = 200) -> Decimal:
     r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
     rang = r['military']['militaryData']['ground']['rankNumber']
     strength = r['military']['militaryData']['ground']['strength']
@@ -451,7 +439,7 @@ def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_
 
 
 def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0,
-                          weapon_power: int = 0) -> float:
+                          weapon_power: int = 0) -> Decimal:
     r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
     rang = r['military']['militaryData']['aircraft']['rankNumber']
     elite = r['citizenAttributes']['level'] > 100
