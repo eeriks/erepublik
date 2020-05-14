@@ -394,11 +394,11 @@ class Reporter:
     email: str = ""
     citizen_id: int = 0
     key: str = ""
-    __allowed: bool = False
+    allowed: bool = False
 
     @property
     def __dict__(self):
-        return dict(name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.__allowed,
+        return dict(name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.allowed,
                     queue=self.__to_update)
 
     def __init__(self):
@@ -415,7 +415,7 @@ class Reporter:
         self.key: str = ""
         self.__update_key()
         self.register_account()
-        self.__allowed = True
+        self.allowed = True
 
     def __update_key(self):
         self.key = hashlib.md5(bytes(f"{self.name}:{self.email}", encoding="UTF-8")).hexdigest()
@@ -438,7 +438,7 @@ class Reporter:
                                                                                  player_id=self.citizen_id))
             finally:
                 self.__registered = True
-                self.__allowed = True
+                self.allowed = True
                 self.report_action("STARTED", value=utils.now().strftime("%F %T"))
 
     def send_state_update(self, xp: int, cc: float, gold: float, inv_total: int, inv: int,
@@ -449,7 +449,7 @@ class Reporter:
             pp=pp, hp_limit=hp_limit, hp_interval=hp_interval, hp_available=hp_available,
         ))
 
-        if self.__allowed:
+        if self.allowed:
             self.__bot_update(data)
 
     def report_action(self, action: str, json_val: Dict[Any, Any] = None, value: str = None):
@@ -462,7 +462,7 @@ class Reporter:
             json_data['log'].update(dict(value=value))
         if not any([self.key, self.email, self.name, self.citizen_id]):
             return
-        if self.__allowed:
+        if self.allowed:
             self.__bot_update(json_data)
         else:
             self.__to_update.append(json_data)
