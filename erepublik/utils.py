@@ -14,7 +14,7 @@ from typing import Any, List, Mapping, Optional, Union, Dict
 import pytz
 import requests
 
-from . import __commit_id__
+from . import __commit_id__, __version__
 
 try:
     import simplejson as json
@@ -34,6 +34,7 @@ if not sys.version_info >= (3, 7):
 
 FOOD_ENERGY: Dict[str, int] = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID: str = __commit_id__
+VERSION: str = __version__
 
 erep_tz = pytz.timezone('US/Pacific')
 AIR_RANKS: Dict[int, str] = {
@@ -355,14 +356,14 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     :type exc_info: tuple
     :param citizen: Citizen instance
     :type citizen: Citizen
-    :param commit_id: Code's version by commit id
+    :param commit_id: Caller's code version's commit id
     :type commit_id: str
     """
     type_, value_, traceback_ = exc_info
     content = [log_info]
-    if not commit_id:
-        commit_id = COMMIT_ID
-    content += ["Commit id: %s" % commit_id]
+    content += [f"eRepublik version {VERSION}, commit id {COMMIT_ID}"]
+    if commit_id:
+        content += [f"Commit id {commit_id}"]
     content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
 
     if interactive:
