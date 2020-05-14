@@ -377,7 +377,7 @@ class Politics:
 class House:
     quality = None
     unactivated_count = 0
-    active_untill = utils.good_timedelta(utils.now(), -datetime.timedelta(days=1))
+    active_until = utils.good_timedelta(utils.now(), -datetime.timedelta(days=1))
 
     def __init__(self, quality: int):
         if 0 < quality < 6:
@@ -385,7 +385,7 @@ class House:
 
     @property
     def next_ot_point(self) -> datetime.datetime:
-        return self.active_untill
+        return self.active_until
 
 
 class Reporter:
@@ -467,8 +467,8 @@ class Reporter:
         else:
             self.__to_update.append(json_data)
 
-    def report_promo(self, kind: str, time_untill: datetime.datetime):
-        self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_untill))
+    def report_promo(self, kind: str, time_until: datetime.datetime):
+        self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
 
 class MyJSONEncoder(json.JSONEncoder):

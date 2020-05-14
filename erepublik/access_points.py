@@ -340,7 +340,7 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
         return self.post("{}/economy/marketplaceActions".format(self.url), data=data)
 
 
-class ErepublikLeaderboardAPI(CitizenBaseAPI):
+class ErepublikLeaderBoardAPI(CitizenBaseAPI):
     def _get_main_leaderboards_damage_aircraft_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Response:
         data = (country, weeks, mu)
         return self.get("{}/main/leaderboards-damage-aircraft-rankings/{}/{}/{}/0".format(self.url, *data))
@@ -656,7 +656,7 @@ class ErepublikWallPostAPI(CitizenBaseAPI):
 
 class CitizenAPI(
     ErepublikArticleAPI, ErepublikCountryAPI, ErepublikCompanyAPI, ErepublikEconomyAPI,
-    ErepublikLeaderboardAPI, ErepublikLocationAPI, ErepublikMilitaryAPI, ErepublikProfileAPI,
+    ErepublikLeaderBoardAPI, ErepublikLocationAPI, ErepublikMilitaryAPI, ErepublikProfileAPI,
     ErepublikPresidentAPI, ErepublikPoliticsAPI, ErepublikAnniversaryAPI, ErepublikWallPostAPI,
     ErepublikTravelAPI
 ):

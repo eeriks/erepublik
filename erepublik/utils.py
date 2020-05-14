@@ -176,9 +176,9 @@ def date_from_eday(eday: int) -> datetime.date:
     return localize_dt(datetime.date(2007, 11, 20)) + datetime.timedelta(days=eday)
 
 
-def get_sleep_seconds(time_untill: datetime.datetime) -> int:
+def get_sleep_seconds(time_until: datetime.datetime) -> int:
     """ time_until aware datetime object Wrapper for sleeping until """
-    sleep_seconds = int((time_untill - now()).total_seconds())
+    sleep_seconds = int((time_until - now()).total_seconds())
     return sleep_seconds if sleep_seconds > 0 else 0
 
 

@@ -138,8 +138,8 @@ class BaseCitizen(CitizenAPI):
             return self.post(url, data=data, json=json, **kwargs)
 
         try:
-            resp_data = response.json()
-            if (resp_data.get("error") or not resp_data.get("status")) and resp_data.get("message", "") == "captcha":
+            r_json = response.json()
+            if (r_json.get("error") or not r_json.get("status")) and r_json.get("message", "") == "captcha":
                 utils.send_email(self.name, [response.text, ], player=self, captcha=True)
         except (AttributeError, utils.json.JSONDecodeError, ValueError, KeyError):
             pass
@@ -403,18 +403,18 @@ class BaseCitizen(CitizenAPI):
         :return: industry name
         :rtype: str
         """
-        for iname, iid in self.available_industries.items():
-            if iid == industry_id:
-                return iname
+        for industry_name, ind_id in self.available_industries.items():
+            if ind_id == industry_id:
+                return industry_name
         return ""
 
     def get_countries_with_regions(self) -> Set[int]:
-        response_json = self._post_main_travel_data().json()
-        return_list = {*[]}
-        for country_data in response_json['countries'].values():
+        r_json = self._post_main_travel_data().json()
+        return_set = {*[]}
+        for country_data in r_json['countries'].values():
             if country_data['currentRegions']:
-                return_list.add(country_data['id'])
-        return return_list
+                return_set.add(country_data['id'])
+        return return_set
 
     def __str__(self) -> str:
         return f"Citizen {self.name}"
@@ -509,19 +509,10 @@ class BaseCitizen(CitizenAPI):
                 "foodRaw": 7, "weaponRaw": 12, "houseRaw": 17, "airplaneRaw": 24}
 
     @property
-    def available_industries_by_id(self) -> Dict[int, str]:
-        """
-        Returns currently available industries as dict(id: name)
-        :return: Dict[int, str]
-        """
-        return {1: "food", 2: "weapon", 4: "house", 23: "aircraft",
-                7: "foodRaw", 12: "weaponRaw", 17: "houseRaw", 24: "airplaneRaw"}
-
-    @property
     def factories(self) -> Dict[int, str]:
         """Returns factory industries as dict(id: name)
         :return: Factory id:name dict
-        ":rtype: Dict[int, str]
+        :rtype: Dict[int, str]
         """
         return {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
                 7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
@@ -953,7 +944,7 @@ class CitizenEconomy(CitizenTravel):
 
     def renew_houses(self, forced: bool = False) -> Dict[int, datetime]:
         """
-        Renew all houses which endtime is in next 48h
+        Renew all houses which end time is in next 48h
         :param forced: if true - renew all houses
         :return:
         """
@@ -1027,7 +1018,7 @@ class CitizenEconomy(CitizenTravel):
         }
         ret = self._post_economy_marketplace_actions(**data)
         message = (f"Posted market offer for {amount}q{quality} "
-                   f"{self.available_industries_by_id[industry]} for price {price}cc")
+                   f"{self.get_industry_name(industry)} for price {price}cc")
         self._report_action("ECONOMY_SELL_PRODUCTS", message, **ret.json())
         return ret
 
@@ -1153,7 +1144,7 @@ class CitizenEconomy(CitizenTravel):
         self.write_log(f"Donate: {amount:4d}q{quality} {ind[industry_id]} to {citizen_id}")
         response = self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
         if re.search(rf"Successfully transferred {amount} item\(s\) to", response.text):
-            msg = (f"Successfully donated {amount}q{quality} {self.available_industries_by_id[industry_id]} "
+            msg = (f"Successfully donated {amount}q{quality} {self.get_industry_name(industry_id)} "
                    f"to citizen with id {citizen_id}!")
             self._report_action("DONATE_ITEMS", msg, success=True)
             return amount
@@ -1165,12 +1156,12 @@ class CitizenEconomy(CitizenTravel):
             if re.search(r"You do not have enough items in your inventory to make this donation", response.text):
                 self._report_action("DONATE_ITEMS",
                                     f"Unable to donate {amount}q{quality} "
-                                    f"{self.available_industries_by_id[industry_id]}, not enough left!", success=False)
+                                    f"{self.get_industry_name(industry_id)}, not enough left!", success=False)
                 return 0
             available = re.search(rf"Cannot transfer the items because the user has only (\d+) free slots in (his|her) "
                                   rf"storage.", response.text).group(1)
             self._report_action("DONATE_ITEMS",
-                                f"Unable to donate {amount}q{quality}{self.available_industries_by_id[industry_id]}"
+                                f"Unable to donate {amount}q{quality}{self.get_industry_name(industry_id)}"
                                 f", receiver has only {available} storage left!", success=False)
             self.sleep(5)
             return self.donate_items(citizen_id, int(available), industry_id, quality)
@@ -1227,7 +1218,7 @@ class CitizenEconomy(CitizenTravel):
             return False
 
 
-class CitizenLeaderboard(BaseCitizen):
+class CitizenLeaderBoard(BaseCitizen):
     def get_aircraft_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Dict[str, any]:
         return self._get_main_leaderboards_damage_aircraft_rankings(country, weeks, mu).json()
 
@@ -1306,10 +1297,10 @@ class CitizenMilitary(CitizenTravel):
 
         if self.__last_war_update_data and self.__last_war_update_data.get('last_updated',
                                                                            0) + 30 > self.now.timestamp():
-            resp_json = self.__last_war_update_data
+            r_json = self.__last_war_update_data
         else:
-            resp_json = self._get_military_campaigns_json_list().json()
-        if resp_json.get("countries"):
+            r_json = self._get_military_campaigns_json_list().json()
+        if r_json.get("countries"):
             if self.all_battles is None:
                 self.all_battles = {}
             else:
@@ -1320,16 +1311,16 @@ class CitizenMilitary(CitizenTravel):
             else:
                 self.countries.clear()
 
-            for c_id, c_data in resp_json.get("countries").items():
+            for c_id, c_data in r_json.get("countries").items():
                 if int(c_id) not in self.countries:
                     self.countries.update({
                         int(c_id): {"name": c_data.get("name"), "allies": c_data.get("allies")}
                     })
                 else:
                     self.countries[int(c_id)].update(allies=c_data.get("allies"))
-            self.__last_war_update_data = resp_json
-            if resp_json.get("battles"):
-                for battle_data in resp_json.get("battles", {}).values():
+            self.__last_war_update_data = r_json
+            if r_json.get("battles"):
+                for battle_data in r_json.get("battles", {}).values():
                     self.all_battles[battle_data.get('id')] = Battle(battle_data)
 
     def get_battle_for_war(self, war_id: int) -> Optional[Battle]:
@@ -1576,7 +1567,7 @@ class CitizenMilitary(CitizenTravel):
         :rtype: int
         """
         if not isinstance(battle_id, int):
-            self.report_error(f"WARNINNG! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
+            self.report_error(f"WARNING! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
             battle_id = int(battle_id)
         if battle_id not in self.all_battles:
             self.update_war_info()
@@ -1622,29 +1613,29 @@ class CitizenMilitary(CitizenTravel):
             self.sleep(5)
             return 0, 1, 0
         try:
-            j_resp = response.json()
+            r_json = response.json()
         except (ValueError, HTTPError, RequestException):
             return 0, 10, 0
         hits = 0
         damage = 0
         err = False
-        if j_resp.get("error"):
-            if j_resp.get("message") == "SHOOT_LOCKOUT" or j_resp.get("message") == "ZONE_INACTIVE":
+        if r_json.get("error"):
+            if r_json.get("message") == "SHOOT_LOCKOUT" or r_json.get("message") == "ZONE_INACTIVE":
                 pass
-            elif j_resp.get("message") == "NOT_ENOUGH_WEAPONS":
+            elif r_json.get("message") == "NOT_ENOUGH_WEAPONS":
                 self.set_default_weapon(battle_id)
             else:
-                if j_resp.get("message") == "UNKNOWN_SIDE":
+                if r_json.get("message") == "UNKNOWN_SIDE":
                     self._rw_choose_side(battle_id, side_id)
-                elif j_resp.get("message") == "CHANGE_LOCATION":
+                elif r_json.get("message") == "CHANGE_LOCATION":
                     countries = [side_id] + battle.invader.deployed if inv_side else battle.defender.deployed
                     self.travel_to_battle(battle_id, countries)
                 err = True
-        elif j_resp.get("message") == "ENEMY_KILLED":
-            hits = (self.energy.recovered - j_resp["details"]["wellness"]) // 10
-            self.energy.recovered = j_resp["details"]["wellness"]
-            self.details.xp = int(j_resp["details"]["points"])
-            damage = j_resp["user"]["givenDamage"] * (1.1 if j_resp["oldEnemy"]["isNatural"] else 1)
+        elif r_json.get("message") == "ENEMY_KILLED":
+            hits = (self.energy.recovered - r_json["details"]["wellness"]) // 10
+            self.energy.recovered = r_json["details"]["wellness"]
+            self.details.xp = int(r_json["details"]["points"])
+            damage = r_json["user"]["givenDamage"] * (1.1 if r_json["oldEnemy"]["isNatural"] else 1)
         else:
             err = True
 
@@ -1966,11 +1957,11 @@ class CitizenSocial(BaseCitizen):
 
     def add_friend(self, player_id: int) -> Response:
         resp = self._get_main_citizen_hovercard(player_id)
-        rjson = resp.json()
-        if not any([rjson["isBanned"], rjson["isDead"], rjson["isFriend"], rjson["isOrg"], rjson["isSelf"]]):
+        r_json = resp.json()
+        if not any([r_json["isBanned"], r_json["isDead"], r_json["isFriend"], r_json["isOrg"], r_json["isSelf"]]):
             r = self._post_main_citizen_add_remove_friend(int(player_id), True)
-            self.write_log(f"{rjson['name']:<64} (id:{player_id:>11}) added as friend")
-            self._report_action("SOCIAL_ADD_FRIEND", f"{rjson['name']:<64} (id:{player_id:>11}) added as friend")
+            self.write_log(f"{r_json['name']:<64} (id:{player_id:>11}) added as friend")
+            self._report_action("SOCIAL_ADD_FRIEND", f"{r_json['name']:<64} (id:{player_id:>11}) added as friend")
             return r
         return resp
 
@@ -2158,10 +2149,10 @@ class CitizenTasks(BaseCitizen):
         for posting in jobs:
             salary = posting.get("salary")
             limit = posting.get("salaryLimit", 0)
-            userid = posting.get("citizen").get("id")
+            citizen_id = posting.get("citizen").get("id")
 
             if (not limit or salary * 3 < limit) and salary > data["salary"]:
-                data.update({"citizen": userid, "salary": salary})
+                data.update({"citizen": citizen_id, "salary": salary})
 
         self._report_action("ECONOMY_APPLY_FOR_JOB", f"I'm working now for {str(data['citizen'])}", **r.json())
         return self._post_economy_job_market_apply(**data)
@@ -2181,7 +2172,7 @@ class CitizenTasks(BaseCitizen):
         return resp
 
 
-class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeaderboard,
+class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeaderBoard,
               CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
     debug: bool = False
 
@@ -2206,6 +2197,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.update_citizen_info()
         self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)
         if self.config.telegram:
+            # noinspection SpellCheckingInspection
             self.telegram.do_init(self.config.telegram_chat_id or 620981703,
                                   self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
                                   "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
