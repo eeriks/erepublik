@@ -9,7 +9,8 @@ CONFIG = {
     'interactive': True,
     'fight': True,
     'debug': True,
-    'start_battles': {
+    'battle_launcher': {
+        # War id: {auto_attack: bool (attack asap when region is available), regions: [region_ids allowed to attack]}
         121672: {"auto_attack": False, "regions": [661]},
         125530: {"auto_attack": False, "regions": [259]},
         125226: {"auto_attack": True, "regions": [549]},
@@ -24,7 +25,7 @@ def _battle_launcher(player: Citizen):
     time. If player is allowed to fight, do 100 hits on the first round in players division.
 
     :param player: Logged in Citizen instance
-    ":type player: Citizen
+    :type player: Citizen
     """
     global CONFIG
     finished_war_ids = {*[]}
@@ -38,13 +39,13 @@ def _battle_launcher(player: Citizen):
             player.update_war_info()
             running_wars = {b.war_id for b in player.all_battles.values()}
             for war_id in war_ids - finished_war_ids - running_wars:
-                war = war_data[str(war_id)]
+                war = war_data[war_id]
                 war_regions = set(war.get('regions'))
                 auto_attack = war.get('auto_attack')
 
                 status = player.get_war_status(war_id)
                 if status.get('ended', False):
-                    CONFIG['start_battles'].pop(str(war_id), None)
+                    CONFIG['start_battles'].pop(war_id, None)
                     finished_war_ids.add(war_id)
                     continue
                 elif not status.get('can_attack'):
@@ -76,18 +77,19 @@ def _battle_launcher(player: Citizen):
             else:
                 next_attack_time = utils.good_timedelta(next_attack_time, timedelta(minutes=5))
             player.stop_threads.wait(utils.get_sleep_seconds(next_attack_time))
-        except:
-            player.report_error("Task error: start_battles")
+        except Exception as e:
+            player.report_error(f"Task battle launcher ran into error {e}")
 
 
+# noinspection DuplicatedCode
 def main():
     player = Citizen(email=CONFIG['email'], password=CONFIG['password'], auto_login=False)
     player.config.interactive = CONFIG['interactive']
     player.config.fight = CONFIG['fight']
     player.set_debug(CONFIG.get('debug', False))
     player.login()
-    if CONFIG.get('start_battles'):
-        name = "{}-start_battles-{}".format(player.name, threading.active_count() - 1)
+    if CONFIG.get('battle_launcher'):
+        name = "{}-battle_launcher-{}".format(player.name, threading.active_count() - 1)
         state_thread = threading.Thread(target=_battle_launcher, args=(player,), name=name)
         state_thread.start()
 
