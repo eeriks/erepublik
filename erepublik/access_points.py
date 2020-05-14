@@ -380,6 +380,9 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
     def _get_military_campaigns_json_list(self) -> Response:
         return self.get("{}/military/campaignsJson/list".format(self.url))
 
+    def _get_military_campaigns_json_citizen(self) -> Response:
+        return self.get("{}/military/campaignsJson/citizen".format(self.url))
+
     def _get_military_unit_data(self, unit_id: int, **kwargs) -> Response:
         params = {"groupId": unit_id, "panel": "members", **kwargs}
         return self.get("{}/military/military-unit-data/".format(self.url), params=params)

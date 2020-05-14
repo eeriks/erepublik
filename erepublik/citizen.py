@@ -1283,7 +1283,7 @@ class CitizenMedia(BaseCitizen):
             try:
                 article_id = int(resp.history[1].url.split("/")[-3])
                 self._report_action("ARTICLE_PUBLISH", f"Published new article \"{title}\" ({article_id})", **data)
-            except:
+            except:  # noqa
                 article_id = 0
             return article_id
         else:
@@ -1441,20 +1441,21 @@ class CitizenMilitary(CitizenTravel):
         other_battles_air: List[int] = []
         other_battles_ground: List[int] = []
 
-        ret_battles = []
+        ret_battles: List[int] = []
         if sort_by_time:
             battle_list = sorted(self.all_battles.values(), key=lambda b: b.start)
             battle_list.reverse()
         else:
             battle_list = sorted(self.all_battles.values(), key=lambda b: b.id)
+
+        contributions: List[Dict[str, int]] = self._get_military_campaigns_json_citizen().json().get('contributions', [])
+        contributions.sort(key=lambda b: -b.get('damage'))
+        ret_battles += [int(b.get('battle_id', 0)) for b in contributions if b.get('battle_id')]
+
         for battle in battle_list:
             battle_sides = [battle.invader.id, battle.defender.id]
-
-            # Previous battles
-            if self.__last_war_update_data.get("citizen_contribution"):
-                battle_id = self.__last_war_update_data.get("citizen_contribution")[0].get("battle_id", 0)
-                ret_battles.append(battle_id)
-
+            if battle.id in ret_battles:
+                continue
             # CS Battles
             elif self.details.citizenship in battle_sides:
                 if battle.is_air:
@@ -2145,7 +2146,7 @@ class CitizenTasks(BaseCitizen):
         ret = self._post_main_buy_gold_items('gold', "TrainingContract2", 1)
         try:
             extra = ret.json()
-        except:
+        except:  # noqa
             extra = {}
         self._report_action("ECONOMY_TG_CONTRACT", f"Bought TG Contract", **extra)
         return ret
