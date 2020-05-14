@@ -1083,7 +1083,7 @@ class CitizenEconomy(CitizenTravel):
 
         cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1].price / utils.FOOD_ENERGY[v[0]])[0]
 
-        if cheapest["amount"] * utils.FOOD_ENERGY[cheapest_q] < hp_needed:
+        if cheapest.amount * utils.FOOD_ENERGY[cheapest_q] < hp_needed:
             amount = cheapest.amount
         else:
             amount = hp_needed // utils.FOOD_ENERGY[cheapest_q]
