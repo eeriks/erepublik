@@ -495,8 +495,9 @@ class BaseCitizen(CitizenAPI):
         If Energy limit >= xp till levelup * 10
         :return: bool
         """
-        return (self.energy.recovered >= self.details.xp_till_level_up * 10 and  # can reach next level
-                self.energy.recoverable + 2 * self.energy.interval >= self.energy.limit)  # can do max amount of dmg
+        can_reach_next_level = self.energy.recovered >= self.details.xp_till_level_up * 10
+        can_do_max_amount_of_dmg = self.energy.recoverable + 2 * self.energy.interval >= self.energy.limit
+        return can_reach_next_level and can_do_max_amount_of_dmg
 
     @property
     def available_industries(self) -> Dict[str, int]:
@@ -1152,8 +1153,9 @@ class CitizenEconomy(CitizenTravel):
         self.write_log(f"Donate: {amount:4d}q{quality} {ind[industry_id]} to {citizen_id}")
         response = self._post_economy_donate_items_action(citizen_id, amount, industry_id, quality)
         if re.search(rf"Successfully transferred {amount} item\(s\) to", response.text):
-            self._report_action("DONATE_ITEMS", f"Successfully donated {amount}q{quality} {self.available_industries_by_id[industry_id]}"
-                                                f" to citizen with id {citizen_id}!", success=True)
+            msg = (f"Successfully donated {amount}q{quality} {self.available_industries_by_id[industry_id]} "
+                   f"to citizen with id {citizen_id}!")
+            self._report_action("DONATE_ITEMS", msg, success=True)
             return amount
         elif re.search('You must wait 5 seconds before donating again', response.text):
             self.write_log(f"Previous donation failed! Must wait at least 5 seconds before next donation!")
@@ -1162,8 +1164,8 @@ class CitizenEconomy(CitizenTravel):
         else:
             if re.search(r"You do not have enough items in your inventory to make this donation", response.text):
                 self._report_action("DONATE_ITEMS",
-                                    f"Unable to donate {amount}q{quality} {self.available_industries_by_id[industry_id]}"
-                                    f", not enough left!", success=False)
+                                    f"Unable to donate {amount}q{quality} "
+                                    f"{self.available_industries_by_id[industry_id]}, not enough left!", success=False)
                 return 0
             available = re.search(rf"Cannot transfer the items because the user has only (\d+) free slots in (his|her) "
                                   rf"storage.", response.text).group(1)
@@ -1185,8 +1187,8 @@ class CitizenEconomy(CitizenTravel):
                                 success=True)
             return True
         else:
-            self._report_action("CONTRIBUTE_CC", f"Unable to contribute {amount}cc to {utils.COUNTRIES[country_id]}'s treasury",
-                                **r.json())
+            self._report_action("CONTRIBUTE_CC", f"Unable to contribute {amount}cc to {utils.COUNTRIES[country_id]}'s"
+                                                 f" treasury", **r.json())
             return False
 
     def contribute_food_to_country(self, amount: int = 0, quality: int = 1, country_id: int = 71) -> bool:
@@ -1198,12 +1200,12 @@ class CitizenEconomy(CitizenTravel):
         r = self._post_main_country_donate(**data)
 
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_FOOD", f"Contributed {amount}q{quality} food to {utils.COUNTRIES[country_id]}'s treasury",
-                                success=True)
+            self._report_action("CONTRIBUTE_FOOD", f"Contributed {amount}q{quality} food to "
+                                                   f"{utils.COUNTRIES[country_id]}'s treasury", success=True)
             return True
         else:
-            self._report_action("CONTRIBUTE_FOOD", f"Unable to contribute {amount}q{quality} food to {utils.COUNTRIES[country_id]}'s treasury",
-                                **r.json())
+            self._report_action("CONTRIBUTE_FOOD", f"Unable to contribute {amount}q{quality} food to "
+                                                   f"{utils.COUNTRIES[country_id]}'s treasury", **r.json())
             return False
 
     def contribute_gold_to_country(self, amount: int, country_id: int = 71) -> bool:
@@ -1220,8 +1222,8 @@ class CitizenEconomy(CitizenTravel):
                                 success=True)
             return True
         else:
-            self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {utils.COUNTRIES[country_id]}'s treasury",
-                                **r.json())
+            self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {utils.COUNTRIES[country_id]}'s"
+                                                   f" treasury", **r.json())
             return False
 
 
@@ -1492,10 +1494,10 @@ class CitizenMilitary(CitizenTravel):
                 else:
                     other_battles_ground.append(battle.id)
 
-        ret_battles += (cs_battles_air + cs_battles_ground +
-                        deployed_battles_air + deployed_battles_ground +
-                        ally_battles_air + ally_battles_ground +
-                        other_battles_air + other_battles_ground)
+        cs_battles = cs_battles_priority_air + cs_battles_priority_ground + cs_battles_air + cs_battles_ground
+        deployed_battles = deployed_battles_air + deployed_battles_ground
+        other_battles = ally_battles_air + ally_battles_ground + other_battles_air + other_battles_ground
+        ret_battles = ret_battles + cs_battles + deployed_battles + other_battles
         return ret_battles
 
     @property

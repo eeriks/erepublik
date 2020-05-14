@@ -36,7 +36,23 @@ FOOD_ENERGY: Dict[str, int] = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID: str = __commit_id__
 
 erep_tz = pytz.timezone('US/Pacific')
-AIR_RANKS: Dict[int, str] = {1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**",5: "Airman 1st Class***", 6: "Airman 1st Class****", 7: "Airman 1st Class*****",8: "Senior Airman", 9: "Senior Airman*", 10: "Senior Airman**", 11: "Senior Airman***",12: "Senior Airman****", 13: "Senior Airman*****",14: "Staff Sergeant", 15: "Staff Sergeant*", 16: "Staff Sergeant**", 17: "Staff Sergeant***",18: "Staff Sergeant****", 19: "Staff Sergeant*****",20: "Aviator", 21: "Aviator*", 22: "Aviator**", 23: "Aviator***", 24: "Aviator****", 25: "Aviator*****",26: "Flight Lieutenant", 27: "Flight Lieutenant*", 28: "Flight Lieutenant**", 29: "Flight Lieutenant***",30: "Flight Lieutenant****", 31: "Flight Lieutenant*****",32: "Squadron Leader", 33: "Squadron Leader*", 34: "Squadron Leader**", 35: "Squadron Leader***",36: "Squadron Leader****", 37: "Squadron Leader*****",38: "Chief Master Sergeant", 39: "Chief Master Sergeant*", 40: "Chief Master Sergeant**",41: "Chief Master Sergeant***", 42: "Chief Master Sergeant****", 43: "Chief Master Sergeant*****",44: "Wing Commander", 45: "Wing Commander*", 46: "Wing Commander**", 47: "Wing Commander***",48: "Wing Commander****", 49: "Wing Commander*****",50: "Group Captain", 51: "Group Captain*", 52: "Group Captain**", 53: "Group Captain***",54: "Group Captain****", 55: "Group Captain*****",56: "Air Commodore", 57: "Air Commodore*", 58: "Air Commodore**", 59: "Air Commodore***",60: "Air Commodore****", 61: "Air Commodore*****", }
+AIR_RANKS: Dict[int, str] = {
+    1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**", 5: "Airman 1st Class***",
+    6: "Airman 1st Class****", 7: "Airman 1st Class*****", 8: "Senior Airman", 9: "Senior Airman*",
+    10: "Senior Airman**", 11: "Senior Airman***", 12: "Senior Airman****", 13: "Senior Airman*****",
+    14: "Staff Sergeant", 15: "Staff Sergeant*", 16: "Staff Sergeant**", 17: "Staff Sergeant***",
+    18: "Staff Sergeant****", 19: "Staff Sergeant*****", 20: "Aviator", 21: "Aviator*", 22: "Aviator**",
+    23: "Aviator***", 24: "Aviator****", 25: "Aviator*****", 26: "Flight Lieutenant", 27: "Flight Lieutenant*",
+    28: "Flight Lieutenant**", 29: "Flight Lieutenant***", 30: "Flight Lieutenant****", 31: "Flight Lieutenant*****",
+    32: "Squadron Leader", 33: "Squadron Leader*", 34: "Squadron Leader**", 35: "Squadron Leader***",
+    36: "Squadron Leader****", 37: "Squadron Leader*****", 38: "Chief Master Sergeant", 39: "Chief Master Sergeant*",
+    40: "Chief Master Sergeant**", 41: "Chief Master Sergeant***", 42: "Chief Master Sergeant****",
+    43: "Chief Master Sergeant*****", 44: "Wing Commander", 45: "Wing Commander*", 46: "Wing Commander**",
+    47: "Wing Commander***", 48: "Wing Commander****", 49: "Wing Commander*****", 50: "Group Captain",
+    51: "Group Captain*", 52: "Group Captain**", 53: "Group Captain***", 54: "Group Captain****",
+    55: "Group Captain*****", 56: "Air Commodore", 57: "Air Commodore*", 58: "Air Commodore**", 59: "Air Commodore***",
+    60: "Air Commodore****", 61: "Air Commodore*****",
+}
 
 GROUND_RANKS: Dict[int, str] = {
     1: "Recruit", 2: "Private", 3: "Private*", 4: "Private**", 5: "Private***",
@@ -107,12 +123,12 @@ COUNTRY_LINK: Dict[int, str] = {
 }
 
 ISO_CC: Dict[int, str] = {
-    1:  'ROU',  9: 'BRA', 10: 'ITA', 11: 'FRA', 12: 'DEU', 13: 'HUN',  14: 'CHN',  15: 'ESP',  23: 'CAN',  24: 'USA',
-    26: 'MEX', 27: 'ARG', 28: 'VEN', 29: 'GBR', 30: 'CHE', 31: 'NLD',  32: 'BEL',  33: 'AUT',  34: 'CZE',  35: 'POL',
-    36: 'SVK', 37: 'NOR', 38: 'SWE', 39: 'FIN', 40: 'UKR', 41: 'RUS',  42: 'BGR',  43: 'TUR',  44: 'GRC',  45: 'JPN',
-    47: 'KOR', 48: 'IND', 49: 'IDN', 50: 'AUS', 51: 'ZAF', 52: 'MDA',  53: 'PRT',  54: 'IRL',  55: 'DNK',  56: 'IRN',
-    57: 'PAK', 58: 'ISR', 59: 'THA', 61: 'SVN', 63: 'HRV', 64: 'CHL',  65: 'SRB',  66: 'MYS',  67: 'PHL',  68: 'SGP',
-    69: 'BiH', 70: 'EST', 71: 'LVA', 72: 'LTU', 73: 'PRK', 74: 'URY',  75: 'PRY',  76: 'BOL',  77: 'PER',  78: 'COL',
+    1: 'ROU', 9: 'BRA', 10: 'ITA', 11: 'FRA', 12: 'DEU', 13: 'HUN', 14: 'CHN', 15: 'ESP', 23: 'CAN', 24: 'USA',
+    26: 'MEX', 27: 'ARG', 28: 'VEN', 29: 'GBR', 30: 'CHE', 31: 'NLD', 32: 'BEL', 33: 'AUT', 34: 'CZE', 35: 'POL',
+    36: 'SVK', 37: 'NOR', 38: 'SWE', 39: 'FIN', 40: 'UKR', 41: 'RUS', 42: 'BGR', 43: 'TUR', 44: 'GRC', 45: 'JPN',
+    47: 'KOR', 48: 'IND', 49: 'IDN', 50: 'AUS', 51: 'ZAF', 52: 'MDA', 53: 'PRT', 54: 'IRL', 55: 'DNK', 56: 'IRN',
+    57: 'PAK', 58: 'ISR', 59: 'THA', 61: 'SVN', 63: 'HRV', 64: 'CHL', 65: 'SRB', 66: 'MYS', 67: 'PHL', 68: 'SGP',
+    69: 'BiH', 70: 'EST', 71: 'LVA', 72: 'LTU', 73: 'PRK', 74: 'URY', 75: 'PRY', 76: 'BOL', 77: 'PER', 78: 'COL',
     79: 'MKD', 80: 'MNE', 81: 'TWN', 82: 'CYP', 83: 'BLR', 84: 'NZL', 164: 'SAU', 165: 'EGY', 166: 'UAE', 167: 'ALB',
     168: 'GEO', 169: 'ARM', 170: 'NGA', 171: 'CUB',
 }
