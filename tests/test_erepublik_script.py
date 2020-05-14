@@ -3,7 +3,6 @@
 
 """Tests for `erepublik` package."""
 
-
 import unittest
 
 from erepublik import Citizen
@@ -67,58 +66,64 @@ class TestErepublik(unittest.TestCase):
 
     def test_should_fight(self):
         self.citizen.config.fight = False
-        self.assertEqual(self.citizen.should_fight(), 0)
+        self.assertEqual(self.citizen.should_fight(), (0, "Fighting not allowed!", False))
 
         self.citizen.config.fight = True
 
         # Level up
         self.citizen.energy.limit = 3000
         self.citizen.details.xp = 24705
-        self.assertEqual(self.citizen.should_fight(), 0)
+        self.assertEqual(self.citizen.should_fight(), (0, 'Level up', False))
 
         self.citizen.energy.recovered = 3000
         self.citizen.energy.recoverable = 2950
         self.citizen.energy.interval = 30
-        self.assertEqual(self.citizen.should_fight(), 900)
+        self.assertEqual(self.citizen.should_fight(), (900, 'Level up', True))
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 900)
+        self.assertEqual(self.citizen.should_fight(), (900, 'Level up', True))
         self.citizen.my_companies.ff_lockdown = 0
 
         # Level up reachable
         self.citizen.details.xp = 24400
-        self.assertEqual(self.citizen.should_fight(), 305)
+        self.assertEqual(self.citizen.should_fight(), (305, 'Fighting for close Levelup. Doing 305 hits', True))
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 305)
+        self.assertEqual(self.citizen.should_fight(), (305, 'Fighting for close Levelup. Doing 305 hits', True))
         self.citizen.my_companies.ff_lockdown = 0
 
         self.citizen.details.xp = 21000
-        self.assertEqual(self.citizen.should_fight(), 75)
+        self.assertEqual(self.citizen.should_fight(), (75, 'Obligatory fighting for at least 75pp', True))
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 75)
+        self.assertEqual(self.citizen.should_fight(), (75, 'Obligatory fighting for at least 75pp', True))
         self.citizen.my_companies.ff_lockdown = 0
         self.citizen.details.pp = 80
 
         # All-in (type = all-in and full ff)
         self.citizen.config.all_in = True
-        self.assertEqual(self.citizen.should_fight(), 595)
+        self.assertEqual(self.citizen.should_fight(), (595, 'Fighting all-in. Doing 595 hits', False))
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 435)
+        self.assertEqual(self.citizen.should_fight(), (
+            435, 'Fight count modified (old count: 595 | FF: 595 | WAM ff_lockdown: 160 | New count: 435)', False
+        ))
         self.citizen.my_companies.ff_lockdown = 0
 
         self.citizen.config.air = True
         self.citizen.energy.recoverable = 1000
-        self.assertEqual(self.citizen.should_fight(), 400)
+        self.assertEqual(self.citizen.should_fight(), (400, 'Fighting all-in in AIR. Doing 400 hits', False))
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 240)
+        self.assertEqual(self.citizen.should_fight(), (
+            240, 'Fight count modified (old count: 400 | FF: 400 | WAM ff_lockdown: 160 | New count: 240)', False
+        ))
         self.citizen.my_companies.ff_lockdown = 0
         self.citizen.config.all_in = False
 
         self.citizen.config.next_energy = True
         self.citizen.energy.limit = 5000
         self.citizen.details.next_pp = [100, 150, 250, 400, 500]
-        self.assertEqual(self.citizen.should_fight(), 320)
+        self.assertEqual(self.citizen.should_fight(), (320, 'Fighting for +1 energy. Doing 320 hits', False))
         self.citizen.my_companies.ff_lockdown = 160
-        self.assertEqual(self.citizen.should_fight(), 160)
+        self.assertEqual(self.citizen.should_fight(), (
+            160, 'Fight count modified (old count: 320 | FF: 400 | WAM ff_lockdown: 160 | New count: 160)', False
+        ))
         self.citizen.my_companies.ff_lockdown = 0
         self.citizen.energy.limit = 3000
         self.citizen.details.next_pp = [19250, 20000]
@@ -126,5 +131,4 @@ class TestErepublik(unittest.TestCase):
 
         # 1h worth of energy
         self.citizen.energy.recoverable = 2910
-        self.assertEqual(self.citizen.should_fight(), 30)
-
+        self.assertEqual(self.citizen.should_fight(), (30, 'Fighting for 1h energy. Doing 30 hits', True))
