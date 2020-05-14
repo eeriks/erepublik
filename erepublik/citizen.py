@@ -728,7 +728,7 @@ class CitizenTravel(BaseCitizen):
             r = self._travel(self.details.residence_country, self.details.residence_region)
             if r.json().get('message', '') == 'success':
                 self._update_citizen_location(self.details.residence_country, self.details.current_region)
-                self._report_action("TRAVEL", "Traveled to residence", response=r)
+                self._report_action("TRAVEL", "Traveled to residence", response=r.json())
                 return True
             return False
         return True
@@ -741,7 +741,7 @@ class CitizenTravel(BaseCitizen):
             r = self._travel(data.get('preselectCountryId'), region_id).json()
             if r.get('message', '') == 'success':
                 self._update_citizen_location(data.get('preselectCountryId'), region_id)
-                self._report_action("TRAVEL", "Traveled to region", response=r)
+                self._report_action("TRAVEL", "Traveled to region", response=r.json())
                 return True
             return False
 
@@ -758,7 +758,7 @@ class CitizenTravel(BaseCitizen):
             r = self._travel(country_id, region_id).json()
             if r.get('message', '') == 'success':
                 self._update_citizen_location(country_id, region_id)
-                self._report_action("TRAVEL", f"Traveled to {utils.COUNTRIES[country_id]}", response=r)
+                self._report_action("TRAVEL", f"Traveled to {utils.COUNTRIES[country_id]}", response=r.json())
                 return True
         return False
 
@@ -770,7 +770,7 @@ class CitizenTravel(BaseCitizen):
             r = self._travel(data.get('preselectCountryId'), data.get('preselectRegionId')).json()
             if r.get('message', '') == 'success':
                 self._update_citizen_location(data.get('preselectCountryId'), data.get('preselectRegionId'))
-                self._report_action("TRAVEL", f"Traveled to holding {holding_id}", response=r)
+                self._report_action("TRAVEL", f"Traveled to holding {holding_id}", response=r.json())
                 return True
             return False
 
