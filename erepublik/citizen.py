@@ -2409,6 +2409,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
     def _wam(self, holding_id: int) -> NoReturn:
         response = self.work_as_manager_in_holding(holding_id)
+        if response is None:
+            return
         if response.get("status"):
             self._report_action("WORK_AS_MANAGER", f"Worked as manager", **response)
             if self.config.auto_sell:
