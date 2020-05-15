@@ -1698,7 +1698,7 @@ class CitizenMilitary(CitizenTravel):
 
     def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
                                  booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> Decimal:
-        if not rang or strength or elite is None:
+        if not rang or not strength or elite is None:
             r = self._get_main_citizen_profile_json(self.details.citizen_id).json()
             if not rang:
                 rang = r['military']['militaryData']['ground']['rankNumber']
