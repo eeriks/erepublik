@@ -838,8 +838,12 @@ class CitizenCompanies(BaseCitizen):
                 if not self.details.current_region == wam_holding['region_id']:
                     self.write_log("Unable to work as manager because of location - please travel!")
                     return
-            response = self._post_economy_work("production", wam=wam_list,
-                                               employ=self.my_companies.get_employable_factories()).json()
+
+            employ_factories = self.my_companies.get_employable_factories()
+            if sum(employ_factories.values()) > self.my_companies.work_units:
+                employ_factories = {}
+
+            response = self._post_economy_work("production", wam=wam_list, employ=employ_factories).json()
             return response
 
     def update_companies(self):
