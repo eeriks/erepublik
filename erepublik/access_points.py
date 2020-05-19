@@ -177,8 +177,8 @@ class ErepublikArticleAPI(CitizenBaseAPI):
         data = dict(_token=self.token, articleId=article_id, amount=amount)
         return self.post("{}/main/donate-article".format(self.url), data=data)
 
-    def _post_main_write_article(self, title: str, content: str, location: int, kind: int) -> Response:
-        data = dict(_token=self.token, article_name=title, article_body=content, article_location=location,
+    def _post_main_write_article(self, title: str, content: str, country: int, kind: int) -> Response:
+        data = dict(_token=self.token, article_name=title, article_body=content, article_location=country,
                     article_category=kind)
         return self.post("{}/main/write-article".format(self.url), data=data)
 
