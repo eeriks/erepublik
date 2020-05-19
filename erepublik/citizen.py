@@ -1265,7 +1265,7 @@ class CitizenMedia(BaseCitizen):
 
     def write_article_comment(self, message: str, article_id: int, parent_id: int = None) -> Response:
         self._report_action("ARTICLE_COMMENT", f"Wrote a comment to article ({article_id})",
-                            msg=message, article_id=article_id, parent_id=parent_id)
+                            kwargs=dict(msg=message, article_id=article_id, parent_id=parent_id))
         return self._post_main_article_comments_create(message, article_id, parent_id)
 
     def publish_article(self, title: str, content: str, kind: int) -> int:
