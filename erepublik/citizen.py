@@ -44,6 +44,7 @@ class BaseCitizen(CitizenAPI):
     name: str = "Not logged in!"
     logged_in: bool = False
     commit_id: str = ""
+    restricted_ip: bool = False
 
     def __init__(self, email: str = "", password: str = ""):
         super().__init__()
@@ -631,6 +632,10 @@ class BaseCitizen(CitizenAPI):
 
             self.write_log(f"Logged in as: {self.name}")
             self.get_csrf_token()
+            if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', self.r.text):
+                self.restricted_ip = True
+                self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
+
             self.logged_in = True
 
     def _errors_in_response(self, response: Response):
@@ -806,6 +811,8 @@ class CitizenCompanies(BaseCitizen):
         return self._work_as_manager(holding_id)
 
     def _work_as_manager(self, wam_holding_id: int = 0) -> Optional[Dict[str, Any]]:
+        if self.restricted_ip:
+            return None
         self.update_companies()
         self.update_inventory()
         data = {"action_type": "production"}
@@ -1117,12 +1124,23 @@ class CitizenEconomy(CitizenTravel):
 
         return sorted(ret, key=lambda o: (o["price"], -o["amount"]))
 
-    def buy_monetary_market_offer(self, offer: int, amount: float, currency: int) -> bool:
+    def buy_monetary_market_offer(self, offer: int, amount: float, currency: int) -> int:
+        """ Buy from monetary market
+
+        :param offer: offer id which should be bought
+        :type offer: int
+        :param amount: amount to buy
+        :amount amount: float
+        :param currency: currency kind - gold = 62, cc = 1
+        :type currency: int
+        :return:
+        """
         response = self._post_economy_exchange_purchase(amount, currency, offer)
         self.details.cc = float(response.json().get("ecash").get("value"))
         self.details.gold = float(response.json().get("gold").get("value"))
         if response.json().get('error'):
             self._report_action("BUY_GOLD", "Unable to buy gold!", **response.json())
+            self.stop_threads.wait()
             return False
         else:
             self._report_action("BUY_GOLD", f"New amount {self.details.cc}cc, {self.details.gold}g", **response.json())
@@ -1571,6 +1589,9 @@ class CitizenMilitary(CitizenTravel):
         :return: None if no errors while fighting, otherwise error count.
         :rtype: int
         """
+        if self.restricted_ip:
+            self._report_action("IP_BLACKLISTED", "Fighting is not allowed from restricted IP!")
+            return 1
         if not isinstance(battle_id, int):
             self.report_error(f"WARNING! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
             battle_id = int(battle_id)
@@ -2466,6 +2487,9 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         :return: if has more wam work to do
         :rtype: bool
         """
+        if self.restricted_ip:
+            self._report_action("IP_BLACKLISTED", "Fighting is not allowed from restricted IP!")
+            return False
         self.update_citizen_info()
         self.update_companies()
         # Prevent messing up levelup with wam
