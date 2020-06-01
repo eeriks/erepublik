@@ -2463,7 +2463,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
                     if not best_offer.country == self.details.current_country:
                         self.travel_to_country(best_offer.country)
-                    rj = self.buy_from_market(amount=best_offer.amount, offer=best_offer.offer_id)
+                    rj = self.buy_from_market(amount=amount, offer=best_offer.offer_id)
                     if not rj.get('error'):
                         amount_needed -= amount
                     else:
