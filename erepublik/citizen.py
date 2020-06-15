@@ -842,7 +842,7 @@ class CitizenCompanies(BaseCitizen):
             data.update(extra)
             if wam_list:
                 wam_holding = self.my_companies.holdings.get(wam_holding_id)
-                if not self.details.current_region == wam_holding['region_id']:
+                if not self.details.current_region == wam_holding.region:
                     self.write_log("Unable to work as manager because of location - please travel!")
                     return
 
@@ -861,19 +861,15 @@ class CitizenCompanies(BaseCitizen):
         have_holdings = re.search(r"var holdingCompanies\s+= ({.*}});", html)
         have_companies = re.search(r"var companies\s+= ({.*}});", html)
         if have_holdings and have_companies:
-            self.my_companies.prepare_companies(utils.json.loads(have_companies.group(1)))
             self.my_companies.prepare_holdings(utils.json.loads(have_holdings.group(1)))
-            self.my_companies.update_holding_companies()
+            self.my_companies.prepare_companies(utils.json.loads(have_companies.group(1)))
 
     def assign_factory_to_holding(self, factory_id: int, holding_id: int) -> Response:
         """
         Assigns factory to new holding
         """
         company = self.my_companies.companies[factory_id]
-        company_name = self.factories[company['industry_id']]
-        if not company['is_raw']:
-            company_name += f" q{company['quality']}"
-        self.write_log(f"{company_name} moved to {holding_id}")
+        self.write_log(f"{company} moved to {holding_id}")
         return self._post_economy_assign_to_holding(factory_id, holding_id)
 
     def upgrade_factory(self, factory_id: int, level: int) -> Response:
@@ -899,10 +895,7 @@ class CitizenCompanies(BaseCitizen):
 
     def dissolve_factory(self, factory_id: int) -> Response:
         company = self.my_companies.companies[factory_id]
-        company_name = self.factories[company['industry_id']]
-        if not company['is_raw']:
-            company_name += f" q{company['quality']}"
-        self.write_log(f"{company_name} dissolved!")
+        self.write_log(f"{company} dissolved!")
         return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
 
 
@@ -2504,7 +2497,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             regions = {}
             for holding_id, holding in self.my_companies.holdings.items():
                 if self.my_companies.get_holding_wam_companies(holding_id):
-                    regions.update({holding["region_id"]: holding_id})
+                    regions.update({holding.region: holding_id})
 
             # Check for current region
             if self.details.current_region in regions:

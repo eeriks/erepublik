@@ -32,75 +32,177 @@ class ErepublikNetworkException(ErepublikException):
         self.request = request
 
 
+class Holding:
+    id: int
+    region: int
+    companies: List["Company"]
+
+    def __init__(self, _id: int, region: int):
+        self.id: int = _id
+        self.region: int = region
+        self.companies: List["Company"] = list()
+
+    @property
+    def wam_count(self) -> int:
+        return sum([company.wam_enabled and not company.already_worked for company in self.companies])
+
+    @property
+    def wam_companies(self) -> List["Company"]:
+        return [company for company in self.companies if company.wam_enabled]
+
+    @property
+    def employable_companies(self) -> List["Company"]:
+        return [company for company in self.companies if company.preset_works]
+
+    def add_company(self, company: "Company"):
+        self.companies.append(company)
+        self.companies.sort()
+
+    def get_wam_raw_usage(self) -> Dict[str, Decimal]:
+        frm = Decimal("0.00")
+        wrm = Decimal("0.00")
+        for company in self.wam_companies:
+            if company.industry in [1, 7, 8, 9, 10, 11]:
+                frm += company.raw_usage
+            elif company.industry in [2, 12, 13, 14, 15, 16]:
+                wrm += company.raw_usage
+        return dict(frm=frm, wrm=wrm)
+
+
+class Company:
+    holding: Holding
+    id: int
+    quality: int
+    is_raw: bool
+    raw_usage: Decimal
+    products_made: Decimal
+    wam_enabled: bool
+    can_wam: bool
+    cannot_wam_reason: str
+    industry: int
+    already_worked: bool
+    preset_works: int
+
+    def __init__(
+        self, holding: Holding, _id: int, quality: int, is_raw: bool, effective_bonus: Decimal, raw_usage: Decimal,
+        base_production: Decimal, wam_enabled: bool, can_wam: bool, cannot_wam_reason: str, industry: int,
+        already_worked: bool, preset_works: int
+    ):
+        self.holding: Holding = holding
+        self.id: int = _id
+        self.quality: int = quality
+        self.is_raw: bool = is_raw
+        self.wam_enabled: bool = wam_enabled
+        self.can_wam: bool = can_wam
+        self.cannot_wam_reason: str = cannot_wam_reason
+        self.industry: int = industry
+        self.already_worked: bool = already_worked
+        self.preset_works: int = preset_works
+
+        self.products_made = self.raw_usage = Decimal(base_production) * Decimal(effective_bonus)
+        if not self.is_raw:
+            self.raw_usage = - self.products_made * raw_usage
+
+    def __hash__(self):
+        return hash((not self.is_raw, self.industry, -self.quality, self.id))
+
+    def __lt__(self, other: "Company"):
+        return (
+            (not self.is_raw, self.industry, -self.quality, self.id) <
+            (not other.is_raw, other.industry, -other.quality, other.id)
+        )
+
+    def __le__(self, other: "Company"):
+        return (
+            (not self.is_raw, self.industry, -self.quality, self.id) <=
+            (not other.is_raw, other.industry, -other.quality, other.id)
+        )
+
+    def __gt__(self, other: "Company"):
+        return (
+            (not self.is_raw, self.industry, -self.quality, self.id) >
+            (not other.is_raw, other.industry, -other.quality, other.id)
+        )
+
+    def __ge__(self, other: "Company"):
+        return (
+            (not self.is_raw, self.industry, -self.quality, self.id) >=
+            (not other.is_raw, other.industry, -other.quality, other.id)
+        )
+
+    def __eq__(self, other: "Company"):
+        return (
+            (not self.is_raw, self.industry, -self.quality, self.id) ==
+            (not other.is_raw, other.industry, -other.quality, other.id)
+        )
+
+    def __ne__(self, other: "Company"):
+        return (
+            (not self.is_raw, self.industry, -self.quality, self.id) !=
+            (not other.is_raw, other.industry, -other.quality, other.id)
+        )
+
+    def __str__(self):
+        name = f"(#{self.id:>9d}) {INDUSTRIES[self.industry]}"
+        if not self.is_raw:
+            name += f" q{self.quality}"
+        return name
+
+    def __repr__(self):
+        return str(self)
+
+
 class MyCompanies:
     work_units: int = 0
     next_ot_time: datetime.datetime
-    holdings: Dict[int, Dict] = None
-    companies: Dict[int, Dict] = None
     ff_lockdown: int = 0
 
+    holdings: Dict[int, Holding]
+    companies: List[Company]
+
     def __init__(self):
-        self.holdings = dict()
-        self.companies = dict()
+        self.holdings: Dict[int, Holding] = dict()
+        self.companies: List[Company] = list()
         self.next_ot_time = utils.now()
 
-    def prepare_holdings(self, holdings: dict):
+    def prepare_holdings(self, holdings: Dict[str, Dict[str, Any]]):
         """
         :param holdings: Parsed JSON to dict from en/economy/myCompanies
         """
-        self.holdings.clear()
-        template = dict(id=0, num_factories=0, region_id=0, companies=[])
+        for holding in holdings.values():
+            if holding.get('id') not in self.holdings:
+                self.holdings.update({int(holding.get('id')): Holding(holding['id'], holding['region_id'])})
+        if not self.holdings.get(0):
+            self.holdings.update({0: Holding(0, 0)})  # unassigned
 
-        for holding_id, holding in holdings.items():
-            tmp: Dict[str, Union[Iterable[Any], Any]] = {}
-            for key in template:
-                if key == 'companies':
-                    tmp.update({key: []})
-                else:
-                    tmp.update({key: holding[key]})
-            self.holdings.update({int(holding_id): tmp})
-        self.holdings.update({0: template})  # unassigned
-
-    def prepare_companies(self, companies: dict):
+    def prepare_companies(self, companies: Dict[str, Dict[str, Any]]):
         """
         :param companies: Parsed JSON to dict from en/economy/myCompanies
         """
-        self.companies.clear()
-        template = dict(id=None, quality=0, is_raw=False, resource_bonus=0, effective_bonus=0, raw_usage=0,
-                        base_production=0, wam_enabled=False, can_work_as_manager=False, industry_id=0, todays_works=0,
-                        preset_own_work=0, already_worked=False, can_assign_employees=False, preset_works=0,
-                        holding_company_id=None, is_assigned_to_holding=False, cannot_work_as_manager_reason=False)
-
-        for c_id, company in companies.items():
-            tmp = {}
-            for key in template.keys():
-                if key in ['id', 'holding_company_id']:
-                    company[key] = int(company[key])
-                elif key == "raw_usage":
-                    if not company.get("is_raw") and company.get('upgrades'):
-                        company[key] = company.get('upgrades').get(str(company["quality"])).get('raw_usage')
-                tmp.update({key: company[key]})
-            self.companies.update({int(c_id): tmp})
-
-    def update_holding_companies(self):
-        for company_id, company_data in self.companies.items():
-            if company_id not in self.holdings[company_data['holding_company_id']]['companies']:
-                self.holdings[company_data['holding_company_id']]['companies'].append(company_id)
-        for holding_id in self.holdings:
-            self.holdings[holding_id]['companies'].sort()
+        self.__clear_data()
+        for company_dict in companies.values():
+            holding = self.holdings.get(int(company_dict['holding_company_id']))
+            quality = company_dict.get('quality')
+            is_raw = company_dict.get('is_raw')
+            if is_raw:
+                raw_usage = Decimal('0.0')
+            else:
+                raw_usage = Decimal(str(company_dict.get('upgrades').get(str(quality)).get('raw_usage')))
+            company = Company(
+                holding, company_dict.get('id'), quality, is_raw,
+                Decimal(str(company_dict.get('effective_bonus'))) / 100,
+                raw_usage, Decimal(str(company_dict.get('base_production'))), company_dict.get('wam_enabled'),
+                company_dict.get('can_work_as_manager'), company_dict.get('cannot_work_as_manager_reason'),
+                company_dict.get('industry_id'), company_dict.get('already_worked'), company_dict.get('preset_works')
+            )
+            self.companies.append(company)
+            holding.add_company(company)
 
     def get_employable_factories(self) -> Dict[int, int]:
-        ret = {}
-        for company_id, company in self.companies.items():
-            if company.get('preset_works'):
-                ret[company_id] = int(company.get('preset_works', 0))
-        return ret
+        return {company.id: company.preset_works for company in self.companies if company.preset_works}
 
     def get_total_wam_count(self) -> int:
-        ret = 0
-        for holding_id in self.holdings:
-            ret += self.get_holding_wam_count(holding_id)
-        return ret
+        return sum([holding.wam_count for holding in self.holdings.values()])
 
     def get_holding_wam_count(self, holding_id: int, raw_factory=None) -> int:
         """
@@ -111,14 +213,7 @@ class MyCompanies:
         """
         return len(self.get_holding_wam_companies(holding_id, raw_factory))
 
-    def get_holding_employee_count(self, holding_id):
-        employee_count = 0
-        if holding_id in self.holdings:
-            for company_id in self.holdings.get(holding_id, {}).get('companies', []):
-                employee_count += self.companies.get(company_id).get('preset_works', 0)
-        return employee_count
-
-    def get_holding_wam_companies(self, holding_id: int, raw_factory: bool = None) -> List[int]:
+    def get_holding_wam_companies(self, holding_id: int, raw_factory: bool = None) -> List[Company]:
         """
         Returns WAM enabled companies in the holding, True - only raw, False - only factories, None - both
         :param holding_id: holding id
@@ -128,19 +223,12 @@ class MyCompanies:
         raw = []
         factory = []
         if holding_id in self.holdings:
-            for company_id in sorted(self.holdings.get(holding_id, {}).get('companies', []),
-                                     key=lambda cid: (-self.companies[cid].get('is_raw'),  # True, False
-                                                      self.companies[cid].get('industry_id'),  # F W H A
-                                                      -self.companies[cid].get('quality'),)):  # 7, 6, .. 2, 1
-                company = self.companies.get(company_id, {})
-                wam_enabled = bool(company.get('wam_enabled', {}))
-                already_worked = not company.get('already_worked', {})
-                cannot_work_war = company.get("cannot_work_as_manager_reason", {}) == "war"
-                if wam_enabled and already_worked and not cannot_work_war:
-                    if company.get('is_raw', False):
-                        raw.append(company_id)
+            for company in self.holdings[holding_id].wam_companies:
+                if not company.already_worked and not company.cannot_wam_reason == "war":
+                    if company.is_raw:
+                        raw.append(company)
                     else:
-                        factory.append(company_id)
+                        factory.append(company)
         if raw_factory is not None and not raw_factory:
             return factory
         elif raw_factory is not None and raw_factory:
@@ -150,56 +238,24 @@ class MyCompanies:
         else:
             raise ErepublikException("raw_factory should be True/False/None")
 
-    def get_needed_inventory_usage(self, company_id: int = None, companies: list = None) -> float:
-        if not any([companies, company_id]):
-            return 0.
-        if company_id:
-            if company_id not in self.companies:
-                raise ErepublikException("Company ({}) not in all companies list".format(company_id))
-            company = self.companies[company_id]
-            if company.get("is_raw"):
-                return float(company["base_production"]) * company["effective_bonus"]
-            else:
-                products_made = company["base_production"] * company["effective_bonus"] / 100
-                # raw_used = products_made * company['upgrades'][str(company['quality'])]['raw_usage'] * 100
-                return float(products_made - company['raw_usage'])
-        if companies:
-            return float(sum([self.get_needed_inventory_usage(company_id=cid) for cid in companies]))
+    @staticmethod
+    def get_needed_inventory_usage(companies: Union[Company, List[Company]]) -> Decimal:
 
-        raise ErepublikException("Wrong function call")
-
-    def get_wam_raw_usage(self) -> Dict[str, float]:
-        frm = 0.00
-        wrm = 0.00
-        for company in self.companies.values():
-            if company['wam_enabled']:
-                effective_bonus = float(company["effective_bonus"])
-                base_prod = float(company["base_production"])
-                raw = base_prod * effective_bonus / 100
-                if not company["is_raw"]:
-                    raw *= -company["raw_usage"]
-                if company["industry_id"] in [1, 7, 8, 9, 10, 11]:
-                    frm += raw
-                elif company["industry_id"] in [2, 12, 13, 14, 15, 16]:
-                    wrm += raw
-        return {'frm': int(frm * 1000) / 1000, 'wrm': int(wrm * 1000) / 1000}
+        if isinstance(companies, list):
+            return sum([company.products_made * 100 if company.is_raw else 1 for company in companies])
+        else:
+            return companies.products_made
 
     def __str__(self):
-        name = []
-        for holding_id in sorted(self.holdings.keys()):
-            if not holding_id:
-                name.append(f"Unassigned - {len(self.holdings[0]['companies'])}")
-            else:
-                name.append(f"{holding_id} - {len(self.holdings[holding_id]['companies'])}")
-        return " | ".join(name)
+        return f"MyCompanies: {len(self.companies)} companies in {len(self.holdings)} holdings"
 
-    # @property
-    # def __dict__(self):
-    #     ret = {}
-    #     for key in dir(self):
-    #         if not key.startswith('_'):
-    #             ret[key] = getattr(self, key)
-    #     return ret
+    def __repr__(self):
+        return str(self)
+
+    def __clear_data(self):
+        for holding in self.holdings.values():
+            holding.companies.clear()
+        self.companies.clear()
 
 
 class Config:
