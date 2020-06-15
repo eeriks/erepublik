@@ -2,6 +2,17 @@
 History
 =======
 
+0.20.0 (2020-06-15)
+-------------------
+* Massive restructuring
+* Restricted IP check
+* Bomb deploy improvements
+* More verbose action logging
+* Division switching for maverick scripts
+* New medal endpoint is correctly parsed
+* WAM/Employ modularized
+
+
 0.19.0 (2020-01-13)
 -------------------
 * Created method for current products on sale.

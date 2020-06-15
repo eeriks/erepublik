@@ -2,8 +2,8 @@
 
 language: python
 python:
+  - 3.8
   - 3.7
-  - 3.6
 
 # Command to install dependencies, e.g. pip install -r requirements_dev.txt --use-mirrors
 install: pip install -U tox-travis

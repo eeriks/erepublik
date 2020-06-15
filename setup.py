@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['pytz==2019.3', 'requests==2.23.0']
+requirements = ['pytz==2020.1', 'requests==2.23.0']
 
 setup_requirements = []
 
@@ -38,7 +38,7 @@ setup(
     keywords='erepublik',
     name='eRepublik',
     packages=find_packages(include=['erepublik']),
-    python_requires='>=3.7.*, <4',
+    python_requires='>=3.7, <4',
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
