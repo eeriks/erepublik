@@ -887,7 +887,11 @@ class CitizenCompanies(BaseCitizen):
 
                             Storage={1000: 1, 2000: 2} <- Building_type 2
         """
-        company_name = self.factories[industry_id]
+        company_name = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
+                        7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
+                        12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
+                        18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
+                        24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }[industry_id]
         if building_type == 2:
             company_name = f"Storage"
         self.write_log(f"{company_name} created!")
@@ -1383,7 +1387,7 @@ class CitizenMilitary(CitizenTravel):
         if not battle.is_air:
             for weapon in available_weapons:
                 try:
-                    if weapon['weaponQuantity'] > 30 and weapon['damage'] > weapon_damage:
+                    if weapon['weaponQuantity'] > 30 and weapon['weaponInfluence'] > weapon_damage:
                         weapon_quality = int(weapon['weaponId'])
                 except ValueError:
                     pass
@@ -1700,6 +1704,8 @@ class CitizenMilitary(CitizenTravel):
                 deployed_count += 1
             elif r.get('message') == 'LOCKED':
                 sleep(0.5)
+            else:
+                errors += 1
 
         if has_traveled:
             self.travel_to_residence()
@@ -2230,6 +2236,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
 
         self.__last_full_update = utils.good_timedelta(self.now, - timedelta(minutes=5))
+        self.update_all(True)
 
     def update_citizen_info(self, html: str = None):
         """
@@ -2279,7 +2286,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
                 if (title, reward) not in data:
                     data[(title, reward)] = {'about': about, 'kind': title, 'reward': reward, "count": count,
-                                             "currency": currency, "params": params}
+                                             "currency": currency, "params": medal.get('details', {})}
                 else:
                     data[(title, reward)]['count'] += count
             self._post_main_global_alerts_close(medal.get('id'))
@@ -2521,3 +2528,22 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
         self.update_companies()
         return bool(self.my_companies.get_total_wam_count())
+
+    def sorted_battles(self, sort_by_time: bool = True) -> List[int]:
+        battles = self.reporter.fetch_battle_priorities(self.details.current_country)
+        return battles + super().sorted_battles(sort_by_time)
+
+    def command_central(self):
+        while not self.stop_threads.is_set():
+            try:
+                tasks = self.reporter.fetch_tasks()
+                for task, args in tasks:
+                    try:
+                        fn = getattr(self, task)
+                        if callable(fn):
+                            fn(*args)
+                    except AttributeError:
+                        continue
+                self.stop_threads.wait(90)
+            except:  # noqa
+                self.report_error("Command central has broken")

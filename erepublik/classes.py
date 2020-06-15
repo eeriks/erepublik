@@ -1,9 +1,9 @@
 import datetime
-import decimal
 import hashlib
 import threading
 from collections import defaultdict, deque
-from typing import Any, Dict, Iterable, List, NamedTuple, Tuple, Union
+from decimal import Decimal
+from typing import Any, Dict, Iterable, List, NamedTuple, Tuple, Union, Optional
 
 from requests import Response, Session, post
 
@@ -13,6 +13,12 @@ try:
     import simplejson as json
 except ImportError:
     import json
+
+INDUSTRIES = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
+              7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
+              12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
+              18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
+              24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }
 
 
 class ErepublikException(Exception):
@@ -470,12 +476,27 @@ class Reporter:
     def report_promo(self, kind: str, time_until: datetime.datetime):
         self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
+    def fetch_battle_priorities(self, country_id: int) -> List[int]:
+        try:
+            battle_response = self._req.get(f'{self.url}/api/v1/battles/{country_id}')
+            return battle_response.json().get('battle_ids', [])
+        except:  # noqa
+            return []
+
+    def fetch_tasks(self) -> Optional[Tuple[str, Tuple[Any]]]:
+        try:
+            task_response = self._req.get(f'{self.url}/api/v1/command',
+                                          params=dict(citizen=self.citizen_id, key=self.key))
+            return task_response.json().get('task_collection')
+        except:  # noqa
+            return
+
 
 class MyJSONEncoder(json.JSONEncoder):
     def default(self, o):
         from erepublik.citizen import Citizen
-        if isinstance(o, decimal.Decimal):
-            return float("{:.02f}".format(o))
+        if isinstance(o, Decimal):
+            return float(f"{o:.02f}")
         elif isinstance(o, datetime.datetime):
             return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
                         tzinfo=o.tzinfo.tzname if o.tzinfo else None)
