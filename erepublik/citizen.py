@@ -1466,7 +1466,7 @@ class CitizenMilitary(CitizenTravel):
             battle_list = sorted(self.all_battles.values(), key=lambda b: b.id)
 
         contribution_json: Response = self._get_military_campaigns_json_citizen()
-        contributions: List[Dict[str, int]] = contribution_json.json().get('contributions', [])
+        contributions: List[Dict[str, int]] = contribution_json.json().get('contributions') or []
         contributions.sort(key=lambda b: -b.get('damage'))
         ret_battles += [int(b.get('battle_id', 0)) for b in contributions if b.get('battle_id')]
 
