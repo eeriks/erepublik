@@ -3,16 +3,12 @@ import hashlib
 import threading
 from collections import defaultdict, deque
 from decimal import Decimal
-from typing import Any, Dict, Iterable, List, NamedTuple, Tuple, Union, Optional
+from typing import Any, Dict, List, NamedTuple, Tuple, Union, Optional
 
 from requests import Response, Session, post
 
 from erepublik import utils
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from erepublik.utils import json
 
 INDUSTRIES = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
               7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
@@ -68,6 +64,12 @@ class Holding:
                 wrm += company.raw_usage
         return dict(frm=frm, wrm=wrm)
 
+    def __str__(self):
+        return f"Holding (#{self.id}) with {len(self.companies)} compan{'y' if len(self.companies) % 10 == 1 else 'ies'}"
+
+    def __repr__(self):
+        return str(self)
+
 
 class Company:
     holding: Holding
@@ -90,12 +92,12 @@ class Company:
     ):
         self.holding: Holding = holding
         self.id: int = _id
-        self.quality: int = quality
+        self.industry: int = industry
+        self.quality: int = self._get_real_quality(quality)
         self.is_raw: bool = is_raw
         self.wam_enabled: bool = wam_enabled
         self.can_wam: bool = can_wam
         self.cannot_wam_reason: str = cannot_wam_reason
-        self.industry: int = industry
         self.already_worked: bool = already_worked
         self.preset_works: int = preset_works
 
@@ -103,44 +105,63 @@ class Company:
         if not self.is_raw:
             self.raw_usage = - self.products_made * raw_usage
 
+    def _get_real_quality(self, quality) -> int:
+        #  7: "FRM q1",  8: "FRM q2",  9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
+        # 12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
+        # 18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
+        # 24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5",
+        if 7 <= self.industry <= 11:
+            return self.industry % 6
+        elif 12 <= self.industry <= 16:
+            return self.industry % 11
+        elif 18 <= self.industry <= 22:
+            return self.industry % 17
+        elif 24 <= self.industry <= 28:
+            return self.industry % 23
+        else:
+            return quality
+
+    @property
+    def _internal_industry(self) -> int:
+        #  7: "FRM q1",  8: "FRM q2",  9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
+        # 12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
+        # 18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
+        # 24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5",
+        if 7 <= self.industry <= 11:
+            return 7
+        elif 12 <= self.industry <= 16:
+            return 12
+        elif 18 <= self.industry <= 22:
+            return 18
+        elif 24 <= self.industry <= 28:
+            return 24
+        else:
+            return self.industry
+
+    @property
+    def _sort_keys(self):
+        return not self.is_raw, self._internal_industry, -self.quality, self.id
+
     def __hash__(self):
-        return hash((not self.is_raw, self.industry, -self.quality, self.id))
+        return hash(self._sort_keys)
 
     def __lt__(self, other: "Company"):
-        return (
-            (not self.is_raw, self.industry, -self.quality, self.id) <
-            (not other.is_raw, other.industry, -other.quality, other.id)
-        )
+        return self._sort_keys < other._sort_keys
 
     def __le__(self, other: "Company"):
-        return (
-            (not self.is_raw, self.industry, -self.quality, self.id) <=
-            (not other.is_raw, other.industry, -other.quality, other.id)
-        )
+        return self._sort_keys <= other._sort_keys
 
     def __gt__(self, other: "Company"):
-        return (
-            (not self.is_raw, self.industry, -self.quality, self.id) >
-            (not other.is_raw, other.industry, -other.quality, other.id)
-        )
+        return self._sort_keys > other._sort_keys
 
     def __ge__(self, other: "Company"):
-        return (
-            (not self.is_raw, self.industry, -self.quality, self.id) >=
-            (not other.is_raw, other.industry, -other.quality, other.id)
-        )
+        return self._sort_keys >= other._sort_keys
 
     def __eq__(self, other: "Company"):
-        return (
-            (not self.is_raw, self.industry, -self.quality, self.id) ==
-            (not other.is_raw, other.industry, -other.quality, other.id)
-        )
+        return self._sort_keys == other._sort_keys
 
     def __ne__(self, other: "Company"):
-        return (
-            (not self.is_raw, self.industry, -self.quality, self.id) !=
-            (not other.is_raw, other.industry, -other.quality, other.id)
-        )
+        return self._sort_keys != other._sort_keys
 
     def __str__(self):
         name = f"(#{self.id:>9d}) {INDUSTRIES[self.industry]}"
