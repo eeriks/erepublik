@@ -1,7 +1,7 @@
 import datetime
 import hashlib
 import threading
-from collections import defaultdict, deque
+from collections import defaultdict
 from decimal import Decimal
 from typing import Any, Dict, List, NamedTuple, Tuple, Union, Optional
 
@@ -65,10 +65,19 @@ class Holding:
         return dict(frm=frm, wrm=wrm)
 
     def __str__(self):
-        return f"Holding (#{self.id}) with {len(self.companies)} compan{'y' if len(self.companies) % 10 == 1 else 'ies'}"
+        name = f"Holding (#{self.id}) with {len(self.companies)} "
+        if len(self.companies) % 10 == 1:
+            name += "company"
+        else:
+            name += "companies"
+        return name
 
     def __repr__(self):
         return str(self)
+
+    @property
+    def __dict__(self):
+        return dict(name=str(self), id=self.id, region=self.region, companies=self.companies, wam_count=self.wam_count)
 
 
 class Company:
@@ -171,6 +180,13 @@ class Company:
 
     def __repr__(self):
         return str(self)
+
+    @property
+    def __dict__(self):
+        return dict(name=str(self), holding=self.holding.id, id=self.id, quality=self.quality, is_raw=self.is_raw,
+                    raw_usage=self.raw_usage, products_made=self.products_made, wam_enabled=self.wam_enabled,
+                    can_wam=self.can_wam, cannot_wam_reason=self.cannot_wam_reason, industry=self.industry,
+                    already_worked=self.already_worked, preset_works=self.preset_works)
 
 
 class MyCompanies:
@@ -277,6 +293,11 @@ class MyCompanies:
         for holding in self.holdings.values():
             holding.companies.clear()
         self.companies.clear()
+
+    @property
+    def __dict__(self):
+        return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time, ff_lockdown=self.ff_lockdown, holdings=self.holdings,
+                    company_count=len(self.companies))
 
 
 class Config:
@@ -576,7 +597,7 @@ class MyJSONEncoder(json.JSONEncoder):
             return float(f"{o:.02f}")
         elif isinstance(o, datetime.datetime):
             return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
-                        tzinfo=o.tzinfo.tzname if o.tzinfo else None)
+                        tzinfo=str(o.tzinfo) if o.tzinfo else None)
         elif isinstance(o, datetime.date):
             return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
         elif isinstance(o, datetime.timedelta):
@@ -586,18 +607,14 @@ class MyJSONEncoder(json.JSONEncoder):
             return dict(headers=o.headers.__dict__, url=o.url, text=o.text)
         elif hasattr(o, '__dict__'):
             return o.__dict__
-        elif isinstance(o, (deque, set)):
+        elif isinstance(o, set):
             return list(o)
         elif isinstance(o, Citizen):
             return o.to_json()
         try:
             return super().default(o)
-        except TypeError as e:
-            name = None
-            for ___, ____ in globals().copy().items():
-                if id(o) == id(____):
-                    name = ___
-            return dict(__error__=str(e), __type__=str(type(o)), __name__=name)
+        except Exception as e:  # noqa
+            return 'Object is not JSON serializable'
 
 
 class BattleSide:

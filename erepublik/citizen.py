@@ -427,7 +427,7 @@ class BaseCitizen(CitizenAPI):
     def __dict__(self):
         ret = super().__dict__.copy()
         ret.pop('stop_threads', None)
-        ret.pop('_Citizen__last_war_update_data', None)
+        ret.pop('_CitizenMilitary__last_war_update_data', None)
 
         return ret
 
