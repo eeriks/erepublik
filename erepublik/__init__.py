@@ -4,8 +4,8 @@
 
 __author__ = """Eriks Karls"""
 __email__ = 'eriks@72.lv'
-__version__ = '0.20.1.2'
-__commit_id__ = "df17004"
+__version__ = '0.20.1.3'
+__commit_id__ = "2f69090"
 
 from erepublik import classes, utils
 from erepublik.citizen import Citizen
