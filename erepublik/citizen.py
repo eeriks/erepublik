@@ -321,6 +321,14 @@ class BaseCitizen(CitizenAPI):
                         durability=item.get('duration', 0), icon=icon, name=name)
             if item.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
                 data = {data['durability']: data}
+            elif item.get('type') == 'bomb':
+                firepower = 0
+                try:
+                    firepower = item.get('attributes').get('firePower').get('value', 0)
+                except AttributeError:
+                    pass
+                finally:
+                    data.update(fire_power=firepower)
             else:
                 data = {data['quality']: data}
             final_items[kind].update(data)
