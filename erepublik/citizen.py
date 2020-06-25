@@ -12,8 +12,8 @@ from requests import HTTPError, RequestException, Response
 
 from erepublik import utils
 from erepublik.access_points import CitizenAPI
-from erepublik.classes import (Battle, BattleDivision, Config, Details, Energy, ErepublikException,
-                               MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot)
+from erepublik.classes import Battle, BattleDivision, Config, Details, Energy, \
+    ErepublikException, MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot
 
 
 class BaseCitizen(CitizenAPI):
@@ -664,7 +664,16 @@ class BaseCitizen(CitizenAPI):
         return bool(re.search(r'body id="error"|Internal Server Error|'
                               r'CSRF attack detected|meta http-equiv="refresh"|not_authenticated', response.text))
 
-    def _report_action(self, action: str, msg: str, **kwargs):
+    def _report_action(self, action: str, msg: str, **kwargs: Optional[Dict[str, Any]]):
+        """ Report action to all available reporting channels
+
+        :type action: str
+        :type msg: str
+        :type kwargs: Optional[Dict[str, Any]]
+        :param action: Action taken
+        :param msg: Message about the action
+        :param kwargs: Extra information regarding action
+        """
         kwargs = utils.json.loads(utils.json.dumps(kwargs or {}, cls=MyJSONEncoder))
         action = action[:32]
         self.write_log(msg)
@@ -838,8 +847,8 @@ class CitizenCompanies(BaseCitizen):
                 raw_factories = True
 
             free_inventory = self.inventory["total"] - self.inventory["used"]
-            wam_list = self.my_companies.get_holding_wam_companies(wam_holding_id,
-                                                                   raw_factory=raw_factories)[:self.energy.food_fights]
+            wam_list = self.my_companies.get_holding_wam_companies(
+                wam_holding_id, raw_factory=raw_factories)[:self.energy.food_fights]
             has_space = False
             while not has_space and wam_list:
                 extra_needed = self.my_companies.get_needed_inventory_usage(companies=wam_list)
@@ -859,7 +868,8 @@ class CitizenCompanies(BaseCitizen):
             if sum(employ_factories.values()) > self.my_companies.work_units:
                 employ_factories = {}
 
-            response = self._post_economy_work("production", wam=[c.id for c in wam_list], employ=employ_factories).json()
+            response = self._post_economy_work("production", wam=[c.id for c in wam_list],
+                                               employ=employ_factories).json()
             return response
 
     def update_companies(self):
@@ -898,8 +908,8 @@ class CitizenCompanies(BaseCitizen):
                         18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
                         24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }[industry_id]
         if building_type == 2:
-            company_name = f"Storage"
-        self.write_log(f"{company_name} created!")
+            company_name = "Storage"
+        self.write_log(f'{company_name} created!')
         return self._post_economy_create_company(industry_id, building_type)
 
     def dissolve_factory(self, factory_id: int) -> Response:
@@ -1149,7 +1159,8 @@ class CitizenEconomy(CitizenTravel):
             self.stop_threads.wait()
             return False
         else:
-            self._report_action("BUY_GOLD", f"New amount {self.details.cc}cc, {self.details.gold}g", kwargs=response.json())
+            self._report_action('BUY_GOLD', f'New amount {self.details.cc}cc, {self.details.gold}g',
+                                kwargs=response.json())
             return True
 
     def donate_money(self, citizen_id: int = 1620414, amount: float = 0.0, currency: int = 62) -> bool:
@@ -1177,22 +1188,22 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("DONATE_ITEMS", msg, success=True)
             return amount
         elif re.search('You must wait 5 seconds before donating again', response.text):
-            self.write_log(f"Previous donation failed! Must wait at least 5 seconds before next donation!")
+            self.write_log('Previous donation failed! Must wait at least 5 seconds before next donation!')
             self.sleep(5)
             return self.donate_items(citizen_id, int(amount), industry_id, quality)
         else:
-            if re.search(r"You do not have enough items in your inventory to make this donation", response.text):
+            if re.search(r'You do not have enough items in your inventory to make this donation', response.text):
                 self._report_action("DONATE_ITEMS",
                                     f"Unable to donate {amount}q{quality} "
                                     f"{self.get_industry_name(industry_id)}, not enough left!", success=False)
                 return 0
             available = re.search(
-                rf"Cannot transfer the items because the user has only (\d+) free slots in (his|her) storage.",
+                r'Cannot transfer the items because the user has only (\d+) free slots in (his|her) storage.',
                 response.text
             ).group(1)
-            self._report_action("DONATE_ITEMS",
-                                f"Unable to donate {amount}q{quality}{self.get_industry_name(industry_id)}"
-                                f", receiver has only {available} storage left!", success=False)
+            self._report_action('DONATE_ITEMS',
+                                f'Unable to donate {amount}q{quality}{self.get_industry_name(industry_id)}'
+                                f', receiver has only {available} storage left!', success=False)
             self.sleep(5)
             return self.donate_items(citizen_id, int(available), industry_id, quality)
 
@@ -1204,7 +1215,7 @@ class CitizenEconomy(CitizenTravel):
         data = dict(country=country_id, action='currency', value=amount)
         r = self._post_main_country_donate(**data)
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_CC", f"Contributed {amount}cc to {utils.COUNTRIES[country_id]}'s treasury",
+            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {utils.COUNTRIES[country_id]}\'s treasury',
                                 success=True)
             return True
         else:
@@ -1402,7 +1413,8 @@ class CitizenMilitary(CitizenTravel):
         battle_zone = battle.div[11 if battle.is_air else self.division].battle_zone_id
         r = self._post_military_change_weapon(battle_id, battle_zone, quality)
         influence = r.json().get('weaponInfluence')
-        self._report_action("MILITARY_WEAPON", f"Switched to q{quality} weapon, new influence {influence}", kwargs=r.json())
+        self._report_action("MILITARY_WEAPON", f"Switched to q{quality} weapon,"
+                                               f" new influence {influence}", kwargs=r.json())
         return influence
 
     def check_epic_battles(self):
@@ -1776,11 +1788,11 @@ class CitizenMilitary(CitizenTravel):
         return quality
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
-        self._report_action("MILITARY_BOOSTER", f"Activated {kind} booster")
+        self._report_action('MILITARY_BOOSTER', f'Activated {kind} booster')
         return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
 
     def activate_pp_booster(self, battle_id: int) -> Response:
-        self._report_action("MILITARY_BOOSTER", f"Activated PrestigePoint booster")
+        self._report_action('MILITARY_BOOSTER', 'Activated PrestigePoint booster')
         return self._post_military_fight_activate_booster(battle_id, 1, 180, "prestige_points")
 
     def _rw_choose_side(self, battle_id: int, side_id: int) -> Response:
@@ -1957,29 +1969,29 @@ class CitizenPolitics(BaseCitizen):
         return ret
 
     def candidate_for_congress(self, presentation: str = "") -> Response:
-        self._report_action("POLITIC_CONGRESS", f"Applied for congress elections")
+        self._report_action('POLITIC_CONGRESS', 'Applied for congress elections')
         return self._post_candidate_for_congress(presentation)
 
     def candidate_for_party_presidency(self) -> Response:
-        self._report_action("POLITIC_PARTY_PRESIDENT", f"Applied for party president elections")
+        self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
         return self._get_candidate_party(self.politics.party_slug)
 
 
 class CitizenSocial(BaseCitizen):
     def send_mail_to_owner(self):
         if not self.details.citizen_id == 1620414:
-            self.send_mail("Started", "time {}".format(self.now.strftime("%Y-%m-%d %H-%M-%S")), [1620414, ])
+            self.send_mail('Started', f'time {self.now.strftime("%Y-%m-%d %H-%M-%S")}', [1620414, ])
             self.sleep(1)
-            msg_id = re.search(r"<input type=\"hidden\" value=\"(\d+)\" "
-                               r"id=\"delete_message_(\d+)\" name=\"delete_message\[]\">", self.r.text).group(1)
+            msg_id = re.search(r'<input type="hidden" value="(\d+)" '
+                               r'id="delete_message_(\d+)" name="delete_message\[]">', self.r.text).group(1)
             self._post_delete_message([msg_id])
 
     def send_mail(self, subject: str, msg: str, ids: List[int] = None):
         if ids is None:
             ids = [1620414, ]
         for player_id in ids:
-            self._report_action("SOCIAL_MESSAGE", f"Sent a message to {player_id}", kwargs=dict(subject=subject, msg=msg,
-                                                                                                id=player_id))
+            self._report_action('SOCIAL_MESSAGE', f'Sent a message to {player_id}',
+                                kwargs=dict(subject=subject, msg=msg, id=player_id))
             self._post_main_messages_compose(subject, msg, [player_id])
 
     def write_on_country_wall(self, message: str) -> bool:
@@ -1988,16 +2000,16 @@ class CitizenSocial(BaseCitizen):
                                      self.r.text, re.S | re.M)
         r = self._post_main_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
 
-        self._report_action("SOCIAL_WRITE_WALL_COUNTRY", f"Wrote a message to the country wall", kwargs=message)
+        self._report_action('SOCIAL_WRITE_WALL_COUNTRY', 'Wrote a message to the country wall', kwargs=message)
         return r.json()
 
     def add_friend(self, player_id: int) -> Response:
         resp = self._get_main_citizen_hovercard(player_id)
         r_json = resp.json()
-        if not any([r_json["isBanned"], r_json["isDead"], r_json["isFriend"], r_json["isOrg"], r_json["isSelf"]]):
+        if not any([r_json['isBanned'], r_json['isDead'], r_json['isFriend'], r_json['isOrg'], r_json['isSelf']]):
             r = self._post_main_citizen_add_remove_friend(int(player_id), True)
             self.write_log(f"{r_json['name']:<64} (id:{player_id:>11}) added as friend")
-            self._report_action("SOCIAL_ADD_FRIEND", f"{r_json['name']:<64} (id:{player_id:>11}) added as friend")
+            self._report_action('SOCIAL_ADD_FRIEND', f"{r_json['name']:<64} (id:{player_id:>11}) added as friend")
             return r
         return resp
 
@@ -2164,7 +2176,7 @@ class CitizenTasks(BaseCitizen):
     def resign_from_employer(self) -> bool:
         r = self.update_job_info()
         if r.json().get("isEmployee"):
-            self._report_action("ECONOMY_RESIGN", f"Resigned from employer!", kwargs=r.json())
+            self._report_action('ECONOMY_RESIGN', 'Resigned from employer!', kwargs=r.json())
             self._post_economy_resign()
             return True
         return False
@@ -2175,7 +2187,7 @@ class CitizenTasks(BaseCitizen):
             extra = ret.json()
         except:  # noqa
             extra = {}
-        self._report_action("ECONOMY_TG_CONTRACT", f"Bought TG Contract", kwargs=extra)
+        self._report_action('ECONOMY_TG_CONTRACT', 'Bought TG Contract', kwargs=extra)
         return ret
 
     def find_new_job(self) -> Response:
@@ -2449,7 +2461,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         if response is None:
             return
         if response.get("status"):
-            self._report_action("WORK_AS_MANAGER", f"Worked as manager", kwargs=response)
+            self._report_action('WORK_AS_MANAGER', 'Worked as manager', kwargs=response)
             if self.config.auto_sell:
                 for kind, data in response.get("result", {}).get("production", {}).items():
                     if data and kind in self.config.auto_sell:
@@ -2527,7 +2539,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self.travel_to_residence()
             return bool(wam_count)
         else:
-            self.write_log("Did not WAM because I would mess up levelup!")
+            self.write_log('Did not WAM because I would mess up levelup!')
             self.my_companies.ff_lockdown = 0
 
         self.update_companies()
@@ -2550,4 +2562,4 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                         continue
                 self.stop_threads.wait(90)
             except:  # noqa
-                self.report_error("Command central has broken")
+                self.report_error('Command central is broken')

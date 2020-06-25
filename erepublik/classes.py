@@ -1,9 +1,8 @@
 import datetime
 import hashlib
 import threading
-from collections import defaultdict
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Tuple, Union, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from requests import Response, Session, post
 
@@ -296,8 +295,8 @@ class MyCompanies:
 
     @property
     def __dict__(self):
-        return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time, ff_lockdown=self.ff_lockdown, holdings=self.holdings,
-                    company_count=len(self.companies))
+        return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time,
+                    ff_lockdown=self.ff_lockdown, holdings=self.holdings, company_count=len(self.companies))
 
 
 class Config:
@@ -643,21 +642,28 @@ class BattleDivision:
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(self, **kwargs):
+    def __init__(self, div_id: int, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int,
+                 wall_for: int, wall_dom: float, def_medal: Tuple[int, int], inv_medal: Tuple[int, int]):
         """Battle division helper class
 
-        :param kwargs: must contain keys:
-            div_id: int, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int,
-            wall_for: int, wall_dom: float, def_medal: Tuple[int, int], inv_medal: Tuple[int, int]
+        :type div_id: int
+        :type end: datetime.datetime
+        :type epic: bool
+        :type inv_pts: int
+        :type def_pts: int
+        :type wall_for: int
+        :type wall_dom: float
+        :type def_medal: Tuple[int, int]
+        :type inv_medal: Tuple[int, int]
         """
 
-        self.battle_zone_id = kwargs.get("div_id", 0)
-        self.end = kwargs.get("end", 0)
-        self.epic = kwargs.get("epic", 0)
-        self.dom_pts = dict({"inv": kwargs.get("inv_pts", 0), "def": kwargs.get("def_pts", 0)})
-        self.wall = dict({"for": kwargs.get("wall_for", 0), "dom": kwargs.get("wall_dom", 0)})
-        self.def_medal = {"id": kwargs.get("def_medal", 0)[0], "dmg": kwargs.get("def_medal", 0)[1]}
-        self.inv_medal = {"id": kwargs.get("inv_medal", 0)[0], "dmg": kwargs.get("inv_medal", 0)[1]}
+        self.battle_zone_id = div_id
+        self.end = end
+        self.epic = epic
+        self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
+        self.wall = dict({"for": wall_for, "dom": wall_dom})
+        self.def_medal = {"id": def_medal[0], "dmg": def_medal[1]}
+        self.inv_medal = {"id": inv_medal[0], "dmg": inv_medal[1]}
 
     @property
     def id(self):
@@ -705,7 +711,7 @@ class Battle:
             [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
         )
 
-        self.div = defaultdict(BattleDivision)
+        self.div = {}
         for div, data in battle.get('div', {}).items():
             div = int(data.get('div'))
             if data.get('end'):
@@ -721,7 +727,7 @@ class Battle:
                 inv_medal = (0, 0)
             else:
                 inv_medal = (data['stats']['inv']['citizenId'], data['stats']['inv']['damage'])
-            battle_div = BattleDivision(end=end, epic=data.get('epic_type') in [1, 5], div_id=data.get('id'),
+            battle_div = BattleDivision(div_id=data.get('id'), end=end, epic=data.get('epic_type') in [1, 5],
                                         inv_pts=data.get('dom_pts').get("inv"), def_pts=data.get('dom_pts').get("def"),
                                         wall_for=data.get('wall').get("for"), wall_dom=data.get('wall').get("dom"),
                                         def_medal=def_medal, inv_medal=inv_medal)

@@ -9,7 +9,7 @@ import traceback
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Union, Dict
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pytz
 import requests
@@ -323,7 +323,8 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Mapping[A
         if "state_thread" in local_vars:
             local_vars.pop('state_thread', None)
         from erepublik.classes import MyJSONEncoder
-        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder, sort_keys=True), "application/json")))
+        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder, sort_keys=True),
+                               "application/json")))
     if isinstance(player, Citizen):
         files.append(('file', ("instance.json", player.to_json(indent=True), "application/json")))
     requests.post('https://pasts.72.lv', data=data, files=files)

@@ -3,9 +3,9 @@
 
 """Tests for `erepublik` package."""
 
-import unittest
-
 from erepublik import Citizen
+
+import unittest
 
 
 class TestErepublik(unittest.TestCase):
