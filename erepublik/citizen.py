@@ -1701,6 +1701,8 @@ class CitizenMilitary(CitizenTravel):
             count = 1
         has_traveled = False
         battle = self.all_battles.get(battle_id)
+        if battle.is_rw:
+            self._rw_choose_side(battle.id, battle.invader.id if inv_side else battle.defender.id)
         if inv_side:
             good_countries = [battle.invader.id] + battle.invader.deployed
             if self.details.current_country not in good_countries:
