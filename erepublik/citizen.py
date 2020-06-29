@@ -1185,7 +1185,7 @@ class CitizenEconomy(CitizenTravel):
         if re.search(rf"Successfully transferred {amount} item\(s\) to", response.text):
             msg = (f"Successfully donated {amount}q{quality} {self.get_industry_name(industry_id)} "
                    f"to citizen with id {citizen_id}!")
-            self._report_action("DONATE_ITEMS", msg, success=True)
+            self._report_action("DONATE_ITEMS", msg)
             return amount
         elif re.search('You must wait 5 seconds before donating again', response.text):
             self.write_log('Previous donation failed! Must wait at least 5 seconds before next donation!')
@@ -1195,7 +1195,7 @@ class CitizenEconomy(CitizenTravel):
             if re.search(r'You do not have enough items in your inventory to make this donation', response.text):
                 self._report_action("DONATE_ITEMS",
                                     f"Unable to donate {amount}q{quality} "
-                                    f"{self.get_industry_name(industry_id)}, not enough left!", success=False)
+                                    f"{self.get_industry_name(industry_id)}, not enough left!")
                 return 0
             available = re.search(
                 r'Cannot transfer the items because the user has only (\d+) free slots in (his|her) storage.',
@@ -1203,7 +1203,7 @@ class CitizenEconomy(CitizenTravel):
             ).group(1)
             self._report_action('DONATE_ITEMS',
                                 f'Unable to donate {amount}q{quality}{self.get_industry_name(industry_id)}'
-                                f', receiver has only {available} storage left!', success=False)
+                                f', receiver has only {available} storage left!')
             self.sleep(5)
             return self.donate_items(citizen_id, int(available), industry_id, quality)
 
@@ -1215,8 +1215,7 @@ class CitizenEconomy(CitizenTravel):
         data = dict(country=country_id, action='currency', value=amount)
         r = self._post_main_country_donate(**data)
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {utils.COUNTRIES[country_id]}\'s treasury',
-                                success=True)
+            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {utils.COUNTRIES[country_id]}\'s treasury')
             return True
         else:
             self._report_action("CONTRIBUTE_CC", f"Unable to contribute {amount}cc to {utils.COUNTRIES[country_id]}'s"
@@ -1233,7 +1232,7 @@ class CitizenEconomy(CitizenTravel):
 
         if r.json().get('status') or not r.json().get('error'):
             self._report_action("CONTRIBUTE_FOOD", f"Contributed {amount}q{quality} food to "
-                                                   f"{utils.COUNTRIES[country_id]}'s treasury", success=True)
+                                                   f"{utils.COUNTRIES[country_id]}'s treasury")
             return True
         else:
             self._report_action("CONTRIBUTE_FOOD", f"Unable to contribute {amount}q{quality} food to "
@@ -1250,8 +1249,7 @@ class CitizenEconomy(CitizenTravel):
         r = self._post_main_country_donate(**data)
 
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_GOLD", f"Contributed {amount}g to {utils.COUNTRIES[country_id]}'s treasury",
-                                success=True)
+            self._report_action("CONTRIBUTE_GOLD", f"Contributed {amount}g to {utils.COUNTRIES[country_id]}'s treasury")
             return True
         else:
             self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {utils.COUNTRIES[country_id]}'s"
@@ -1278,7 +1276,7 @@ class CitizenMedia(BaseCitizen):
         if amount in (5, 50, 100):
             resp = self._post_main_donate_article(article_id, amount).json()
             if not bool(resp.get('error')):
-                self._report_action("ARTICLE_ENDORSE", f"Endorsed article ({article_id}) with {amount}cc", success=True)
+                self._report_action("ARTICLE_ENDORSE", f"Endorsed article ({article_id}) with {amount}cc")
                 return True
             else:
                 self._report_action("ARTICLE_ENDORSE", f"Unable to endorse article ({article_id}) with {amount}cc",
@@ -1291,7 +1289,7 @@ class CitizenMedia(BaseCitizen):
         resp = self._post_main_vote_article(article_id).json()
 
         if not bool(resp.get('error')):
-            self._report_action("ARTICLE_VOTE", f"Voted article {article_id}", success=True)
+            self._report_action("ARTICLE_VOTE", f"Voted article {article_id}")
             return True
         else:
             self._report_action("ARTICLE_VOTE", f"Unable to vote for article {article_id}", kwargs=resp)
@@ -2001,7 +1999,7 @@ class CitizenSocial(BaseCitizen):
                                      self.r.text, re.S | re.M)
         r = self._post_main_country_post_create(message, max(post_to_wall_as, key=int) if post_to_wall_as else 0)
 
-        self._report_action('SOCIAL_WRITE_WALL_COUNTRY', 'Wrote a message to the country wall', kwargs=message)
+        self._report_action('SOCIAL_WRITE_WALL_COUNTRY', 'Wrote a message to the country wall')
         return r.json()
 
     def add_friend(self, player_id: int) -> Response:
