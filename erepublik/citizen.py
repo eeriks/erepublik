@@ -1344,25 +1344,23 @@ class CitizenMilitary(CitizenTravel):
         if r_json.get("countries"):
             if self.all_battles is None:
                 self.all_battles = {}
-            else:
-                self.all_battles.clear()
-
             if self.countries is None:
                 self.countries = {}
-            else:
-                self.countries.clear()
-
+            countries = {}
             for c_id, c_data in r_json.get("countries").items():
-                if int(c_id) not in self.countries:
-                    self.countries.update({
+                if int(c_id) not in countries:
+                    countries.update({
                         int(c_id): {"name": c_data.get("name"), "allies": c_data.get("allies")}
                     })
                 else:
-                    self.countries[int(c_id)].update(allies=c_data.get("allies"))
+                    countries[int(c_id)].update(allies=c_data.get("allies"))
+            self.countries = countries
             self.__last_war_update_data = r_json
             if r_json.get("battles"):
+                all_battles = {}
                 for battle_data in r_json.get("battles", {}).values():
-                    self.all_battles[battle_data.get('id')] = Battle(battle_data)
+                    all_battles[battle_data.get('id')] = Battle(battle_data)
+                self.all_battles = all_battles
 
     def get_battle_for_war(self, war_id: int) -> Optional[Battle]:
         self.update_war_info()
@@ -1702,6 +1700,7 @@ class CitizenMilitary(CitizenTravel):
         has_traveled = False
         battle = self.all_battles.get(battle_id)
         if battle.is_rw:
+            has_traveled = self.travel_to_battle(battle_id, [battle.defender.id])
             self._rw_choose_side(battle.id, battle.invader.id if inv_side else battle.defender.id)
         if inv_side:
             good_countries = [battle.invader.id] + battle.invader.deployed
