@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Eriks Karls">
+    <meta name="generator" content="Jekyll v4.0.1">
+    <title>eBot configuration</title>
+    <!-- CSS only -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+          crossorigin="anonymous">
+
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+    <div class="p-3 text-center">
+        <h1>eBot configuration file generator</h1>
+<!--        <h2>-->
+<!--            <span class="d-inline d-sm-none d-md-none d-lg-none d-xl-none">XS</span>-->
+<!--            <span class="d-none d-sm-inline d-md-none d-lg-none d-xl-none">SM</span>-->
+<!--            <span class="d-none d-sm-none d-md-inline d-lg-none d-xl-none">MD</span>-->
+<!--            <span class="d-none d-sm-none d-md-none d-lg-inline d-xl-none">LG</span>-->
+<!--            <span class="d-none d-sm-none d-md-none d-lg-none d-xl-inline">XL</span>-->
+<!--        </h2>-->
+    </div>
+    <div class="row pt-4">
+        <div class="col-12">
+            <form>
+                <div class="row">
+                    <div class="col-12 col-sm-8 col-md-6">
+                        <h3>Login data</h3>
+                        <div class="form-group">
+                            <input type="email" class="form-control form-control-sm" onchange="updateJson()" id="email" placeholder="E-mail...">
+                            <input type="password" class="form-control form-control-sm mt-3" onchange="updateJson()" id="password" disabled placeholder="Password..."
+                                   aria-describedby="passwordHelpBlock">
+                            <small id="passwordHelpBlock" class="form-text text-muted"><strong>NEVER</strong> enter Your passwords on 3rd party sites and <strong class="text-upper">DO NOT</strong> reuse Your
+                                password!</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <h3>Basic tasks</h3>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="work" checked>
+                            <label class="custom-control-label" for="work">Work</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="train" checked>
+                            <label class="custom-control-label" for="train">Train</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="ot" checked>
+                            <label class="custom-control-label" for="ot">Work overtime</label>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <h3>Misc</h3>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="renew_houses" checked>
+                            <label class="custom-control-label" for="renew_houses">Auto renew houses</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="random_sleep" checked>
+                            <label class="custom-control-label" for="random_sleep">Random sleep</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="buy_gold">
+                            <label class="custom-control-label" for="buy_gold">Auto buy 10g</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="interactive" checked>
+                            <label class="custom-control-label" for="interactive">Interactive</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="debug">
+                            <label class="custom-control-label" for="debug">Debug</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 col-sm-6">
+                        <h3>Production</h3>
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="wam" checked>
+                                <label class="custom-control-label" for="wam">Work as manager</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="employ">
+                                <label class="custom-control-label" for="employ">Employ employees</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_buy_raw" checked>
+                                <label class="custom-control-label" for="auto_buy_raw">Auto buy missing RAW</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <h6 class="">Auto sell produced products</h6>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_frm">
+                                <label class="custom-control-label" for="auto_sell_frm">Food Raw</label>
+                            </div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_food">
+                                <label class="custom-control-label" for="auto_sell_food">Food</label>
+                            </div>
+                            <div class="clearfix"></div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_wrm">
+                                <label class="custom-control-label" for="auto_sell_wrm">Weapon Raw</label>
+                            </div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_weapons">
+                                <label class="custom-control-label" for="auto_sell_weapons">Weapon</label>
+                            </div>
+                            <div class="clearfix"></div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_hrm">
+                                <label class="custom-control-label" for="auto_sell_hrm">House Raw</label>
+                            </div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_house">
+                                <label class="custom-control-label" for="auto_sell_house">House</label>
+                            </div>
+                            <div class="clearfix"></div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_arm">
+                                <label class="custom-control-label" for="auto_sell_arm">Aircraft Raw</label>
+                            </div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_air">
+                                <label class="custom-control-label" for="auto_sell_air">Aircraft Weapon</label>
+                            </div>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_sell_all">
+                            <label class="custom-control-label" for="auto_sell_all">Auto sell all (also from inventory)</label>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <h3>Fighting</h3>
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="fight" checked>
+                                <label class="custom-control-label" for="fight">Fight</label>
+                            </div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="air" checked>
+                                <label class="custom-control-label" for="air">Air</label>
+                            </div>
+                            <div class="custom-control custom-switch custom-control-inline">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="ground">
+                                <label class="custom-control-label" for="ground">Ground</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="boosters">
+                                <label class="custom-control-label" for="boosters">Use ground boosters</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="continuous_fighting">
+                                <label class="custom-control-label" for="continuous_fighting">Continue fighting all FF in round</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="next_energy" checked>
+                                <label class="custom-control-label" for="next_energy">Fight for next WC +1hp/6min if reachable by FF</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-check form-check-inline">
+                                <input type="radio" class="form-check-input" onchange="updateJson()" id="all_in" name="fight_amount" value="all_in">
+                                <label class="form-check-label" for="all_in">All energy</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" class="form-check-input" onchange="updateJson()" id="h_energy" name="fight_amount" value="h_energy" checked>
+                                <label class="form-check-label" for="h_energy">1h energy</label>
+                            </div>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="rw_def_side" checked>
+                            <label class="custom-control-label" for="rw_def_side">In RWs fight on right side (occupier/defender)</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="travel_to_fight" checked>
+                            <label class="custom-control-label" for="travel_to_fight">Travel to fight</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="epic_hunt">
+                            <label class="custom-control-label" for="epic_hunt">Hunt epics</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="epic_hunt_ebs">
+                            <label class="custom-control-label" for="epic_hunt_ebs">Spend <small>[all]</small> EBs in epics</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-12">
+            <pre id="json-output"></pre>
+        </div>
+    </div>
+</div>
+<script>
+    function disable(element){
+        element.checked = false;
+        element.disabled = true;
+    }
+    function updateJson() {
+        let config = {};
+        let email = document.getElementById('email'); // Generated
+        config.email = email.value;
+        config.password = "";
+        let work = document.getElementById('work'); // Generated
+        config.work = work.checked;
+        let train = document.getElementById('train'); // Generated
+        config.train = train.checked;
+        let ot = document.getElementById('ot'); // Generated
+        config.ot = ot.checked;
+        let renew_houses = document.getElementById('renew_houses'); // Generated
+        config.renew_houses = renew_houses.checked;
+        let random_sleep = document.getElementById('random_sleep'); // Generated
+        config.random_sleep = random_sleep.checked;
+        let buy_gold = document.getElementById('buy_gold'); // Generated
+        config.buy_gold = buy_gold.checked;
+        let interactive = document.getElementById('interactive'); // Generated
+        config.interactive = interactive.checked;
+        let debug = document.getElementById('debug'); // Generated
+        config.debug = debug.checked;
+        let wam = document.getElementById('wam'); // Generated
+        config.wam = wam.checked;
+        let employ = document.getElementById('employ'); // Generated
+        config.employ = employ.checked;
+
+        let auto_buy_raw = document.getElementById('auto_buy_raw'); // Generated
+        let auto_sell_all = document.getElementById('auto_sell_all'); // Generated
+        let auto_sell_frm = document.getElementById('auto_sell_frm'); // Generated
+        let auto_sell_food = document.getElementById('auto_sell_food'); // Generated
+        let auto_sell_wrm = document.getElementById('auto_sell_wrm'); // Generated
+        let auto_sell_weapons = document.getElementById('auto_sell_weapons'); // Generated
+        let auto_sell_hrm = document.getElementById('auto_sell_hrm'); // Generated
+        let auto_sell_house = document.getElementById('auto_sell_house'); // Generated
+        let auto_sell_arm = document.getElementById('auto_sell_arm'); // Generated
+        let auto_sell_air = document.getElementById('auto_sell_air'); // Generated
+        if (config.wam || config.employ) {
+            auto_buy_raw.disabled = false;
+            auto_sell_all.disabled = false;
+            auto_sell_frm.disabled = false;
+            auto_sell_food.disabled = false;
+            auto_sell_wrm.disabled = false;
+            auto_sell_weapons.disabled = false;
+            auto_sell_hrm.disabled = false;
+            auto_sell_house.disabled = false;
+            auto_sell_arm.disabled = false;
+            auto_sell_air.disabled = false;
+        } else {
+            disable(auto_buy_raw);
+            disable(auto_sell_all);
+            disable(auto_sell_food);
+            disable(auto_sell_weapons);
+            disable(auto_sell_house);
+            disable(auto_sell_air);
+            disable(auto_sell_frm);
+            disable(auto_sell_wrm);
+            disable(auto_sell_hrm);
+            disable(auto_sell_arm);
+        }
+        config.auto_buy_raw = auto_buy_raw.checked;
+        config.auto_sell_all = auto_sell_all.checked;
+        config.auto_sell = [];
+        if (auto_sell_food.checked) config.auto_sell.push("food");
+        if (auto_sell_weapons.checked) config.auto_sell.push("weapon");
+        if (auto_sell_house.checked) config.auto_sell.push("house");
+        if (auto_sell_air.checked) config.auto_sell.push("airplane");
+        if (auto_sell_frm.checked) config.auto_sell.push("foodRaw");
+        if (auto_sell_wrm.checked) config.auto_sell.push("weaponRaw");
+        if (auto_sell_hrm.checked) config.auto_sell.push("houseRaw");
+        if (auto_sell_arm.checked) config.auto_sell.push("airplaneRaw");
+
+        let fight = document.getElementById('fight'); // Generated
+        config.fight = fight.checked;
+        let air = document.getElementById('air'); // Generated
+        let ground = document.getElementById('ground'); // Generated
+        let boosters = document.getElementById('boosters'); // Generated
+        let continuous_fighting = document.getElementById('continuous_fighting'); // Generated
+        let next_energy = document.getElementById('next_energy'); // Generated
+        let all_in = document.getElementById('all_in'); // Generated
+        let h_energy = document.getElementById('h_energy'); // Generated
+        let rw_def_side = document.getElementById('rw_def_side'); // Generated
+        let travel_to_fight = document.getElementById('travel_to_fight'); // Generated
+        let epic_hunt = document.getElementById('epic_hunt'); // Generated
+        let epic_hunt_ebs = document.getElementById('epic_hunt_ebs'); // Generated
+        if (config.fight){
+            air.disabled = false;
+            ground.disabled = false;
+            boosters.disabled = false;
+            continuous_fighting.disabled = false;
+            next_energy.disabled = false;
+            all_in.disabled = false;
+            h_energy.disabled = false;
+            rw_def_side.disabled = false;
+            travel_to_fight.disabled = false;
+            epic_hunt.disabled = false;
+            epic_hunt_ebs.disabled = false;
+            if (!epic_hunt.checked) disable(epic_hunt_ebs);
+        } else {
+            disable(air);
+            disable(ground);
+            disable(boosters);
+            disable(continuous_fighting);
+            disable(next_energy);
+            disable(all_in);
+            disable(h_energy);
+            disable(rw_def_side);
+            disable(travel_to_fight);
+            disable(epic_hunt);
+            disable(epic_hunt_ebs);
+        }
+
+        config.air = air.checked;
+        config.ground = ground.cehcked;
+        config.boosters = boosters.checked;
+        config.continuous_fighting = continuous_fighting.checked;
+        config.next_energy = next_energy.checked;
+        config.all_in = all_in.checked;
+        config.rw_def_side = rw_def_side.checked;
+        config.travel_to_fight = travel_to_fight.checked;
+        config.epic_hunt = epic_hunt.checked;
+        config.epic_hunt_ebs = config.epic_hunt ? epic_hunt_ebs.checked : config.epic_hunt;
+        let pre = document.getElementById('json-output');
+        pre.textContent = JSON.stringify(config, null, 2);
+    }
+    updateJson();
+
+
+</script>
+</body>
+</html>
+
+
+<!--
+
+{
+  "email": "",
+  "password": "",
+  "work": true,
+  "train": true,
+  "ot": true,
+  "renew_houses": true,
+  "random_sleep": true,
+  "buy_gold": true,
+  "interactive": true,
+  "debug": true,
+  "wam": true,
+  "employ": true,
+  "auto_buy_raw": true,
+  "auto_sell_all": true,
+  "auto_sell": [
+    "food",
+    "weapon",
+    "house",
+    "airplane",
+    "foodRaw",
+    "weaponRaw",
+    "houseRaw",
+    "airplaneRaw"
+  ],
+  "fight": true,
+  "air": true,
+  "boosters": true,
+  "continuous_fighting": true,
+  "next_energy": true,
+  "all_in": false,
+  "rw_def_side": true,
+  "travel_to_fight": true,
+  "epic_hunt": true,
+  "epic_hunt_ebs": true
+}
+
+ -->
