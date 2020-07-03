@@ -719,11 +719,11 @@ class Battle:
             else:
                 end = utils.localize_dt(datetime.datetime.max - datetime.timedelta(days=1))
 
-            if not data['stats']['def']:
+            if not data.get('stats',{}).get('def'):
                 def_medal = (0, 0)
             else:
                 def_medal = (data['stats']['def']['citizenId'], data['stats']['def']['damage'])
-            if not data['stats']['inv']:
+            if not data.get('stats').get('inv'):
                 inv_medal = (0, 0)
             else:
                 inv_medal = (data['stats']['inv']['citizenId'], data['stats']['inv']['damage'])
