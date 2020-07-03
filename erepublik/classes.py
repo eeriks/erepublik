@@ -637,33 +637,36 @@ class BattleDivision:
     battle_zone_id: int
     def_medal: Dict[str, int]
     inv_medal: Dict[str, int]
+    terrain: int
+    div: int
+
+    @property
+    def is_air(self):
+        return self.div == 11
 
     @property
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(self, div_id: int, end: datetime.datetime, epic: bool, inv_pts: int, def_pts: int,
-                 wall_for: int, wall_dom: float, def_medal: Tuple[int, int], inv_medal: Tuple[int, int]):
+    def __init__(self, div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int, wall_dom: float,
+                 terrain_id: int = 0):
         """Battle division helper class
 
         :type div_id: int
         :type end: datetime.datetime
         :type epic: bool
-        :type inv_pts: int
-        :type def_pts: int
+        :type div: int
+        :type terrain_id: int
         :type wall_for: int
         :type wall_dom: float
-        :type def_medal: Tuple[int, int]
-        :type inv_medal: Tuple[int, int]
         """
 
         self.battle_zone_id = div_id
         self.end = end
         self.epic = epic
-        self.dom_pts = dict({"inv": inv_pts, "def": def_pts})
         self.wall = dict({"for": wall_for, "dom": wall_dom})
-        self.def_medal = {"id": def_medal[0], "dmg": def_medal[1]}
-        self.inv_medal = {"id": inv_medal[0], "dmg": inv_medal[1]}
+        self.terrain = terrain_id
+        self.div = div
 
     @property
     def id(self):
@@ -682,8 +685,18 @@ class Battle:
     div: Dict[int, BattleDivision]
 
     @property
-    def is_air(self) -> bool:
+    def has_air(self) -> bool:
+        for div in self.div.values():
+            if div.div == 11:
+                return True
         return not bool(self.zone_id % 4)
+
+    @property
+    def has_ground(self) -> bool:
+        for div in self.div.values():
+            if div.div != 11:
+                return True
+        return bool(self.zone_id % 4)
 
     def __init__(self, battle: Dict[str, Any]):
         """Object representing eRepublik battle.
@@ -719,18 +732,11 @@ class Battle:
             else:
                 end = utils.localize_dt(datetime.datetime.max - datetime.timedelta(days=1))
 
-            if not data.get('stats',{}).get('def'):
-                def_medal = (0, 0)
-            else:
-                def_medal = (data['stats']['def']['citizenId'], data['stats']['def']['damage'])
-            if not data.get('stats').get('inv'):
-                inv_medal = (0, 0)
-            else:
-                inv_medal = (data['stats']['inv']['citizenId'], data['stats']['inv']['damage'])
-            battle_div = BattleDivision(div_id=data.get('id'), end=end, epic=data.get('epic_type') in [1, 5],
-                                        inv_pts=data.get('dom_pts').get("inv"), def_pts=data.get('dom_pts').get("def"),
-                                        wall_for=data.get('wall').get("for"), wall_dom=data.get('wall').get("dom"),
-                                        def_medal=def_medal, inv_medal=inv_medal)
+            battle_div = BattleDivision(div_id=data.get('id'), div=data.get('dev'), end=end,
+                                        epic=data.get('epic_type') in [1, 5],
+                                        wall_for=data.get('wall').get("for"),
+                                        wall_dom=data.get('wall').get("dom"),
+                                        terrain_id=data.get('terrain', 0))
 
             self.div.update({div: battle_div})
 

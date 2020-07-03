@@ -12,7 +12,7 @@ from requests import HTTPError, RequestException, Response
 
 from erepublik import utils
 from erepublik.access_points import CitizenAPI
-from erepublik.classes import Battle, BattleDivision, Config, Details, Energy, \
+from erepublik.classes import Battle, Config, Details, Energy, \
     ErepublikException, MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot
 
 
@@ -1388,75 +1388,73 @@ class CitizenMilitary(CitizenTravel):
     def get_available_weapons(self, battle_id: int):
         return self._get_military_show_weapons(battle_id).json()
 
-    def set_default_weapon(self, battle_id: int) -> int:
+    def set_default_weapon(self, battle_id: int, battle_zone: int) -> int:
         battle = self.all_battles.get(battle_id)
         available_weapons = self._get_military_show_weapons(battle_id).json()
         while not isinstance(available_weapons, list):
             available_weapons = self._get_military_show_weapons(battle_id).json()
         weapon_quality = -1
         weapon_damage = 0
-        if not battle.is_air:
+        if not battle.div[battle_zone].div == 11:
             for weapon in available_weapons:
                 try:
                     if weapon['weaponQuantity'] > 30 and weapon['weaponInfluence'] > weapon_damage:
                         weapon_quality = int(weapon['weaponId'])
                 except ValueError:
                     pass
-        return self.change_weapon(battle_id, weapon_quality)
+        return self.change_weapon(battle_id, weapon_quality, battle_zone)
 
-    def change_weapon(self, battle_id: int, quality: int) -> int:
-        battle = self.all_battles.get(battle_id)
-        battle_zone = battle.div[11 if battle.is_air else self.division].battle_zone_id
+    def change_weapon(self, battle_id: int, quality: int, battle_zone: int) -> int:
         r = self._post_military_change_weapon(battle_id, battle_zone, quality)
         influence = r.json().get('weaponInfluence')
         self._report_action("MILITARY_WEAPON", f"Switched to q{quality} weapon,"
                                                f" new influence {influence}", kwargs=r.json())
         return influence
 
-    def check_epic_battles(self):
-        active_fs = False
-        for battle_id in self.sorted_battles(self.config.sort_battles_time):
-            battle = self.all_battles.get(battle_id)
-            if not battle.is_air:
-                my_div: BattleDivision = battle.div.get(self.division)
-                if my_div.epic and my_div.end > self.now:
-                    if self.energy.food_fights > 50:
-                        inv_allies = battle.invader.deployed + [battle.invader.id]
-                        def_allies = battle.defender.deployed + [battle.defender.id]
-                        all_allies = inv_allies + def_allies
-                        if self.details.current_country not in all_allies:
-                            if self.details.current_country in battle.invader.allies:
-                                allies = battle.invader.deployed
-                                side = battle.invader.id
-                            else:
-                                allies = battle.defender.deployed
-                                side = battle.defender.id
-
-                            self.travel_to_battle(battle.id, allies)
-
-                        else:
-                            if self.details.current_country in inv_allies:
-                                side = battle.invader.id
-                            elif self.details.current_country in def_allies:
-                                side = battle.defender.id
-                            else:
-                                self.write_log(
-                                    f"Country {self.details.current_country} not in all allies list ({all_allies}) and "
-                                    f"also not in inv allies ({inv_allies}) nor def allies ({def_allies})")
-                                break
-                        error_count = 0
-                        while self.energy.food_fights > 5 and error_count < 20:
-                            errors = self.fight(battle_id, side_id=side, count=self.energy.food_fights - 5)
-                            if errors:
-                                error_count += errors
-                            if self.config.epic_hunt_ebs:
-                                self._eat('orange')
-                        self.travel_to_residence()
-                        break
-                elif bool(my_div.epic):
-                    active_fs = True
-
-        self.active_fs = active_fs
+    # def check_epic_battles(self):
+    #     active_fs = False
+    #     for battle_id in self.sorted_battles(self.config.sort_battles_time):
+    #         battle = self.all_battles.get(battle_id)
+    #         if not battle.is_air:
+    #             my_div: BattleDivision = battle.div.get(self.division)
+    #             if my_div.epic and my_div.end > self.now:
+    #                 if self.energy.food_fights > 50:
+    #                     inv_allies = battle.invader.deployed + [battle.invader.id]
+    #                     def_allies = battle.defender.deployed + [battle.defender.id]
+    #                     all_allies = inv_allies + def_allies
+    #                     if self.details.current_country not in all_allies:
+    #                         if self.details.current_country in battle.invader.allies:
+    #                             allies = battle.invader.deployed
+    #                             side = battle.invader.id
+    #                         else:
+    #                             allies = battle.defender.deployed
+    #                             side = battle.defender.id
+    #
+    #                         self.travel_to_battle(battle.id, allies)
+    #
+    #                     else:
+    #                         if self.details.current_country in inv_allies:
+    #                             side = battle.invader.id
+    #                         elif self.details.current_country in def_allies:
+    #                             side = battle.defender.id
+    #                         else:
+    #                             self.write_log(
+    #                                 f"Country {self.details.current_country} not in all allies list ({all_allies}) and "
+    #                                 f"also not in inv allies ({inv_allies}) nor def allies ({def_allies})")
+    #                             break
+    #                     error_count = 0
+    #                     while self.energy.food_fights > 5 and error_count < 20:
+    #                         errors = self.fight(battle_id, side_id=side, count=self.energy.food_fights - 5)
+    #                         if errors:
+    #                             error_count += errors
+    #                         if self.config.epic_hunt_ebs:
+    #                             self._eat('orange')
+    #                     self.travel_to_residence()
+    #                     break
+    #             elif bool(my_div.epic):
+    #                 active_fs = True
+    #
+    #     self.active_fs = active_fs
 
     def sorted_battles(self, sort_by_time: bool = True) -> List[int]:
         cs_battles_priority_air: List[int] = []
@@ -1488,7 +1486,7 @@ class CitizenMilitary(CitizenTravel):
                 continue
             # CS Battles
             elif self.details.citizenship in battle_sides:
-                if battle.is_air:
+                if battle.has_air:
                     if battle.defender.id == self.details.citizenship:
                         cs_battles_priority_air.append(battle.id)
                     else:
@@ -1501,7 +1499,7 @@ class CitizenMilitary(CitizenTravel):
 
             # Current location battles:
             elif self.details.current_country in battle_sides:
-                if battle.is_air:
+                if battle.has_air:
                     deployed_battles_air.append(battle.id)
                 else:
                     deployed_battles_ground.append(battle.id)
@@ -1509,18 +1507,18 @@ class CitizenMilitary(CitizenTravel):
             # Deployed battles and allied battles:
             elif self.details.current_country in battle.invader.allies + battle.defender.allies + battle_sides:
                 if self.details.current_country in battle.invader.deployed + battle.defender.deployed:
-                    if battle.is_air:
+                    if battle.has_air:
                         deployed_battles_air.append(battle.id)
                     else:
                         deployed_battles_ground.append(battle.id)
                 # Allied battles:
                 else:
-                    if battle.is_air:
+                    if battle.has_air:
                         ally_battles_air.append(battle.id)
                     else:
                         ally_battles_ground.append(battle.id)
             else:
-                if battle.is_air:
+                if battle.has_air:
                     other_battles_air.append(battle.id)
                 else:
                     other_battles_ground.append(battle.id)
@@ -1542,8 +1540,17 @@ class CitizenMilitary(CitizenTravel):
                 battle = self.all_battles.get(battle_id)
                 if not isinstance(battle, Battle):
                     continue
-                div = 11 if battle.is_air else self.division
-
+                battle_zone = 0
+                for div in battle.div.values():
+                    if div.terrain == 0:
+                        if self.config.air and div.is_air:
+                            battle_zone = div.id
+                            break
+                        elif self.config.ground and not div.is_air and div.div == self.division:
+                            battle_zone = div.id
+                            break
+                        else:
+                            return
                 allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.id, battle.defender.id]
 
                 travel_needed = self.details.current_country not in allies
@@ -1553,20 +1560,13 @@ class CitizenMilitary(CitizenTravel):
                 else:
                     side = self.details.current_country in battle.defender.allies + [battle.defender.id, ]
                     side_id = battle.defender.id if side else battle.invader.id
-                try:
-                    def_points = battle.div.get(div).dom_pts.get('def')
-                    inv_points = battle.div.get(div).dom_pts.get('inv')
-                except KeyError:
-                    self.report_error(f"Division {div} not available for battle {battle.id}!")
-                    def_points = inv_points = 3600
+
                 self.write_log(battle)
 
-                points = def_points <= 1700 and inv_points <= 1700
-                b_type = battle.is_air and self.config.air or not battle.is_air and self.config.ground
                 travel = (self.config.travel_to_fight and self.should_travel_to_fight() or self.config.force_travel) \
                     if travel_needed else True
 
-                if not (points and b_type and travel):
+                if not travel:
                     continue
 
                 if battle.start > self.now:
@@ -1584,12 +1584,12 @@ class CitizenMilitary(CitizenTravel):
 
                     if not self.travel_to_battle(battle_id, country_ids_to_travel):
                         break
-                self.set_default_weapon(battle_id)
-                self.fight(battle_id, side_id)
+                self.set_default_weapon(battle_id, battle_zone)
+                self.fight(battle_id, battle_zone, side_id)
                 self.travel_to_residence()
                 break
 
-    def fight(self, battle_id: int, side_id: int = None, count: int = None, division: int = None) -> int:
+    def fight(self, battle_id: int, battle_zone: int, side_id: int = None, count: int = None) -> int:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
@@ -1600,8 +1600,8 @@ class CitizenMilitary(CitizenTravel):
         :type side_id: int
         :param count: How many hits to do, if not specified self.should_fight() is called.
         :type count: int
-        :param division: int Division number to fight in available choices 1,2,3,4,11
-        :type division: int
+        :param battle_zone: int Division number to fight in available choices
+        :type battle_zone: int
         :return: None if no errors while fighting, otherwise error count.
         :rtype: int
         """
@@ -1614,9 +1614,7 @@ class CitizenMilitary(CitizenTravel):
         if battle_id not in self.all_battles:
             self.update_war_info()
         battle = self.all_battles.get(battle_id)
-        division = self.division if division is None else division
-        zone_id = battle.div[11 if battle.is_air else division].battle_zone_id
-        if not battle.is_air and self.config.boosters:
+        if not battle.div[battle_zone].is_air and self.config.boosters:
             self.activate_dmg_booster()
         error_count = 0
         ok_to_fight = True
@@ -1628,7 +1626,7 @@ class CitizenMilitary(CitizenTravel):
         side = battle.invader.id == side_id or side_id in battle.invader.deployed
         while ok_to_fight and error_count < 10 and count > 0:
             while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
-                hits, error, damage = self._shoot(battle_id, side, zone_id)
+                hits, error, damage = self._shoot(battle_id, side, battle_zone)
                 count -= hits
                 total_hits += hits
                 total_damage += damage
@@ -1640,13 +1638,13 @@ class CitizenMilitary(CitizenTravel):
                     ok_to_fight = False
                     if total_damage:
                         self.reporter.report_action("FIGHT", dict(battle=battle_id, side=side_id, dmg=total_damage,
-                                                                  air=battle.is_air, hits=total_hits))
+                                                                  air=battle.has_air, hits=total_hits))
         return error_count
 
     def _shoot(self, battle_id: int, inv_side: bool, zone_id: int):
         battle = self.all_battles.get(battle_id)
         side_id = battle.invader.id if inv_side else battle.defender.id
-        if battle.is_air:
+        if battle.div[zone_id].is_air:
             response = self._post_military_fight_air(battle_id, side_id, zone_id)
         else:
             response = self._post_military_fight_ground(battle_id, side_id, zone_id)
@@ -1665,7 +1663,7 @@ class CitizenMilitary(CitizenTravel):
             if r_json.get("message") == "SHOOT_LOCKOUT" or r_json.get("message") == "ZONE_INACTIVE":
                 pass
             elif r_json.get("message") == "NOT_ENOUGH_WEAPONS":
-                self.set_default_weapon(battle_id)
+                self.set_default_weapon(battle_id, zone_id)
             else:
                 if r_json.get("message") == "UNKNOWN_SIDE":
                     self._rw_choose_side(battle_id, side_id)
