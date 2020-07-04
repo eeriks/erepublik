@@ -13,7 +13,7 @@ from requests import HTTPError, RequestException, Response
 from erepublik import utils
 from erepublik.access_points import CitizenAPI
 from erepublik.classes import Battle, Config, Details, Energy, \
-    ErepublikException, MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot
+    ErepublikException, MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot, BattleDivision
 
 
 class BaseCitizen(CitizenAPI):
@@ -1395,7 +1395,7 @@ class CitizenMilitary(CitizenTravel):
             available_weapons = self._get_military_show_weapons(battle_id).json()
         weapon_quality = -1
         weapon_damage = 0
-        if not battle.div[battle_zone].div == 11:
+        if not battle.div[battle_zone].is_air:
             for weapon in available_weapons:
                 try:
                     if weapon['weaponQuantity'] > 30 and weapon['weaponInfluence'] > weapon_damage:
@@ -1540,17 +1540,21 @@ class CitizenMilitary(CitizenTravel):
                 battle = self.all_battles.get(battle_id)
                 if not isinstance(battle, Battle):
                     continue
-                battle_zone = 0
+                battle_zone: Optional[BattleDivision] = None
                 for div in battle.div.values():
                     if div.terrain == 0:
+                        if div.div_end:
+                            continue
                         if self.config.air and div.is_air:
-                            battle_zone = div.id
+                            battle_zone = div
                             break
                         elif self.config.ground and not div.is_air and div.div == self.division:
-                            battle_zone = div.id
+                            battle_zone = div
                             break
                         else:
-                            return
+                            continue
+                if not battle_zone:
+                    continue
                 allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.id, battle.defender.id]
 
                 travel_needed = self.details.current_country not in allies
@@ -1584,8 +1588,9 @@ class CitizenMilitary(CitizenTravel):
 
                     if not self.travel_to_battle(battle_id, country_ids_to_travel):
                         break
-                self.set_default_weapon(battle_id, battle_zone)
-                self.fight(battle_id, battle_zone, side_id)
+                self.change_division(battle_id, battle_zone.id)
+                self.set_default_weapon(battle_id, battle_zone.id)
+                self.fight(battle_id, battle_zone.id, side_id)
                 self.travel_to_residence()
                 break
 
@@ -1734,8 +1739,9 @@ class CitizenMilitary(CitizenTravel):
         :return:
         """
         battle = self.all_battles.get(battle_id)
-        self._post_main_battlefield_change_division(battle_id, battle.div[division_to].battle_zone_id)
-        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division_to} in battle {battle_id}")
+        division = battle.div[division_to]
+        self._post_main_battlefield_change_division(battle_id, division_to)
+        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle_id}")
 
     def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
                                  booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> Decimal:

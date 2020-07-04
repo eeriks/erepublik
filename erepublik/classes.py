@@ -621,8 +621,10 @@ class BattleSide:
     points: int
     deployed: List[int] = None
     allies: List[int] = None
+    battle: "Battle"
 
-    def __init__(self, country_id: int, points: int, allies: List[int], deployed: List[int]):
+    def __init__(self, battle: "Battle", country_id: int, points: int, allies: List[int], deployed: List[int]):
+        self.battle = battle
         self.id = country_id
         self.points = points
         self.allies = [int(ally) for ally in allies]
@@ -639,6 +641,7 @@ class BattleDivision:
     inv_medal: Dict[str, int]
     terrain: int
     div: int
+    battle: "Battle"
 
     @property
     def is_air(self):
@@ -648,7 +651,7 @@ class BattleDivision:
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(self, div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int, wall_dom: float,
+    def __init__(self, battle: "Battle", div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int, wall_dom: float,
                  terrain_id: int = 0):
         """Battle division helper class
 
@@ -660,7 +663,7 @@ class BattleDivision:
         :type wall_for: int
         :type wall_dom: float
         """
-
+        self.battle = battle
         self.battle_zone_id = div_id
         self.end = end
         self.epic = epic
@@ -713,12 +716,14 @@ class Battle:
         self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
 
         self.invader = BattleSide(
+            self,
             battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
             [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
             [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']]
         )
 
         self.defender = BattleSide(
+            self,
             battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
             [row.get('id') for row in battle.get('def', {}).get('ally_list')],
             [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
@@ -726,13 +731,13 @@ class Battle:
 
         self.div = {}
         for div, data in battle.get('div', {}).items():
-            div = int(data.get('div'))
+            div = int(div)
             if data.get('end'):
                 end = datetime.datetime.fromtimestamp(data.get('end'), tz=utils.erep_tz)
             else:
                 end = utils.localize_dt(datetime.datetime.max - datetime.timedelta(days=1))
 
-            battle_div = BattleDivision(div_id=data.get('id'), div=data.get('dev'), end=end,
+            battle_div = BattleDivision(self, div_id=data.get('id'), div=data.get('div'), end=end,
                                         epic=data.get('epic_type') in [1, 5],
                                         wall_for=data.get('wall').get("for"),
                                         wall_dom=data.get('wall').get("dom"),
