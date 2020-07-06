@@ -565,6 +565,10 @@ class ErepublikProfileAPI(CitizenBaseAPI):
         data = dict(_token=self.token, rewardId=reward_id)
         return self.post("{}/main/weekly-challenge-collect-reward".format(self.url), data=data)
 
+    def _post_main_profile_update(self, action: str, params: str):
+        data = {"action": action, "params": params, "_token": self.token}
+        return self.post(f"{self.url}/main/profile-update", data=data)
+
 
 class ErepublikTravelAPI(CitizenBaseAPI):
     def _post_main_travel(self, check: str, **kwargs) -> Response:

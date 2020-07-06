@@ -1669,6 +1669,9 @@ class CitizenMilitary(CitizenTravel):
                 pass
             elif r_json.get("message") == "NOT_ENOUGH_WEAPONS":
                 self.set_default_weapon(battle_id, zone_id)
+            elif r_json.get("message") == "FIGHT_DISABLED":
+                self._post_main_profile_update('options', params='{"optionName":"enable_web_deploy","optionValue":"off"}')
+                self.set_default_weapon(battle_id, zone_id)
             else:
                 if r_json.get("message") == "UNKNOWN_SIDE":
                     self._rw_choose_side(battle_id, side_id)
