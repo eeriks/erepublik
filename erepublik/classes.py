@@ -16,6 +16,40 @@ INDUSTRIES = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
               24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }
 
 
+class Country:
+    id: int
+    name: str
+    link: str
+    iso: str
+
+    def __init__(self, country_id: int, name: str, link: str, iso: str):
+        self.id = country_id
+        self.name = name
+        self.link = link
+        self.iso = iso
+
+    def __repr__(self):
+        return f"Country({self.id}, '{self.name}', '{self.link}', '{self.iso}')"
+
+    def __str__(self):
+        return f"#{self.id} {self.name}"
+
+    def __format__(self, format_spec):
+        return self.iso
+
+    def __int__(self):
+        return self.id
+
+    def __eq__(self, other):
+        if isinstance(other, (int, float)):
+            return self.id == int(other)
+        else:
+            try:
+                return self.id == int(other)
+            except ValueError:
+                return self == other
+
+
 class ErepublikException(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -32,7 +66,8 @@ class Holding:
     region: int
     companies: List["Company"]
 
-    def __init__(self, _id: int, region: int):
+    def __init__(self, _id: int, region: int, citizen):
+        self.citizen = citizen
         self.id: int = _id
         self.region: int = region
         self.companies: List["Company"] = list()
@@ -62,6 +97,24 @@ class Holding:
             elif company.industry in [2, 12, 13, 14, 15, 16]:
                 wrm += company.raw_usage
         return dict(frm=frm, wrm=wrm)
+
+    def get_wam_companies(self, raw_factory: bool = None):
+        raw = []
+        factory = []
+        for company in self.wam_companies:
+            if not company.already_worked and not company.cannot_wam_reason == "war":
+                if company.is_raw:
+                    raw.append(company)
+                else:
+                    factory.append(company)
+        if raw_factory is not None and not raw_factory:
+            return factory
+        elif raw_factory is not None and raw_factory:
+            return raw
+        elif raw_factory is None:
+            return raw + factory
+        else:
+            raise ErepublikException("raw_factory should be True/False/None")
 
     def __str__(self):
         name = f"Holding (#{self.id}) with {len(self.companies)} "
@@ -187,6 +240,15 @@ class Company:
                     can_wam=self.can_wam, cannot_wam_reason=self.cannot_wam_reason, industry=self.industry,
                     already_worked=self.already_worked, preset_works=self.preset_works)
 
+    def dissolve(self) -> Response:
+        self.holding.citizen.write_log(f"{self} dissolved!")
+        # noinspection PyProtectedMember
+        return self.holding.citizen._post_economy_sell_company(self.id, self.holding.citizen.details.pin, sell=False)
+
+    def upgrade(self, level: int) -> Response:
+        # noinspection PyProtectedMember
+        return self.holding.citizen._post_economy_upgrade_company(self.id, level, self.holding.citizen.details.pin)
+
 
 class MyCompanies:
     work_units: int = 0
@@ -196,7 +258,9 @@ class MyCompanies:
     holdings: Dict[int, Holding]
     companies: List[Company]
 
-    def __init__(self):
+    def __init__(self, citizen):
+        from erepublik import Citizen
+        self.citizen: Citizen = citizen
         self.holdings: Dict[int, Holding] = dict()
         self.companies: List[Company] = list()
         self.next_ot_time = utils.now()
@@ -207,9 +271,9 @@ class MyCompanies:
         """
         for holding in holdings.values():
             if holding.get('id') not in self.holdings:
-                self.holdings.update({int(holding.get('id')): Holding(holding['id'], holding['region_id'])})
+                self.holdings.update({int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)})
         if not self.holdings.get(0):
-            self.holdings.update({0: Holding(0, 0)})  # unassigned
+            self.holdings.update({0: Holding(0, 0, self.citizen)})  # unassigned
 
     def prepare_companies(self, companies: Dict[str, Dict[str, Any]]):
         """
@@ -240,43 +304,8 @@ class MyCompanies:
     def get_total_wam_count(self) -> int:
         return sum([holding.wam_count for holding in self.holdings.values()])
 
-    def get_holding_wam_count(self, holding_id: int, raw_factory=None) -> int:
-        """
-        Returns amount of wam enabled companies in the holding
-        :param holding_id: holding id
-        :param raw_factory: True - only raw, False - only factories, None - both
-        :return: int
-        """
-        return len(self.get_holding_wam_companies(holding_id, raw_factory))
-
-    def get_holding_wam_companies(self, holding_id: int, raw_factory: bool = None) -> List[Company]:
-        """
-        Returns WAM enabled companies in the holding, True - only raw, False - only factories, None - both
-        :param holding_id: holding id
-        :param raw_factory: bool or None
-        :return: list
-        """
-        raw = []
-        factory = []
-        if holding_id in self.holdings:
-            for company in self.holdings[holding_id].wam_companies:
-                if not company.already_worked and not company.cannot_wam_reason == "war":
-                    if company.is_raw:
-                        raw.append(company)
-                    else:
-                        factory.append(company)
-        if raw_factory is not None and not raw_factory:
-            return factory
-        elif raw_factory is not None and raw_factory:
-            return raw
-        elif raw_factory is None:
-            return raw + factory
-        else:
-            raise ErepublikException("raw_factory should be True/False/None")
-
     @staticmethod
     def get_needed_inventory_usage(companies: Union[Company, List[Company]]) -> Decimal:
-
         if isinstance(companies, list):
             return sum([company.products_made * 100 if company.is_raw else 1 for company in companies])
         else:
@@ -428,11 +457,11 @@ class Details:
     gold = 0
     next_pp: List[int] = None
     citizen_id = 0
-    citizenship = 0
+    citizenship: Country
     current_region = 0
-    current_country = 0
+    current_country: Country
     residence_region = 0
-    residence_country = 0
+    residence_country: Country
     daily_task_done = False
     daily_task_reward = False
     mayhem_skills = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, }
@@ -493,28 +522,35 @@ class House:
 
 class Reporter:
     __to_update: List[Dict[Any, Any]] = None
-    name: str = ""
-    email: str = ""
-    citizen_id: int = 0
     key: str = ""
     allowed: bool = False
+
+    @property
+    def name(self) -> str:
+        return self.citizen.name
+
+    @property
+    def email(self) -> str:
+        return self.citizen.config.email
+
+    @property
+    def citizen_id(self) -> int:
+        return self.citizen.details.citizen_id
 
     @property
     def __dict__(self):
         return dict(name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.allowed,
                     queue=self.__to_update)
 
-    def __init__(self):
+    def __init__(self, citizen):
+        self.citizen = citizen
         self._req = Session()
         self.url = "https://api.erep.lv"
         self._req.headers.update({"user-agent": "Bot reporter v2"})
         self.__to_update = []
         self.__registered: bool = False
 
-    def do_init(self, name: str = "", email: str = "", citizen_id: int = 0):
-        self.name: str = name
-        self.email: str = email
-        self.citizen_id: int = citizen_id
+    def do_init(self):
         self.key: str = ""
         self.__update_key()
         self.register_account()
@@ -573,10 +609,10 @@ class Reporter:
     def report_promo(self, kind: str, time_until: datetime.datetime):
         self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
-    def fetch_battle_priorities(self, country_id: int) -> List[int]:
+    def fetch_battle_priorities(self, country: Country) -> List["Battle"]:
         try:
-            battle_response = self._req.get(f'{self.url}/api/v1/battles/{country_id}')
-            return battle_response.json().get('battle_ids', [])
+            battle_response = self._req.get(f'{self.url}/api/v1/battles/{country.id}')
+            return [self.citizen.all_battles[bid] for bid in battle_response.json().get('battle_ids', []) if bid in self.citizen.all_battles]
         except:  # noqa
             return []
 
@@ -617,26 +653,39 @@ class MyJSONEncoder(json.JSONEncoder):
 
 
 class BattleSide:
-    id: int
     points: int
-    deployed: List[int] = None
-    allies: List[int] = None
+    deployed: List[Country]
+    allies: List[Country]
     battle: "Battle"
+    country: Country
+    defender: bool
 
-    def __init__(self, battle: "Battle", country_id: int, points: int, allies: List[int], deployed: List[int]):
+    def __init__(self, battle: "Battle", country: Country, points: int, allies: List[Country], deployed: List[Country], defender: bool):
         self.battle = battle
-        self.id = country_id
+        self.country = country
         self.points = points
-        self.allies = [int(ally) for ally in allies]
-        self.deployed = [int(ally) for ally in deployed]
+        self.allies = allies
+        self.deployed = deployed
+        self.defender = defender
+
+    @property
+    def id(self) -> int:
+        return self.country.id
+
+    def __str__(self):
+        side_text = "Defender" if self.defender else "Invader "
+        return f"<BattleSide: {side_text} {self.country.name} - {self.points:02d} points>"
+
+    def __format__(self, format_spec):
+        return self.country.iso
 
 
 class BattleDivision:
+    id: int
     end: datetime.datetime
     epic: bool
     dom_pts: Dict[str, int]
     wall: Dict[str, Union[int, float]]
-    battle_zone_id: int
     def_medal: Dict[str, int]
     inv_medal: Dict[str, int]
     terrain: int
@@ -651,8 +700,8 @@ class BattleDivision:
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(self, battle: "Battle", div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int, wall_dom: float,
-                 terrain_id: int = 0):
+    def __init__(self, battle: "Battle", div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int,
+                 wall_dom: float, terrain_id: int = 0):
         """Battle division helper class
 
         :type div_id: int
@@ -664,7 +713,7 @@ class BattleDivision:
         :type wall_dom: float
         """
         self.battle = battle
-        self.battle_zone_id = div_id
+        self.id = div_id
         self.end = end
         self.epic = epic
         self.wall = dict({"for": wall_for, "dom": wall_dom})
@@ -672,8 +721,11 @@ class BattleDivision:
         self.div = div
 
     @property
-    def id(self):
-        return self.battle_zone_id
+    def terrain_display(self):
+        return _TERRAINS[self.terrain]
+
+    def __str__(self):
+        return f"#{self.battle.id} {self.battle.invader} ({self.terrain_display})"
 
 
 class Battle:
@@ -716,17 +768,15 @@ class Battle:
         self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
 
         self.invader = BattleSide(
-            self,
-            battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
+            self, battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
             [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
-            [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']]
+            [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']], False
         )
 
         self.defender = BattleSide(
-            self,
-            battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
+            self, battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
             [row.get('id') for row in battle.get('def', {}).get('ally_list')],
-            [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']]
+            [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']], True
         )
 
         self.div = {}
@@ -754,7 +804,7 @@ class Battle:
             time_part = "-{}".format(self.start - now)
 
         return f"Battle {self.id} | " \
-               f"{utils.ISO_CC[self.invader.id]} : {utils.ISO_CC[self.defender.id]} | " \
+               f"{self.invader} : {self.defender} | " \
                f"Round {self.zone_id:2} | " \
                f"Round time {time_part}"
 
@@ -841,22 +891,6 @@ class TelegramBot:
 
         return True
 
-    def report_free_bhs(self, battles: List[Tuple[int, int, int, int, datetime.timedelta]]):
-        battle_links = []
-        for battle_id, side_id, against_id, damage, time_left in battles:
-            total_seconds = int(time_left.total_seconds())
-            time_start = ""
-            hours, remainder = divmod(total_seconds, 3600)
-            if hours:
-                time_start = f"{hours}h "
-            minutes, seconds = divmod(remainder, 60)
-            time_start += f"{minutes:02}m {seconds:02}s"
-            damage = "{:,}".format(damage).replace(',', ' ')
-            battle_links.append(f"*{damage}*dmg bh for [{utils.COUNTRIES[side_id]} vs {utils.COUNTRIES[against_id]}]"
-                                f"(https://www.erepublik.com/en/military/battlefield/{battle_id}) "
-                                f"_time since start {time_start}_")
-        self.send_message("Free BHs:\n" + "\n".join(battle_links))
-
     def report_full_energy(self, available: int, limit: int, interval: int):
         if (utils.now() - self._last_full_energy_report).total_seconds() >= 30 * 60:
             self._last_full_energy_report = utils.now()
@@ -886,7 +920,54 @@ class TelegramBot:
 
 class OfferItem(NamedTuple):
     price: float = 99_999.
-    country: int = 0
+    country: Country = Country(0, "", "", "")
     amount: int = 0
     offer_id: int = 0
     citizen_id: int = 0
+
+
+COUNTRIES: Dict[int, Country] = {
+    1: Country(1, 'Romania', 'Romania', 'ROU'), 9: Country(9, 'Brazil', 'Brazil', 'BRA'),
+    10: Country(10, 'Italy', 'Italy', 'ITA'), 11: Country(11, 'France', 'France', 'FRA'),
+    12: Country(12, 'Germany', 'Germany', 'DEU'), 13: Country(13, 'Hungary', 'Hungary', 'HUN'),
+    14: Country(14, 'China', 'China', 'CHN'), 15: Country(15, 'Spain', 'Spain', 'ESP'),
+    23: Country(23, 'Canada', 'Canada', 'CAN'), 24: Country(24, 'USA', 'USA', 'USA'),
+    26: Country(26, 'Mexico', 'Mexico', 'MEX'), 27: Country(27, 'Argentina', 'Argentina', 'ARG'),
+    28: Country(28, 'Venezuela', 'Venezuela', 'VEN'), 29: Country(29, 'United Kingdom', 'United-Kingdom', 'GBR'),
+    30: Country(30, 'Switzerland', 'Switzerland', 'CHE'), 31: Country(31, 'Netherlands', 'Netherlands', 'NLD'),
+    32: Country(32, 'Belgium', 'Belgium', 'BEL'), 33: Country(33, 'Austria', 'Austria', 'AUT'),
+    34: Country(34, 'Czech Republic', 'Czech-Republic', 'CZE'), 35: Country(35, 'Poland', 'Poland', 'POL'),
+    36: Country(36, 'Slovakia', 'Slovakia', 'SVK'), 37: Country(37, 'Norway', 'Norway', 'NOR'),
+    38: Country(38, 'Sweden', 'Sweden', 'SWE'), 39: Country(39, 'Finland', 'Finland', 'FIN'),
+    40: Country(40, 'Ukraine', 'Ukraine', 'UKR'), 41: Country(41, 'Russia', 'Russia', 'RUS'),
+    42: Country(42, 'Bulgaria', 'Bulgaria', 'BGR'), 43: Country(43, 'Turkey', 'Turkey', 'TUR'),
+    44: Country(44, 'Greece', 'Greece', 'GRC'), 45: Country(45, 'Japan', 'Japan', 'JPN'),
+    47: Country(47, 'South Korea', 'South-Korea', 'KOR'), 48: Country(48, 'India', 'India', 'IND'),
+    49: Country(49, 'Indonesia', 'Indonesia', 'IDN'), 50: Country(50, 'Australia', 'Australia', 'AUS'),
+    51: Country(51, 'South Africa', 'South Africa', 'ZAF'),
+    52: Country(52, 'Republic of Moldova', 'Republic-of-Moldova', 'MDA'),
+    53: Country(53, 'Portugal', 'Portugal', 'PRT'), 54: Country(54, 'Ireland', 'Ireland', 'IRL'),
+    55: Country(55, 'Denmark', 'Denmark', 'DNK'), 56: Country(56, 'Iran', 'Iran', 'IRN'),
+    57: Country(57, 'Pakistan', 'Pakistan', 'PAK'), 58: Country(58, 'Israel', 'Israel', 'ISR'),
+    59: Country(59, 'Thailand', 'Thailand', 'THA'), 61: Country(61, 'Slovenia', 'Slovenia', 'SVN'),
+    63: Country(63, 'Croatia', 'Croatia', 'HRV'), 64: Country(64, 'Chile', 'Chile', 'CHL'),
+    65: Country(65, 'Serbia', 'Serbia', 'SRB'), 66: Country(66, 'Malaysia', 'Malaysia', 'MYS'),
+    67: Country(67, 'Philippines', 'Philippines', 'PHL'), 68: Country(68, 'Singapore', 'Singapore', 'SGP'),
+    69: Country(69, 'Bosnia and Herzegovina', 'Bosnia-Herzegovina', 'BiH'),
+    70: Country(70, 'Estonia', 'Estonia', 'EST'), 80: Country(80, 'Montenegro', 'Montenegro', 'MNE'),
+    71: Country(71, 'Latvia', 'Latvia', 'LVA'), 72: Country(72, 'Lithuania', 'Lithuania', 'LTU'),
+    73: Country(73, 'North Korea', 'North-Korea', 'PRK'), 74: Country(74, 'Uruguay', 'Uruguay', 'URY'),
+    75: Country(75, 'Paraguay', 'Paraguay', 'PRY'), 76: Country(76, 'Bolivia', 'Bolivia', 'BOL'),
+    77: Country(77, 'Peru', 'Peru', 'PER'), 78: Country(78, 'Colombia', 'Colombia', 'COL'),
+    79: Country(79, 'Republic of Macedonia (FYROM)', 'Republic-of-Macedonia-FYROM', 'MKD'),
+    81: Country(81, 'Republic of China (Taiwan)', 'Republic-of-China-Taiwan', 'TWN'),
+    82: Country(82, 'Cyprus', 'Cyprus', 'CYP'), 167: Country(167, 'Albania', 'Albania', 'ALB'),
+    83: Country(83, 'Belarus', 'Belarus', 'BLR'), 84: Country(84, 'New Zealand', 'New-Zealand', 'NZL'),
+    164: Country(164, 'Saudi Arabia', 'Saudi-Arabia', 'SAU'), 165: Country(165, 'Egypt', 'Egypt', 'EGY'),
+    166: Country(166, 'United Arab Emirates', 'United-Arab-Emirates', 'UAE'),
+    168: Country(168, 'Georgia', 'Georgia', 'GEO'), 169: Country(169, 'Armenia', 'Armenia', 'ARM'),
+    170: Country(170, 'Nigeria', 'Nigeria', 'NGA'), 171: Country(171, 'Cuba', 'Cuba', 'CUB')
+}
+
+_TERRAINS = {0: "Standard", 1: 'Industrial', 2: 'Urban', 3: 'Suburbs', 4: 'Airport', 5: 'Plains', 6: 'Wasteland',
+             7: 'Mountains', 8: 'Beach', 9: 'Swamp', 10: 'Mud', 11: 'Hills', 12: 'Jungle', 13: 'Forest', 14: 'Desert'}

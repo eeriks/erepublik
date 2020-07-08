@@ -21,7 +21,7 @@ try:
 except ImportError:
     import json
 
-__all__ = ["FOOD_ENERGY", "COMMIT_ID", "COUNTRIES", "erep_tz", 'COUNTRY_LINK',
+__all__ = ["FOOD_ENERGY", "COMMIT_ID", "erep_tz",
            "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
            "get_sleep_seconds", "interactive_sleep", "silent_sleep",
            "write_silent_log", "write_interactive_log", "get_file", "write_file",
@@ -93,45 +93,6 @@ GROUND_RANK_POINTS: Dict[int, int] = {
     76: 80000000000, 77: 90000000000, 78: 100000000000, 79: 110000000000, 80: 120000000000,
     81: 130000000000, 82: 140000000000, 83: 150000000000, 84: 160000000000, 85: 170000000000,
     86: 180000000000, 87: 190000000000, 88: 200000000000, 89: 210000000000
-}
-
-COUNTRIES: Dict[int, str] = {
-    1: 'Romania', 9: 'Brazil', 10: 'Italy', 11: 'France', 12: 'Germany', 13: 'Hungary', 14: 'China', 15: 'Spain',
-    23: 'Canada', 24: 'USA', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 29: 'United Kingdom', 30: 'Switzerland',
-    31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech Republic', 35: 'Poland', 36: 'Slovakia', 37: 'Norway',
-    38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria', 43: 'Turkey', 44: 'Greece', 45: 'Japan',
-    47: 'South Korea', 48: 'India', 49: 'Indonesia', 50: 'Australia', 51: 'South Africa', 52: 'Republic of Moldova',
-    53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran', 57: 'Pakistan', 58: 'Israel', 59: 'Thailand',
-    61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia', 66: 'Malaysia', 67: 'Philippines', 68: 'Singapore',
-    69: 'Bosnia and Herzegovina', 70: 'Estonia', 71: 'Latvia', 72: 'Lithuania', 73: 'North Korea', 74: 'Uruguay',
-    75: 'Paraguay', 76: 'Bolivia', 77: 'Peru', 78: 'Colombia', 79: 'Republic of Macedonia (FYROM)', 80: 'Montenegro',
-    81: 'Republic of China (Taiwan)', 82: 'Cyprus', 83: 'Belarus', 84: 'New Zealand', 164: 'Saudi Arabia', 165: 'Egypt',
-    166: 'United Arab Emirates', 167: 'Albania', 168: 'Georgia', 169: 'Armenia', 170: 'Nigeria', 171: 'Cuba'
-}
-
-COUNTRY_LINK: Dict[int, str] = {
-    1: 'Romania', 9: 'Brazil', 11: 'France', 12: 'Germany', 13: 'Hungary', 82: 'Cyprus', 168: 'Georgia', 15: 'Spain',
-    23: 'Canada', 26: 'Mexico', 27: 'Argentina', 28: 'Venezuela', 80: 'Montenegro', 24: 'USA', 29: 'United-Kingdom',
-    50: 'Australia', 47: 'South-Korea', 171: 'Cuba', 79: 'Republic-of-Macedonia-FYROM', 30: 'Switzerland', 165: 'Egypt',
-    31: 'Netherlands', 32: 'Belgium', 33: 'Austria', 34: 'Czech-Republic', 35: 'Poland', 36: 'Slovakia', 37: 'Norway',
-    38: 'Sweden', 39: 'Finland', 40: 'Ukraine', 41: 'Russia', 42: 'Bulgaria', 43: 'Turkey', 44: 'Greece', 45: 'Japan',
-    48: 'India', 49: 'Indonesia', 78: 'Colombia', 68: 'Singapore', 51: 'South Africa', 52: 'Republic-of-Moldova',
-    53: 'Portugal', 54: 'Ireland', 55: 'Denmark', 56: 'Iran', 57: 'Pakistan', 58: 'Israel', 59: 'Thailand', 10: 'Italy',
-    61: 'Slovenia', 63: 'Croatia', 64: 'Chile', 65: 'Serbia', 66: 'Malaysia', 67: 'Philippines', 70: 'Estonia',
-    77: 'Peru', 71: 'Latvia', 72: 'Lithuania', 73: 'North-Korea', 74: 'Uruguay', 75: 'Paraguay', 76: 'Bolivia',
-    81: 'Republic-of-China-Taiwan', 166: 'United-Arab-Emirates', 167: 'Albania', 69: 'Bosnia-Herzegovina', 14: 'China',
-    169: 'Armenia', 83: 'Belarus', 84: 'New-Zealand', 164: 'Saudi-Arabia', 170: 'Nigeria'
-}
-
-ISO_CC: Dict[int, str] = {
-    1: 'ROU', 9: 'BRA', 10: 'ITA', 11: 'FRA', 12: 'DEU', 13: 'HUN', 14: 'CHN', 15: 'ESP', 23: 'CAN', 24: 'USA',
-    26: 'MEX', 27: 'ARG', 28: 'VEN', 29: 'GBR', 30: 'CHE', 31: 'NLD', 32: 'BEL', 33: 'AUT', 34: 'CZE', 35: 'POL',
-    36: 'SVK', 37: 'NOR', 38: 'SWE', 39: 'FIN', 40: 'UKR', 41: 'RUS', 42: 'BGR', 43: 'TUR', 44: 'GRC', 45: 'JPN',
-    47: 'KOR', 48: 'IND', 49: 'IDN', 50: 'AUS', 51: 'ZAF', 52: 'MDA', 53: 'PRT', 54: 'IRL', 55: 'DNK', 56: 'IRN',
-    57: 'PAK', 58: 'ISR', 59: 'THA', 61: 'SVN', 63: 'HRV', 64: 'CHL', 65: 'SRB', 66: 'MYS', 67: 'PHL', 68: 'SGP',
-    69: 'BiH', 70: 'EST', 71: 'LVA', 72: 'LTU', 73: 'PRK', 74: 'URY', 75: 'PRY', 76: 'BOL', 77: 'PER', 78: 'COL',
-    79: 'MKD', 80: 'MNE', 81: 'TWN', 82: 'CYP', 83: 'BLR', 84: 'NZL', 164: 'SAU', 165: 'EGY', 166: 'UAE', 167: 'ALB',
-    168: 'GEO', 169: 'ARM', 170: 'NGA', 171: 'CUB',
 }
 
 

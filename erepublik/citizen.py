@@ -12,8 +12,10 @@ from requests import HTTPError, RequestException, Response
 
 from erepublik import utils
 from erepublik.access_points import CitizenAPI
-from erepublik.classes import Battle, Config, Details, Energy, \
-    ErepublikException, MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot, BattleDivision
+from erepublik.classes import COUNTRIES, Battle, BattleDivision, Config, Country, Details, Energy, \
+    ErepublikException, MyCompanies, MyJSONEncoder, OfferItem, Politics, Reporter, TelegramBot, Holding, BattleSide, \
+    Company
+from erepublik.utils import erep_tz
 
 
 class BaseCitizen(CitizenAPI):
@@ -53,8 +55,8 @@ class BaseCitizen(CitizenAPI):
         self.energy = Energy()
         self.details = Details()
         self.politics = Politics()
-        self.my_companies = MyCompanies()
-        self.reporter = Reporter()
+        self.my_companies = MyCompanies(self)
+        self.reporter = Reporter(self)
         self.stop_threads = Event()
         self.telegram = TelegramBot(stop_event=self.stop_threads)
 
@@ -417,12 +419,12 @@ class BaseCitizen(CitizenAPI):
                 return industry_name
         return ""
 
-    def get_countries_with_regions(self) -> Set[int]:
+    def get_countries_with_regions(self) -> Set[Country]:
         r_json = self._post_main_travel_data().json()
         return_set = {*[]}
         for country_data in r_json['countries'].values():
             if country_data['currentRegions']:
-                return_set.add(country_data['id'])
+                return_set.add(COUNTRIES[country_data['id']])
         return return_set
 
     def __str__(self) -> str:
@@ -589,9 +591,9 @@ class BaseCitizen(CitizenAPI):
                 self.telegram.report_medal(f"Level *{level}*")
             self.reporter.report_action("LEVEL_UP", value=level)
 
-    def _travel(self, country_id: int, region_id: int = 0) -> Response:
+    def _travel(self, country: Country, region_id: int = 0) -> Response:
         data = {
-            "toCountryId": country_id,
+            "toCountryId": country.id,
             "inRegionId": region_id,
         }
         return self._post_main_travel("moveAction", **data)
@@ -728,16 +730,16 @@ class CitizenAnniversary(BaseCitizen):
 
 
 class CitizenTravel(BaseCitizen):
-    def _update_citizen_location(self, country_id: int, region_id: int):
+    def _update_citizen_location(self, country: Country, region_id: int):
         self.details.current_region = region_id
-        self.details.current_country = country_id
+        self.details.current_country = country
 
-    def get_country_travel_region(self, country_id: int) -> int:
-        regions = self.get_travel_regions(country_id=country_id)
+    def get_country_travel_region(self, country: Country) -> int:
+        regions = self.get_travel_regions(country=country)
         regs = []
         if regions:
             for region in regions.values():
-                if region['countryId'] == country_id:  # Is not occupied by other country
+                if region['countryId'] == country.id:  # Is not occupied by other country
                     regs.append((region['id'], region['distanceInKm']))
         if regs:
             return min(regs, key=lambda _: int(_[1]))[0]
@@ -768,41 +770,44 @@ class CitizenTravel(BaseCitizen):
                 return True
             return False
 
-    def travel_to_country(self, country_id: int) -> bool:
-        data = self._post_main_travel_data(countryId=country_id, check="getCountryRegions").json()
+    def travel_to_country(self, country: Country) -> bool:
+        data = self._post_main_travel_data(countryId=country.id, check="getCountryRegions").json()
 
         regs = []
         if data.get('regions'):
             for region in data.get('regions').values():
-                if region['countryId'] == country_id:  # Is not occupied by other country
+                if region['countryId'] == country:  # Is not occupied by other country
                     regs.append((region['id'], region['distanceInKm']))
         if regs:
             region_id = min(regs, key=lambda _: int(_[1]))[0]
-            r_json = self._travel(country_id, region_id).json()
+            r_json = self._travel(country, region_id).json()
             if r_json.get('message', '') == 'success':
-                self._update_citizen_location(country_id, region_id)
-                self._report_action("TRAVEL", f"Traveled to {utils.COUNTRIES[country_id]}", response=r_json)
+                self._update_citizen_location(country, region_id)
+                self._report_action("TRAVEL", f"Traveled to {country.name}", response=r_json)
                 return True
         return False
 
-    def travel_to_holding(self, holding_id: int) -> bool:
-        data = self._post_main_travel_data(holdingId=holding_id).json()
+    def travel_to_holding(self, holding: Holding) -> bool:
+        data = self._post_main_travel_data(holdingId=holding.id).json()
         if data.get('alreadyInRegion'):
             return True
         else:
             r_json = self._travel(data.get('preselectCountryId'), data.get('preselectRegionId')).json()
             if r_json.get('message', '') == 'success':
                 self._update_citizen_location(data.get('preselectCountryId'), data.get('preselectRegionId'))
-                self._report_action("TRAVEL", f"Traveled to holding {holding_id}", response=r_json)
+                self._report_action("TRAVEL", f"Traveled to holding {holding}", response=r_json)
                 return True
             return False
 
-    def get_travel_regions(self, holding_id: int = 0, battle_id: int = 0, country_id: int = 0
+    def get_travel_regions(self, holding: Holding = None, battle: Battle = None, country: Country = None
                            ) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
-        d = self._post_main_travel_data(holdingId=holding_id, battleId=battle_id, countryId=country_id).json()
-        return d.get('regions', [])
+        return self._post_main_travel_data(
+            holdingId=holding.id if holding else 0,
+            battleId=battle.id if battle else 0,
+            countryId=country.id if country else 0
+        ).json().get('regions', [])
 
-    def get_travel_countries(self) -> Set[int]:
+    def get_travel_countries(self) -> Set[Country]:
         warnings.simplefilter('always')
         warnings.warn('CitizenTravel.get_travel_countries() are being deprecated, '
                       'please use BaseCitizen.get_countries_with_regions()', DeprecationWarning)
@@ -825,10 +830,10 @@ class CitizenCompanies(BaseCitizen):
 
         return ret
 
-    def work_as_manager_in_holding(self, holding_id: int) -> Optional[Dict[str, Any]]:
-        return self._work_as_manager(holding_id)
+    def work_as_manager_in_holding(self, holding: Holding) -> Optional[Dict[str, Any]]:
+        return self._work_as_manager(holding)
 
-    def _work_as_manager(self, wam_holding_id: int = 0) -> Optional[Dict[str, Any]]:
+    def _work_as_manager(self, wam_holding: Holding = None) -> Optional[Dict[str, Any]]:
         if self.restricted_ip:
             return None
         self.update_companies()
@@ -836,33 +841,20 @@ class CitizenCompanies(BaseCitizen):
         data = {"action_type": "production"}
         extra = {}
         wam_list = []
-        if wam_holding_id:
-            raw_count = self.my_companies.get_holding_wam_count(wam_holding_id, raw_factory=True)
-            fab_count = self.my_companies.get_holding_wam_count(wam_holding_id, raw_factory=False)
-            if raw_count + fab_count <= self.energy.food_fights:
-                raw_factories = None
-            elif not raw_count and fab_count <= self.energy.food_fights:
-                raw_factories = False
-            else:
-                raw_factories = True
+        if wam_holding:
+            raw_factories = wam_holding.get_wam_companies(raw_factory=True)
+            fin_factories = wam_holding.get_wam_companies(raw_factory=False)
 
             free_inventory = self.inventory["total"] - self.inventory["used"]
-            wam_list = self.my_companies.get_holding_wam_companies(
-                wam_holding_id, raw_factory=raw_factories)[:self.energy.food_fights]
-            has_space = False
-            while not has_space and wam_list:
-                extra_needed = self.my_companies.get_needed_inventory_usage(companies=wam_list)
-                has_space = extra_needed < free_inventory
-                if not has_space:
-                    wam_list.pop(-1)
+            wam_list = [raw_factories + fin_factories][:self.energy.food_fights]
+            while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(companies=wam_list):
+                wam_list.pop(-1)
 
         if wam_list:
             data.update(extra)
-            if wam_list:
-                wam_holding = self.my_companies.holdings.get(wam_holding_id)
-                if not self.details.current_region == wam_holding.region:
-                    self.write_log("Unable to work as manager because of location - please travel!")
-                    return
+            if not self.details.current_region == wam_holding.region:
+                self.write_log("Unable to work as manager because of location - please travel!")
+                return
 
             employ_factories = self.my_companies.get_employable_factories()
             if sum(employ_factories.values()) > self.my_companies.work_units:
@@ -883,16 +875,12 @@ class CitizenCompanies(BaseCitizen):
             self.my_companies.prepare_holdings(utils.json.loads(have_holdings.group(1)))
             self.my_companies.prepare_companies(utils.json.loads(have_companies.group(1)))
 
-    def assign_factory_to_holding(self, factory_id: int, holding_id: int) -> Response:
+    def assign_company_to_holding(self, company: Company, holding: Holding) -> Response:
         """
         Assigns factory to new holding
         """
-        company = self.my_companies.companies[factory_id]
-        self.write_log(f"{company} moved to {holding_id}")
-        return self._post_economy_assign_to_holding(factory_id, holding_id)
-
-    def upgrade_factory(self, factory_id: int, level: int) -> Response:
-        return self._post_economy_upgrade_company(factory_id, level, self.details.pin)
+        self.write_log(f"{company} moved to {holding}")
+        return self._post_economy_assign_to_holding(company.id, holding.id)
 
     def create_factory(self, industry_id: int, building_type: int = 1) -> Response:
         """
@@ -911,11 +899,6 @@ class CitizenCompanies(BaseCitizen):
             company_name = "Storage"
         self.write_log(f'{company_name} created!')
         return self._post_economy_create_company(industry_id, building_type)
-
-    def dissolve_factory(self, factory_id: int) -> Response:
-        company = self.my_companies.companies[factory_id]
-        self.write_log(f"{company} dissolved!")
-        return self._post_economy_sell_company(factory_id, self.details.pin, sell=False)
 
 
 class CitizenEconomy(CitizenTravel):
@@ -1061,7 +1044,7 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("BOUGHT_PRODUCTS", "", kwargs=json_ret)
         return json_ret
 
-    def get_market_offers(self, product_name: str, quality: int = None, country_id: int = None) -> Dict[str, OfferItem]:
+    def get_market_offers(self, product_name: str, quality: int = None, country: Country = None) -> Dict[str, OfferItem]:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
         q1_industries = ["aircraft"] + list(raw_short_names.values())
         if product_name not in self.available_industries and product_name not in raw_short_names:
@@ -1081,10 +1064,10 @@ class CitizenEconomy(CitizenTravel):
             for q in range(max_quality):
                 offers[f"q{q + 1}"] = OfferItem()
 
-        if country_id:
-            countries = [country_id]
+        if country:
+            countries: Set[Country] = {country}
         else:
-            countries = self.get_countries_with_regions()
+            countries: Set[Country] = self.get_countries_with_regions()
 
         start_dt = self.now
         iterable = [countries, [quality] if quality else range(1, max_quality + 1)]
@@ -1097,7 +1080,7 @@ class CitizenEconomy(CitizenTravel):
                         obj.price == float(offer["priceWithTaxes"]) and obj.amount < int(offer["amount"])
                     )):
                         offers[f"q{q}"] = obj = OfferItem(
-                            float(offer["priceWithTaxes"]), int(offer["country_id"]), int(offer["amount"]),
+                            float(offer["priceWithTaxes"]), COUNTRIES[int(offer["country_id"])], int(offer["amount"]),
                             int(offer["id"]), int(offer["citizen_id"])
                         )
         self.write_log(f"Scraped market in {self.now - start_dt}!")
@@ -1106,7 +1089,7 @@ class CitizenEconomy(CitizenTravel):
 
     def buy_food(self, energy_amount: int = 0):
         hp_needed = energy_amount if energy_amount else 48 * self.energy.interval * 10 - self.food["total"]
-        local_offers = self.get_market_offers("food", country_id=self.details.current_country)
+        local_offers = self.get_market_offers("food", country=self.details.current_country)
 
         cheapest_q, cheapest = sorted(local_offers.items(), key=lambda v: v[1].price / utils.FOOD_ENERGY[v[0]])[0]
 
@@ -1207,52 +1190,52 @@ class CitizenEconomy(CitizenTravel):
             self.sleep(5)
             return self.donate_items(citizen_id, int(available), industry_id, quality)
 
-    def contribute_cc_to_country(self, amount=0., country_id: int = 71) -> bool:
+    def contribute_cc_to_country(self, amount, country: Country) -> bool:
         self.update_money()
         amount = int(amount)
         if self.details.cc < amount or amount < 20:
             return False
-        data = dict(country=country_id, action='currency', value=amount)
+        data = dict(country=country.id, action='currency', value=amount)
         r = self._post_main_country_donate(**data)
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {utils.COUNTRIES[country_id]}\'s treasury')
+            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {country}\'s treasury')
             return True
         else:
-            self._report_action("CONTRIBUTE_CC", f"Unable to contribute {amount}cc to {utils.COUNTRIES[country_id]}'s"
+            self._report_action("CONTRIBUTE_CC", f"Unable to contribute {amount}cc to {country}'s"
                                                  f" treasury", kwargs=r.json())
             return False
 
-    def contribute_food_to_country(self, amount: int = 0, quality: int = 1, country_id: int = 71) -> bool:
+    def contribute_food_to_country(self, amount, quality, country: Country) -> bool:
         self.update_inventory()
         amount = amount // 1
         if self.food["q" + str(quality)] < amount or amount < 10:
             return False
-        data = dict(country=country_id, action='food', value=amount, quality=quality)
+        data = dict(country=country.id, action='food', value=amount, quality=quality)
         r = self._post_main_country_donate(**data)
 
         if r.json().get('status') or not r.json().get('error'):
             self._report_action("CONTRIBUTE_FOOD", f"Contributed {amount}q{quality} food to "
-                                                   f"{utils.COUNTRIES[country_id]}'s treasury")
+                                                   f"{country}'s treasury")
             return True
         else:
             self._report_action("CONTRIBUTE_FOOD", f"Unable to contribute {amount}q{quality} food to "
-                                                   f"{utils.COUNTRIES[country_id]}'s treasury", kwargs=r.json())
+                                                   f"{country}'s treasury", kwargs=r.json())
             return False
 
-    def contribute_gold_to_country(self, amount: int, country_id: int = 71) -> bool:
+    def contribute_gold_to_country(self, amount: int, country: Country) -> bool:
         self.update_money()
 
         if self.details.cc < amount:
             return False
-        data = dict(country=country_id, action='gold', value=amount)
+        data = dict(country=country.id, action='gold', value=amount)
         self.reporter.report_action("CONTRIBUTE_GOLD", data, str(amount))
         r = self._post_main_country_donate(**data)
 
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_GOLD", f"Contributed {amount}g to {utils.COUNTRIES[country_id]}'s treasury")
+            self._report_action("CONTRIBUTE_GOLD", f"Contributed {amount}g to {country}'s treasury")
             return True
         else:
-            self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {utils.COUNTRIES[country_id]}'s"
+            self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {country}'s"
                                                    f" treasury", kwargs=r.json())
             return False
 
@@ -1388,24 +1371,23 @@ class CitizenMilitary(CitizenTravel):
     def get_available_weapons(self, battle_id: int):
         return self._get_military_show_weapons(battle_id).json()
 
-    def set_default_weapon(self, battle_id: int, battle_zone: int) -> int:
-        battle = self.all_battles.get(battle_id)
-        available_weapons = self._get_military_show_weapons(battle_id).json()
+    def set_default_weapon(self, battle: Battle, division: BattleDivision) -> int:
+        available_weapons = self._get_military_show_weapons(battle.id).json()
         while not isinstance(available_weapons, list):
-            available_weapons = self._get_military_show_weapons(battle_id).json()
+            available_weapons = self._get_military_show_weapons(battle.id).json()
         weapon_quality = -1
         weapon_damage = 0
-        if not battle.div[battle_zone].is_air:
+        if not division.is_air:
             for weapon in available_weapons:
                 try:
                     if weapon['weaponQuantity'] > 30 and weapon['weaponInfluence'] > weapon_damage:
                         weapon_quality = int(weapon['weaponId'])
                 except ValueError:
                     pass
-        return self.change_weapon(battle_id, weapon_quality, battle_zone)
+        return self.change_weapon(battle, weapon_quality, division)
 
-    def change_weapon(self, battle_id: int, quality: int, battle_zone: int) -> int:
-        r = self._post_military_change_weapon(battle_id, battle_zone, quality)
+    def change_weapon(self, battle: Battle, quality: int, battle_zone: BattleDivision) -> int:
+        r = self._post_military_change_weapon(battle.id, battle_zone.id, quality)
         influence = r.json().get('weaponInfluence')
         self._report_action("MILITARY_WEAPON", f"Switched to q{quality} weapon,"
                                                f" new influence {influence}", kwargs=r.json())
@@ -1456,78 +1438,109 @@ class CitizenMilitary(CitizenTravel):
     #
     #     self.active_fs = active_fs
 
-    def sorted_battles(self, sort_by_time: bool = True) -> List[int]:
-        cs_battles_priority_air: List[int] = []
-        cs_battles_priority_ground: List[int] = []
-        cs_battles_air: List[int] = []
-        cs_battles_ground: List[int] = []
-        deployed_battles_air: List[int] = []
-        deployed_battles_ground: List[int] = []
-        ally_battles_air: List[int] = []
-        ally_battles_ground: List[int] = []
-        other_battles_air: List[int] = []
-        other_battles_ground: List[int] = []
+    def sorted_battles(self, sort_by_time: bool = True, only_tp=False) -> List[Battle]:
+        cs_battles_priority_air: List[Battle] = []
+        cs_battles_priority_ground: List[Battle] = []
+        cs_battles_air: List[Battle] = []
+        cs_battles_ground: List[Battle] = []
+        deployed_battles_air: List[Battle] = []
+        deployed_battles_ground: List[Battle] = []
+        ally_battles_air: List[Battle] = []
+        ally_battles_ground: List[Battle] = []
+        other_battles_air: List[Battle] = []
+        other_battles_ground: List[Battle] = []
 
-        ret_battles: List[int] = []
+        ret_battles: List[Battle] = []
         if sort_by_time:
             battle_list = sorted(self.all_battles.values(), key=lambda b: b.start)
             battle_list.reverse()
         else:
             battle_list = sorted(self.all_battles.values(), key=lambda b: b.id)
 
-        contribution_json: Response = self._get_military_campaigns_json_citizen()
-        contributions: List[Dict[str, int]] = contribution_json.json().get('contributions') or []
+        contribution_json = self._get_military_campaigns_json_citizen().json()
+        contributions: List[Dict[str, int]] = contribution_json.get('contributions') or []
         contributions.sort(key=lambda b: -b.get('damage'))
-        ret_battles += [int(b.get('battle_id', 0)) for b in contributions if b.get('battle_id')]
+
+        for contribution_battle in contributions:
+            if contribution_battle.get('battle_id') and contribution_battle.get('battle_id') in self.all_battles:
+                ret_battles.append(self.all_battles[contribution_battle.get('battle_id')])
 
         for battle in battle_list:
-            battle_sides = [battle.invader.id, battle.defender.id]
+            battle_sides = [battle.invader.country, battle.defender.country]
             if battle.id in ret_battles:
                 continue
             # CS Battles
             elif self.details.citizenship in battle_sides:
                 if battle.has_air:
                     if battle.defender.id == self.details.citizenship:
-                        cs_battles_priority_air.append(battle.id)
+                        cs_battles_priority_air.append(battle)
                     else:
-                        cs_battles_air.append(battle.id)
+                        cs_battles_air.append(battle)
                 else:
                     if battle.defender.id == self.details.citizenship:
-                        cs_battles_priority_ground.append(battle.id)
+                        cs_battles_priority_ground.append(battle)
                     else:
-                        cs_battles_ground.append(battle.id)
+                        cs_battles_ground.append(battle)
 
             # Current location battles:
             elif self.details.current_country in battle_sides:
                 if battle.has_air:
-                    deployed_battles_air.append(battle.id)
+                    deployed_battles_air.append(battle)
                 else:
-                    deployed_battles_ground.append(battle.id)
+                    deployed_battles_ground.append(battle)
 
             # Deployed battles and allied battles:
             elif self.details.current_country in battle.invader.allies + battle.defender.allies + battle_sides:
                 if self.details.current_country in battle.invader.deployed + battle.defender.deployed:
                     if battle.has_air:
-                        deployed_battles_air.append(battle.id)
+                        deployed_battles_air.append(battle)
                     else:
-                        deployed_battles_ground.append(battle.id)
+                        deployed_battles_ground.append(battle)
                 # Allied battles:
                 else:
                     if battle.has_air:
-                        ally_battles_air.append(battle.id)
+                        ally_battles_air.append(battle)
                     else:
-                        ally_battles_ground.append(battle.id)
+                        ally_battles_ground.append(battle)
             else:
                 if battle.has_air:
-                    other_battles_air.append(battle.id)
+                    other_battles_air.append(battle)
                 else:
-                    other_battles_ground.append(battle.id)
+                    other_battles_ground.append(battle)
 
         cs_battles = cs_battles_priority_air + cs_battles_priority_ground + cs_battles_air + cs_battles_ground
+        if only_tp:
+            return cs_battles
         deployed_battles = deployed_battles_air + deployed_battles_ground
         other_battles = ally_battles_air + ally_battles_ground + other_battles_air + other_battles_ground
         ret_battles = ret_battles + cs_battles + deployed_battles + other_battles
         return ret_battles
+
+    def get_cheap_tp_divisions(self) -> Optional[BattleDivision]:
+        air_divs: List[Tuple[BattleDivision, int]] = []
+        ground_divs: List[Tuple[BattleDivision, int]] = []
+        for battle in self.sorted_battles(True, True):
+            for division in battle.div.values():
+                if not division.terrain:
+                    if division.is_air:
+                        medal = self.get_battle_round_data(division)[self.details.citizenship == division.battle.defender.id]
+                        if not medal and division.battle.start:
+                            return division
+                        else:
+                            air_divs.append((division, medal.get('1').get('raw_value')))
+                    else:
+                        medal = self.get_battle_round_data(division)[self.details.citizenship == division.battle.defender.id]
+                        if not medal and division.battle.start:
+                            return division
+                        else:
+                            ground_divs.append((division, medal.get('1').get('raw_value')))
+
+        if self.config.air:
+            return min(air_divs, key=lambda x: x[1])[0]
+        elif self.config.ground:
+            return min(ground_divs, key=lambda x: x[1])[0]
+        else:
+            return
 
     @property
     def has_battle_contribution(self):
@@ -1536,8 +1549,7 @@ class CitizenMilitary(CitizenTravel):
     def find_battle_and_fight(self):
         if self.should_fight()[0]:
             self.write_log("Checking for battles to fight in...")
-            for battle_id in self.sorted_battles(self.config.sort_battles_time):
-                battle = self.all_battles.get(battle_id)
+            for battle in self.sorted_battles(self.config.sort_battles_time):
                 if not isinstance(battle, Battle):
                     continue
                 battle_zone: Optional[BattleDivision] = None
@@ -1555,15 +1567,15 @@ class CitizenMilitary(CitizenTravel):
                             continue
                 if not battle_zone:
                     continue
-                allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.id, battle.defender.id]
+                allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.country, battle.defender.country]
 
                 travel_needed = self.details.current_country not in allies
 
                 if battle.is_rw:
-                    side_id = battle.defender.id if self.config.rw_def_side else battle.invader.id
+                    side = battle.defender if self.config.rw_def_side else battle.invader
                 else:
-                    side = self.details.current_country in battle.defender.allies + [battle.defender.id, ]
-                    side_id = battle.defender.id if side else battle.invader.id
+                    defender_side = self.details.current_country in battle.defender.allies + [battle.defender.country, ]
+                    side = battle.defender if defender_side else battle.invader
 
                 self.write_log(battle)
 
@@ -1578,48 +1590,42 @@ class CitizenMilitary(CitizenTravel):
 
                 if travel_needed:
                     if battle.is_rw:
-                        country_ids_to_travel = [battle.defender.id]
+                        countries_to_travel = [battle.defender.country]
                     elif self.details.current_country in battle.invader.allies:
-                        country_ids_to_travel = battle.invader.deployed + [battle.invader.id]
-                        side_id = battle.invader.id
+                        countries_to_travel = battle.invader.deployed + [battle.invader.country]
+                        side = battle.invader
                     else:
-                        country_ids_to_travel = battle.defender.deployed + [battle.defender.id]
-                        side_id = battle.defender.id
+                        countries_to_travel = battle.defender.deployed + [battle.defender.country]
+                        side = battle.defender
 
-                    if not self.travel_to_battle(battle_id, country_ids_to_travel):
+                    if not self.travel_to_battle(battle, countries_to_travel):
                         break
-                self.change_division(battle_id, battle_zone.id)
-                self.set_default_weapon(battle_id, battle_zone.id)
-                self.fight(battle_id, battle_zone.id, side_id)
+                self.change_division(battle, battle_zone)
+                self.set_default_weapon(battle, battle_zone)
+                self.fight(battle, battle_zone, side)
                 self.travel_to_residence()
                 break
 
-    def fight(self, battle_id: int, battle_zone: int, side_id: int = None, count: int = None) -> int:
+    def fight(self, battle: Battle, division: BattleDivision, side: BattleSide = None, count: int = None) -> int:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
-        :param battle_id: int BattleId - battle to fight in
-        :type battle_id: int
-        :param side_id: int or None. Battle side to fight in, If side_id not == invader id or not in invader deployed
+        :param battle: Battle battle to fight in
+        :type battle: Battle
+        :param side: BattleSide or None. Battle side to fight in, If side not == invader id or not in invader deployed
                                      allies list, then defender's side is chosen
-        :type side_id: int
+        :type side: BattleSide
         :param count: How many hits to do, if not specified self.should_fight() is called.
         :type count: int
-        :param battle_zone: int Division number to fight in available choices
-        :type battle_zone: int
+        :param division: Division number to fight in available choices
+        :type division: BattleDivision
         :return: None if no errors while fighting, otherwise error count.
         :rtype: int
         """
         if self.restricted_ip:
             self._report_action("IP_BLACKLISTED", "Fighting is not allowed from restricted IP!")
             return 1
-        if not isinstance(battle_id, int):
-            self.report_error(f"WARNING! Parameter battle_id should be 'int', but it is '{type(battle_id).__name__}'")
-            battle_id = int(battle_id)
-        if battle_id not in self.all_battles:
-            self.update_war_info()
-        battle = self.all_battles.get(battle_id)
-        if not battle.div[battle_zone].is_air and self.config.boosters:
+        if not division.is_air and self.config.boosters:
             self.activate_dmg_booster()
         error_count = 0
         ok_to_fight = True
@@ -1628,10 +1634,9 @@ class CitizenMilitary(CitizenTravel):
 
         total_damage = 0
         total_hits = 0
-        side = battle.invader.id == side_id or side_id in battle.invader.deployed
         while ok_to_fight and error_count < 10 and count > 0:
             while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
-                hits, error, damage = self._shoot(battle_id, side, battle_zone)
+                hits, error, damage = self._shoot(battle, division, side)
                 count -= hits
                 total_hits += hits
                 total_damage += damage
@@ -1642,17 +1647,15 @@ class CitizenMilitary(CitizenTravel):
                     self.write_log("Hits: {:>4} | Damage: {}".format(total_hits, total_damage))
                     ok_to_fight = False
                     if total_damage:
-                        self.reporter.report_action("FIGHT", dict(battle=battle_id, side=side_id, dmg=total_damage,
+                        self.reporter.report_action("FIGHT", dict(battle=battle, side=side, dmg=total_damage,
                                                                   air=battle.has_air, hits=total_hits))
         return error_count
 
-    def _shoot(self, battle_id: int, inv_side: bool, zone_id: int):
-        battle = self.all_battles.get(battle_id)
-        side_id = battle.invader.id if inv_side else battle.defender.id
-        if battle.div[zone_id].is_air:
-            response = self._post_military_fight_air(battle_id, side_id, zone_id)
+    def _shoot(self, battle: Battle, division: BattleDivision, side: BattleSide):
+        if division.is_air:
+            response = self._post_military_fight_air(battle.id, side.id, division.id)
         else:
-            response = self._post_military_fight_ground(battle_id, side_id, zone_id)
+            response = self._post_military_fight_ground(battle.id, side.id, division.id)
 
         if "Zone is not meant for " in response.text:
             self.sleep(5)
@@ -1668,16 +1671,16 @@ class CitizenMilitary(CitizenTravel):
             if r_json.get("message") == "SHOOT_LOCKOUT" or r_json.get("message") == "ZONE_INACTIVE":
                 pass
             elif r_json.get("message") == "NOT_ENOUGH_WEAPONS":
-                self.set_default_weapon(battle_id, zone_id)
+                self.set_default_weapon(battle, division)
             elif r_json.get("message") == "FIGHT_DISABLED":
                 self._post_main_profile_update('options', params='{"optionName":"enable_web_deploy","optionValue":"off"}')
-                self.set_default_weapon(battle_id, zone_id)
+                self.set_default_weapon(battle, division)
             else:
                 if r_json.get("message") == "UNKNOWN_SIDE":
-                    self._rw_choose_side(battle_id, side_id)
+                    self._rw_choose_side(battle, side)
                 elif r_json.get("message") == "CHANGE_LOCATION":
-                    countries = [side_id] + battle.invader.deployed if inv_side else battle.defender.deployed
-                    self.travel_to_battle(battle_id, countries)
+                    countries = [side.country] + side.deployed
+                    self.travel_to_battle(battle, countries)
                 err = True
         elif r_json.get("message") == "ENEMY_KILLED":
             hits = (self.energy.recovered - r_json["details"]["wellness"]) // 10
@@ -1689,10 +1692,11 @@ class CitizenMilitary(CitizenTravel):
 
         return hits, err, damage
 
-    def deploy_bomb(self, battle_id: int, bomb_id: int, inv_side: bool = None, count: int = 1) -> int:
+    def deploy_bomb(self, battle: Battle, bomb_id: int, inv_side: bool = None, count: int = 1) -> int:
         """Deploy bombs in a battle for given side.
 
-        :param battle_id: int battle id
+        :param battle: Battle
+        :type battle: Battle
         :param bomb_id: int bomb id
         :param inv_side: should deploy on invader side, if None then will deploy in currently available side
         :param count: int how many bombs to deploy
@@ -1702,25 +1706,24 @@ class CitizenMilitary(CitizenTravel):
         if not isinstance(count, int) or count < 1:
             count = 1
         has_traveled = False
-        battle = self.all_battles.get(battle_id)
         if battle.is_rw:
-            has_traveled = self.travel_to_battle(battle_id, [battle.defender.id])
-            self._rw_choose_side(battle.id, battle.invader.id if inv_side else battle.defender.id)
+            has_traveled = self.travel_to_battle(battle, [battle.defender.country])
+            self._rw_choose_side(battle, battle.invader if inv_side else battle.defender)
         if inv_side:
-            good_countries = [battle.invader.id] + battle.invader.deployed
+            good_countries = [battle.invader.country] + battle.invader.deployed
             if self.details.current_country not in good_countries:
-                has_traveled = self.travel_to_battle(battle_id, good_countries)
+                has_traveled = self.travel_to_battle(battle, good_countries)
         elif inv_side is not None:
-            good_countries = [battle.defender.id] + battle.defender.deployed
+            good_countries = [battle.defender.country] + battle.defender.deployed
             if self.details.current_country not in good_countries:
-                has_traveled = self.travel_to_battle(battle_id, good_countries)
+                has_traveled = self.travel_to_battle(battle, good_countries)
         else:
-            involved = [battle.invader.id, battle.defender.id] + battle.invader.deployed + battle.defender.deployed
+            involved = [battle.invader.country, battle.defender.country] + battle.invader.deployed + battle.defender.deployed
             if self.details.current_country not in involved:
                 count = 0
         errors = deployed_count = 0
         while (not deployed_count == count) and errors < 10:
-            r = self._post_military_deploy_bomb(battle_id, bomb_id).json()
+            r = self._post_military_deploy_bomb(battle.id, bomb_id).json()
             if not r.get('error'):
                 deployed_count += 1
             elif r.get('message') == 'LOCKED':
@@ -1734,17 +1737,17 @@ class CitizenMilitary(CitizenTravel):
         self._report_action("MILITARY_BOMB", f"Deployed {deployed_count} bombs in battle {battle.id}")
         return deployed_count
 
-    def change_division(self, battle_id: int, division_to: int):
+    def change_division(self, battle: Battle, division: BattleDivision):
         """Change division.
 
-        :param battle_id: int battle id
-        :param division_to: int target division to switch to
+        :param battle: Battle
+        :type battle: Battle
+        :param division: int target division to switch to
+        :type division: BattleDivision
         :return:
         """
-        battle = self.all_battles.get(battle_id)
-        division = battle.div[division_to]
-        self._post_main_battlefield_change_division(battle_id, division_to)
-        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle_id}")
+        self._post_main_battlefield_change_division(battle.id, division.id)
+        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle.id}")
 
     def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
                                  booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> Decimal:
@@ -1801,8 +1804,8 @@ class CitizenMilitary(CitizenTravel):
         self._report_action('MILITARY_BOOSTER', 'Activated PrestigePoint booster')
         return self._post_military_fight_activate_booster(battle_id, 1, 180, "prestige_points")
 
-    def _rw_choose_side(self, battle_id: int, side_id: int) -> Response:
-        return self._post_main_battlefield_travel(side_id, battle_id)
+    def _rw_choose_side(self, battle: Battle, side: BattleSide) -> Response:
+        return self._post_main_battlefield_travel(side.id, battle.id)
 
     def should_travel_to_fight(self) -> bool:
         ret = False
@@ -1875,16 +1878,15 @@ class CitizenMilitary(CitizenTravel):
 
         return (count if count > 0 else 0), msg, force_fight
 
-    def get_battle_round_data(self, battle_id: int, round_id: int, division: int = None) -> dict:
-        battle = self.all_battles.get(battle_id)
-        if not battle:
-            return {}
+    def get_battle_round_data(self, division: BattleDivision) -> Tuple[Any, Any]:
+        battle = division.battle
 
-        data = dict(zoneId=round_id, round=round_id, division=division, leftPage=1, rightPage=1, type="damage")
-
-        r = self._post_military_battle_console(battle_id, "battleStatistics", 1, **data)
-        return {battle.invader.id: r.json().get(str(battle.invader.id)).get("fighterData"),
-                battle.defender.id: r.json().get(str(battle.defender.id)).get("fighterData")}
+        data = dict(zoneId=battle.zone_id, round_id=battle.zone_id, division=division.div,
+                    battleZoneId=division.id, type="damage")
+        r = self._post_military_battle_console(battle.id, "battleStatistics", 1, **data)
+        r_json = r.json()
+        return (r_json.get(str(battle.invader.id)).get("fighterData"),
+                r_json.get(str(battle.defender.id)).get("fighterData"))
 
     def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime):
         if at_time:
@@ -1892,8 +1894,8 @@ class CitizenMilitary(CitizenTravel):
         self.get_csrf_token()
         self.launch_attack(war_id, region_id, region_name)
 
-    def get_active_wars(self, country_id: int = None) -> List[int]:
-        r = self._get_country_military(utils.COUNTRY_LINK.get(country_id or self.details.citizenship))
+    def get_active_wars(self, country: Country = None) -> List[int]:
+        r = self._get_country_military(country.link if country else self.details.citizenship.link)
         all_war_ids = re.findall(r'//www\.erepublik\.com/en/wars/show/(\d+)"', r.text)
         return [int(wid) for wid in all_war_ids]
 
@@ -1909,31 +1911,32 @@ class CitizenMilitary(CitizenTravel):
         self._post_wars_attack_region(war_id, region_id, region_name)
         self._report_action("MILITARY_QUEUE_ATTACK", f"Battle for *{region_name}* queued")
 
-    def travel_to_battle(self, battle_id: int, allowed_countries: List[int]) -> bool:
-        data = self.get_travel_regions(battle_id=battle_id)
+    def travel_to_battle(self, battle: Battle, allowed_countries: List[Country]) -> bool:
+        data = self.get_travel_regions(battle=battle)
 
         regs = []
+        countries: Dict[int, Country] = {c.id: c for c in allowed_countries}
         if data:
             for region in data.values():
-                if region['countryId'] in allowed_countries:  # Is not occupied by other country
-                    regs.append((region['distanceInKm'], region['id'], region['countryId']))
+                if region['countryId'] in countries:  # Is not occupied by other country
+                    regs.append((region['distanceInKm'], region['id'], countries[region['countryId']]))
         if regs:
             reg = min(regs, key=lambda _: int(_[0]))
             region_id = reg[1]
-            country_id = reg[2]
-            r = self._travel(country_id, region_id).json()
+            country = reg[2]
+            r = self._travel(country, region_id).json()
             if r.get('message', '') == 'success':
-                self._update_citizen_location(country_id, region_id)
+                self._update_citizen_location(country, region_id)
                 return True
         return False
 
-    def get_country_mus(self, country_id: int) -> Dict[int, str]:
+    def get_country_mus(self, country: Country) -> Dict[int, str]:
         ret = {}
-        r = self._get_main_leaderboards_damage_rankings(country_id)
+        r = self._get_main_leaderboards_damage_rankings(country.id)
         for data in r.json()["mu_filter"]:
             if data["id"]:
                 ret.update({data["id"]: data["name"]})
-        r = self._get_main_leaderboards_damage_aircraft_rankings(country_id)
+        r = self._get_main_leaderboards_damage_aircraft_rankings(country.id)
         for data in r.json()["mu_filter"]:
             if data["id"]:
                 ret.update({data["id"]: data["name"]})
@@ -1965,10 +1968,8 @@ class CitizenMilitary(CitizenTravel):
 
 
 class CitizenPolitics(BaseCitizen):
-    def get_country_parties(self, country_id: int = None) -> dict:
-        if country_id is None:
-            country_id = self.details.citizenship
-        r = self._get_main_rankings_parties(country_id)
+    def get_country_parties(self, country: Country = None) -> dict:
+        r = self._get_main_rankings_parties(country.id if country else self.details.citizenship.id)
         ret = {}
         for name, id_ in re.findall(r'<a class="dotted" title="([^"]+)" href="/en/party/[\w\d-]+-(\d+)/1">', r.text):
             ret.update({int(id_): name})
@@ -1981,6 +1982,18 @@ class CitizenPolitics(BaseCitizen):
     def candidate_for_party_presidency(self) -> Response:
         self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
         return self._get_candidate_party(self.politics.party_slug)
+
+    def get_country_president_election_result(self, country: Country, year: int, month: int) -> Dict[str, int]:
+        timestamp = int(erep_tz.localize(datetime(year, month, 5)).timestamp())
+        resp = self._get_presidential_elections(country.id, timestamp)
+        candidates = re.findall(r'class="candidate_info">(.*?)</li>', resp.text, re.S | re.M)
+        ret = {}
+        for candidate in candidates:
+            name = re.search(r'<a hovercard=1 class="candidate_name" href="//www.erepublik.com/en/citizen/profile/\d+" title="(.*)">', candidate)
+            name = name.group(1)
+            votes = re.search(r'<span class="votes">(\d+) votes</span>', candidate).group(1)
+            ret.update({name: int(votes)})
+        return ret
 
 
 class CitizenSocial(BaseCitizen):
@@ -2197,7 +2210,7 @@ class CitizenTasks(BaseCitizen):
         return ret
 
     def find_new_job(self) -> Response:
-        r = self._get_economy_job_market_json(self.details.current_country)
+        r = self._get_economy_job_market_json(self.details.current_country.id)
         jobs = r.json().get("jobs")
         data = dict(citizen=0, salary=10)
         for posting in jobs:
@@ -2249,7 +2262,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.get_csrf_token()
 
         self.update_citizen_info()
-        self.reporter.do_init(self.name, self.config.email, self.details.citizen_id)
+        self.reporter.do_init()
         if self.config.telegram:
             # noinspection SpellCheckingInspection
             self.telegram.do_init(self.config.telegram_chat_id or 620981703,
@@ -2462,8 +2475,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self.post_market_offer(industry=self.available_industries[kind], amount=int(amount),
                                    quality=int(quality), price=price)
 
-    def _wam(self, holding_id: int) -> NoReturn:
-        response = self.work_as_manager_in_holding(holding_id)
+    def _wam(self, holding: Holding) -> NoReturn:
+        response = self.work_as_manager_in_holding(holding)
         if response is None:
             return
         if response.get("status"):
@@ -2500,11 +2513,11 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                         break
                 else:
                     if not start_place == (self.details.current_country, self.details.current_region):
-                        self.travel_to_holding(holding_id)
-                    return self._wam(holding_id)
+                        self.travel_to_holding(holding)
+                    return self._wam(holding)
         elif response.get("message") == "not_enough_health_food":
             self.buy_food()
-            self._wam(holding_id)
+            self._wam(holding)
         else:
             msg = "I was not able to wam and or employ because:\n{}".format(response)
             self._report_action("WORK_AS_MANAGER", f"Worked as manager failed: {msg}", kwargs=response)
@@ -2523,19 +2536,19 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.update_companies()
         # Prevent messing up levelup with wam
         if not (self.is_levelup_close and self.config.fight) or self.config.force_wam:
-            regions = {}
-            for holding_id, holding in self.my_companies.holdings.items():
-                if self.my_companies.get_holding_wam_companies(holding_id):
-                    regions.update({holding.region: holding_id})
+            regions: Dict[int, Holding] = {}
+            for holding in self.my_companies.holdings.values():
+                if holding.wam_count:
+                    regions.update({holding.region: holding})
 
             # Check for current region
             if self.details.current_region in regions:
                 self._wam(regions.pop(self.details.current_region))
                 self.update_companies()
 
-            for holding_id in regions.values():
-                self.travel_to_holding(holding_id)
-                self._wam(holding_id)
+            for holding in regions.values():
+                self.travel_to_holding(holding)
+                self._wam(holding)
                 self.update_companies()
 
             wam_count = self.my_companies.get_total_wam_count()
@@ -2551,9 +2564,9 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.update_companies()
         return bool(self.my_companies.get_total_wam_count())
 
-    def sorted_battles(self, sort_by_time: bool = True) -> List[int]:
-        battles = self.reporter.fetch_battle_priorities(self.details.current_country)
-        return battles + super().sorted_battles(sort_by_time)
+    def sorted_battles(self, sort_by_time: bool = True, only_tp=False) -> List[Battle]:
+        battles: List[Battle] = self.reporter.fetch_battle_priorities(self.details.current_country)
+        return battles + super().sorted_battles(sort_by_time, only_tp)
 
     def command_central(self):
         while not self.stop_threads.is_set():

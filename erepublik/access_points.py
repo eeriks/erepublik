@@ -450,6 +450,9 @@ class ErepublikPoliticsAPI(CitizenBaseAPI):
         data = dict(_token=self.token, presentation=presentation)
         return self.post("{}/candidate-for-congress".format(self.url), data=data)
 
+    def _get_presidential_elections(self, country_id: int, timestamp: int) -> Response:
+        return self.get(f"{self.url}/main/presidential-elections/{country_id}/{timestamp}")
+
 
 class ErepublikPresidentAPI(CitizenBaseAPI):
     def _post_wars_attack_region(self, war_id: int, region_id: int, region_name: str) -> Response:
