@@ -1519,7 +1519,7 @@ class CitizenMilitary(CitizenTravel):
     def get_cheap_tp_divisions(self) -> Optional[BattleDivision]:
         air_divs: List[Tuple[BattleDivision, int]] = []
         ground_divs: List[Tuple[BattleDivision, int]] = []
-        for battle in self.sorted_battles(True, True):
+        for battle in reversed(self.sorted_battles(True, True)):
             for division in battle.div.values():
                 if not division.terrain:
                     if division.is_air:
