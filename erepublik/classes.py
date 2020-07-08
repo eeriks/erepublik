@@ -672,9 +672,13 @@ class BattleSide:
     def id(self) -> int:
         return self.country.id
 
+    def __repr__(self):
+        side_text = "Defender" if self.defender else "Invader "
+        return f"<BattleSide: {side_text} {self.country.name}|{self.points:02d}p>"
+
     def __str__(self):
         side_text = "Defender" if self.defender else "Invader "
-        return f"<BattleSide: {side_text} {self.country.name} - {self.points:02d} points>"
+        return f"{side_text} {self.country.name} - {self.points:02d} points"
 
     def __format__(self, format_spec):
         return self.country.iso
@@ -725,7 +729,15 @@ class BattleDivision:
         return _TERRAINS[self.terrain]
 
     def __str__(self):
-        return f"#{self.battle.id} {self.battle.invader} ({self.terrain_display})"
+        base_name = f"Div #{self.id} d{self.div}"
+        if self.terrain:
+            base_name += f" ({self.terrain_display})"
+        if self.div_end:
+            base_name += " Ended"
+        return base_name
+
+    def __repr__(self):
+        return f"<BattleDivision #{self.id} (battle #{self.battle.id})>"
 
 
 class Battle:
@@ -738,6 +750,8 @@ class Battle:
     invader: BattleSide
     defender: BattleSide
     div: Dict[int, BattleDivision]
+    region_id: int
+    region_name: str
 
     @property
     def has_air(self) -> bool:
@@ -753,6 +767,10 @@ class Battle:
                 return True
         return bool(self.zone_id % 4)
 
+    @property
+    def link(self):
+        return f"https://www.erepublik.com/en/military/battlefield/{self.id}"
+
     def __init__(self, battle: Dict[str, Any]):
         """Object representing eRepublik battle.
 
@@ -764,19 +782,20 @@ class Battle:
         self.zone_id = int(battle.get('zone_id'))
         self.is_rw = bool(battle.get('is_rw'))
         self.is_as = bool(battle.get('is_as'))
-        self.is_dict_lib = bool(battle.get('is_dict')) or bool(battle.get('is_lib'))
+        self.region_id = battle.get('region', {}).get('id')
+        self.region_name = battle.get('region', {}).get('name')
         self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
 
         self.invader = BattleSide(
-            self, battle.get('inv', {}).get('id'), battle.get('inv', {}).get('points'),
-            [row.get('id') for row in battle.get('inv', {}).get('ally_list')],
-            [row.get('id') for row in battle.get('inv', {}).get('ally_list') if row['deployed']], False
+            self, COUNTRIES[battle.get('inv', {}).get('id')], battle.get('inv', {}).get('points'),
+            [COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list')],
+            [COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list') if row['deployed']], False
         )
 
         self.defender = BattleSide(
-            self, battle.get('def', {}).get('id'), battle.get('def', {}).get('points'),
-            [row.get('id') for row in battle.get('def', {}).get('ally_list')],
-            [row.get('id') for row in battle.get('def', {}).get('ally_list') if row['deployed']], True
+            self, COUNTRIES[battle.get('def', {}).get('id')], battle.get('def', {}).get('points'),
+            [COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list')],
+            [COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list') if row['deployed']], True
         )
 
         self.div = {}
@@ -795,7 +814,7 @@ class Battle:
 
             self.div.update({div: battle_div})
 
-    def __repr__(self):
+    def __str__(self):
         now = utils.now()
         is_started = self.start < utils.now()
         if is_started:
@@ -803,10 +822,10 @@ class Battle:
         else:
             time_part = "-{}".format(self.start - now)
 
-        return f"Battle {self.id} | " \
-               f"{self.invader} : {self.defender} | " \
-               f"Round {self.zone_id:2} | " \
-               f"Round time {time_part}"
+        return f"Battle {self.id} for {self.region_name[:16]} | {self.invader} : {self.defender} | Round time {time_part}"
+
+    def __repr__(self):
+        return f"<Battle #{self.id} {self.invader}:{self.defender} R{self.zone_id}>"
 
 
 class EnergyToFight:
