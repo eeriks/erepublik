@@ -1627,6 +1627,8 @@ class CitizenMilitary(CitizenTravel):
             return 1
         if not division.is_air and self.config.boosters:
             self.activate_dmg_booster()
+        if side is None:
+            side = battle.defender if self.details.citizenship in battle.defender.allies + [battle.defender.country] else battle.invader
         error_count = 0
         ok_to_fight = True
         if count is None:
