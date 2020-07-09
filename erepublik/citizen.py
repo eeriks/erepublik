@@ -206,11 +206,11 @@ class BaseCitizen(CitizenAPI):
         self.energy.recoverable = citizen.get("energyFromFoodRemaining", 0)
 
         self.details.current_region = citizen.get("regionLocationId", 0)
-        self.details.current_country = citizen.get("countryLocationId", 0)  # country where citizen is located
+        self.details.current_country = COUNTRIES.get(citizen.get("countryLocationId", 0))  # country where citizen is located
         self.details.residence_region = citizen.get("residence", {}).get("regionId", 0)
-        self.details.residence_country = citizen.get("residence", {}).get("countryId", 0)
+        self.details.residence_country = COUNTRIES.get(citizen.get("residence", {}).get("countryId", 0))
         self.details.citizen_id = citizen.get("citizenId", 0)
-        self.details.citizenship = int(citizen.get("country", 0))
+        self.details.citizenship = COUNTRIES.get(int(citizen.get("country", 0)))
         self.details.xp = citizen.get("currentExperiencePoints", 0)
         self.details.daily_task_done = citizen.get("dailyTasksDone", False)
         self.details.daily_task_reward = citizen.get("hasReward", False)
