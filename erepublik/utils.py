@@ -13,14 +13,14 @@ from typing import Any, List, Mapping, Optional, Union
 
 import requests
 
-from . import __commit_id__, __version__, constants
+from . import __version__, constants
 
 try:
     import simplejson as json
 except ImportError:
     import json
 
-__all__ = ['COMMIT_ID', 'VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_from_date',
+__all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_from_date',
            'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta',
            'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now',
            'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file',
@@ -30,7 +30,6 @@ if not sys.version_info >= (3, 7):
     raise AssertionError('This script requires Python version 3.7 and higher\n'
                          'But Your version is v{}.{}.{}'.format(*sys.version_info))
 
-COMMIT_ID: str = __commit_id__
 VERSION: str = __version__
 
 
@@ -238,7 +237,7 @@ def normalize_html_json(js: str) -> str:
 
 
 def caught_error(e: Exception):
-    process_error(str(e), "Unclassified", sys.exc_info(), None, COMMIT_ID, False)
+    process_error(str(e), "Unclassified", sys.exc_info(), interactive=False)
 
 
 def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None,
@@ -260,7 +259,7 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     """
     type_, value_, traceback_ = exc_info
     content = [log_info]
-    content += [f"eRepublik version {VERSION}, commit id {COMMIT_ID}"]
+    content += [f"eRepublik version {VERSION}"]
     if commit_id:
         content += [f"Commit id {commit_id}"]
     content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]

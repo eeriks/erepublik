@@ -22,12 +22,13 @@ class BaseCitizen(access_points.CitizenAPI):
     ot_points: int = 0
 
     food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
-    eb_normal = 0
-    eb_double = 0
-    eb_small = 0
-    division = 0
+    eb_normal: int = 0
+    eb_double: int = 0
+    eb_small: int = 0
+    division: int = 0
+    maverick: bool = False
 
-    eday = 0
+    eday: int = 0
 
     config: classes.Config = None
     energy: classes.Energy = None
@@ -40,12 +41,10 @@ class BaseCitizen(access_points.CitizenAPI):
     r: Response = None
     name: str = "Not logged in!"
     logged_in: bool = False
-    commit_id: str = ""
     restricted_ip: bool = False
 
     def __init__(self, email: str = "", password: str = ""):
         super().__init__()
-        self.commit_id = utils.COMMIT_ID
         self.config = classes.Config()
         self.energy = classes.Energy()
         self.details = classes.Details()
@@ -210,11 +209,12 @@ class BaseCitizen(access_points.CitizenAPI):
         self.details.xp = citizen.get("currentExperiencePoints", 0)
         self.details.daily_task_done = citizen.get("dailyTasksDone", False)
         self.details.daily_task_reward = citizen.get("hasReward", False)
+        self.maverick = citizen.get("canSwitchDivisions", False)
         if citizen.get("dailyOrderDone", False) and not citizen.get("hasDailyOrderReward", False):
             self._post_military_group_missions()
 
         self.details.next_pp.sort()
-        for skill in citizen.get("mySkills", {}).values():
+        for skill in citizen.get("terrainSkills", {}).values():
             self.details.mayhem_skills.update({int(skill["terrain_id"]): int(skill["skill_points"])})
 
         if citizen.get('party', []):
@@ -380,9 +380,9 @@ class BaseCitizen(access_points.CitizenAPI):
 
     def report_error(self, msg: str = "", is_warning: bool = False):
         if is_warning:
-            utils.process_warning(msg, self.name, sys.exc_info(), self, self.commit_id)
+            utils.process_warning(msg, self.name, sys.exc_info(), self)
         else:
-            utils.process_error(msg, self.name, sys.exc_info(), self, self.commit_id, None)
+            utils.process_error(msg, self.name, sys.exc_info(), self, None, None)
 
     def sleep(self, seconds: int):
         if seconds < 0:
@@ -1491,16 +1491,18 @@ class CitizenMilitary(CitizenTravel):
         for battle in reversed(self.sorted_battles(True, True)):
             for division in battle.div.values():
                 if not division.terrain:
-                    if division.is_air:
+                    if division.is_air and self.config.air:
                         medal = self.get_battle_round_data(division)[
                             self.details.citizenship == division.battle.defender.id]
                         if not medal and division.battle.start:
                             return division
                         else:
                             air_divs.append((division, medal.get('1').get('raw_value')))
-                    else:
-                        medal = self.get_battle_round_data(division)[
-                            self.details.citizenship == division.battle.defender.id]
+                    elif self.config.ground:
+                        if not division.div == self.division and not self.maverick:
+                            continue
+                        division_medals = self.get_battle_round_data(division)
+                        medal = division_medals[self.details.citizenship == division.battle.defender.country]
                         if not medal and division.battle.start:
                             return division
                         else:
@@ -1531,7 +1533,7 @@ class CitizenMilitary(CitizenTravel):
                         if self.config.air and div.is_air:
                             battle_zone = div
                             break
-                        elif self.config.ground and not div.is_air and div.div == self.division:
+                        elif self.config.ground and not div.is_air and (div.div == self.division or self.maverick):
                             battle_zone = div
                             break
                         else:
@@ -1572,11 +1574,11 @@ class CitizenMilitary(CitizenTravel):
 
                     if not self.travel_to_battle(battle, countries_to_travel):
                         break
-                self.change_division(battle, battle_zone)
-                self.set_default_weapon(battle, battle_zone)
-                self.fight(battle, battle_zone, side)
-                self.travel_to_residence()
-                break
+                if self.change_division(battle, battle_zone):
+                    self.set_default_weapon(battle, battle_zone)
+                    self.fight(battle, battle_zone, side)
+                    self.travel_to_residence()
+                    break
 
     def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None, count: int = None) -> int:
         """Fight in a battle.
@@ -1606,6 +1608,8 @@ class CitizenMilitary(CitizenTravel):
         ok_to_fight = True
         if count is None:
             count = self.should_fight()[0]
+
+        self.write_log(f"Fighting in battle for {battle.region_name} on {side} side\n{battle}\n{str(division)}")
 
         total_damage = 0
         total_hits = 0
@@ -1647,6 +1651,9 @@ class CitizenMilitary(CitizenTravel):
                 pass
             elif r_json.get("message") == "NOT_ENOUGH_WEAPONS":
                 self.set_default_weapon(battle, division)
+            elif r_json.get("message") == "Cannot activate a zone with a non-native division":
+                self.write_log("Wrong division!!")
+                return 0, 10, 0
             elif r_json.get("message") == "FIGHT_DISABLED":
                 self._post_main_profile_update('options',
                                                params='{"optionName":"enable_web_deploy","optionValue":"off"}')
@@ -1714,7 +1721,7 @@ class CitizenMilitary(CitizenTravel):
         self._report_action("MILITARY_BOMB", f"Deployed {deployed_count} bombs in battle {battle.id}")
         return deployed_count
 
-    def change_division(self, battle: classes.Battle, division: classes.BattleDivision):
+    def change_division(self, battle: classes.Battle, division: classes.BattleDivision) -> bool:
         """Change division.
 
         :param battle: Battle
@@ -1723,8 +1730,12 @@ class CitizenMilitary(CitizenTravel):
         :type division: BattleDivision
         :return:
         """
-        self._post_main_battlefield_change_division(battle.id, division.id)
-        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle.id}")
+        resp = self._post_main_battlefield_change_division(battle.id, division.id)
+        if resp.json().get('error'):
+            self.write_log(resp.json().get('message'))
+            return False
+        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle.id}", kwargs=resp.json())
+        return True
 
     def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
                                  booster_50: bool = False, booster_100: bool = False, tp: bool = True) -> Decimal:
