@@ -6,52 +6,10 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from requests import Response, Session, post
 
-from erepublik import utils
-from erepublik.utils import json
+from . import utils, constants
 
-INDUSTRIES = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
-              7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
-              12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
-              18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
-              24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }
-
-
-class Country:
-    id: int
-    name: str
-    link: str
-    iso: str
-
-    def __init__(self, country_id: int, name: str, link: str, iso: str):
-        self.id = country_id
-        self.name = name
-        self.link = link
-        self.iso = iso
-
-    def __repr__(self):
-        return f"Country({self.id}, '{self.name}', '{self.link}', '{self.iso}')"
-
-    def __str__(self):
-        return f"#{self.id} {self.name}"
-
-    def __format__(self, format_spec):
-        return self.iso
-
-    def __int__(self):
-        return self.id
-
-    def __eq__(self, other):
-        if isinstance(other, (int, float)):
-            return self.id == int(other)
-        else:
-            try:
-                return self.id == int(other)
-            except ValueError:
-                return self == other
-
-    @property
-    def __dict__(self):
-        return dict(id=self.id, name=self.name, iso=self.iso)
+__all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
+           'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramBot']
 
 
 class ErepublikException(Exception):
@@ -132,7 +90,7 @@ class Holding:
         return str(self)
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(name=str(self), id=self.id, region=self.region, companies=self.companies, wam_count=self.wam_count)
 
 
@@ -229,7 +187,7 @@ class Company:
         return self._sort_keys != other._sort_keys
 
     def __str__(self):
-        name = f"(#{self.id:>9d}) {INDUSTRIES[self.industry]}"
+        name = f"(#{self.id:>9d}) {constants.INDUSTRIES[self.industry]}"
         if not self.is_raw:
             name += f" q{self.quality}"
         return name
@@ -238,7 +196,7 @@ class Company:
         return str(self)
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(name=str(self), holding=self.holding.id, id=self.id, quality=self.quality, is_raw=self.is_raw,
                     raw_usage=self.raw_usage, products_made=self.products_made, wam_enabled=self.wam_enabled,
                     can_wam=self.can_wam, cannot_wam_reason=self.cannot_wam_reason, industry=self.industry,
@@ -328,7 +286,7 @@ class MyCompanies:
         self.companies.clear()
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time,
                     ff_lockdown=self.ff_lockdown, holdings=self.holdings, company_count=len(self.companies))
 
@@ -397,7 +355,7 @@ class Config:
         self.telegram_token = ""
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(email=self.email, work=self.work, train=self.train, wam=self.wam, ot=self.ot,
                     auto_sell=self.auto_sell, auto_sell_all=self.auto_sell_all, employees=self.employees,
                     fight=self.fight, air=self.air, ground=self.ground, all_in=self.all_in,
@@ -453,6 +411,13 @@ class Energy:
     def available(self):
         return self.recovered + self.recoverable
 
+    @property
+    def as_dict(self):
+        return dict(limit=self.limit, interval=self.interval, recoverable=self.recoverable, recovered=self.recovered,
+                    reference_time=self.reference_time, food_fights=self.food_fights,
+                    is_recoverable_full=self.is_recoverable_full, is_recovered_full=self.is_recovered_full,
+                    is_energy_full=self.is_energy_full, available=self.available)
+
 
 class Details:
     xp = 0
@@ -462,11 +427,11 @@ class Details:
     gold = 0
     next_pp: List[int] = None
     citizen_id = 0
-    citizenship: Country
+    citizenship: constants.Country
     current_region = 0
-    current_country: Country
+    current_country: constants.Country
     residence_region = 0
-    residence_country: Country
+    residence_country: constants.Country
     daily_task_done = False
     daily_task_reward = False
     mayhem_skills = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, }
@@ -500,6 +465,15 @@ class Details:
             next_level_up = (1 + (self.xp // 10)) * 10
         return next_level_up - self.xp
 
+    @property
+    def as_dict(self):
+        return dict(xp=self.xp, cc=self.cc, pp=self.pp, pin=self.pin, gold=self.gold, next_pp=self.next_pp,
+                    citizen_id=self.citizen_id, citizenship=self.citizenship, current_region=self.current_region,
+                    current_country=self.current_country, residence_region=self.residence_region,
+                    residence_country=self.residence_country, daily_task_done=self.daily_task_done,
+                    daily_task_reward=self.daily_task_reward, mayhem_skills=self.mayhem_skills,
+                    xp_till_level_up=self.xp_till_level_up)
+
 
 class Politics:
     is_party_member: bool = False
@@ -509,6 +483,12 @@ class Politics:
     is_party_president: bool = False
     is_congressman: bool = False
     is_country_president: bool = False
+
+    @property
+    def as_dict(self):
+        return dict(is_party_member=self.is_party_member, party_id=self.party_id, party_slug=self.party_slug,
+                    is_party_president=self.is_party_president, is_congressman=self.is_congressman,
+                    is_country_president=self.is_country_president)
 
 
 class House:
@@ -543,7 +523,7 @@ class Reporter:
         return self.citizen.details.citizen_id
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.allowed,
                     queue=self.__to_update)
 
@@ -614,7 +594,7 @@ class Reporter:
     def report_promo(self, kind: str, time_until: datetime.datetime):
         self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
-    def fetch_battle_priorities(self, country: Country) -> List["Battle"]:
+    def fetch_battle_priorities(self, country: constants.Country) -> List["Battle"]:
         try:
             battle_response = self._req.get(f'{self.url}/api/v1/battles/{country.id}')
             return [self.citizen.all_battles[bid] for bid in battle_response.json().get('battle_ids', []) if
@@ -631,7 +611,7 @@ class Reporter:
             return
 
 
-class MyJSONEncoder(json.JSONEncoder):
+class MyJSONEncoder(utils.json.JSONEncoder):
     def default(self, o):
         from erepublik.citizen import Citizen
         if isinstance(o, Decimal):
@@ -646,8 +626,8 @@ class MyJSONEncoder(json.JSONEncoder):
                         microseconds=o.microseconds, total_seconds=o.total_seconds())
         elif isinstance(o, Response):
             return dict(headers=o.headers.__dict__, url=o.url, text=o.text)
-        elif hasattr(o, '__dict__'):
-            return o.__dict__
+        elif hasattr(o, 'as_dict'):
+            return o.as_dict
         elif isinstance(o, set):
             return list(o)
         elif isinstance(o, Citizen):
@@ -660,14 +640,14 @@ class MyJSONEncoder(json.JSONEncoder):
 
 class BattleSide:
     points: int
-    deployed: List[Country]
-    allies: List[Country]
+    deployed: List[constants.Country]
+    allies: List[constants.Country]
     battle: "Battle"
-    country: Country
+    country: constants.Country
     defender: bool
 
-    def __init__(self, battle: "Battle", country: Country, points: int, allies: List[Country], deployed: List[Country],
-                 defender: bool):
+    def __init__(self, battle: "Battle", country: constants.Country, points: int, allies: List[constants.Country],
+                 deployed: List[constants.Country], defender: bool):
         self.battle = battle
         self.country = country
         self.points = points
@@ -691,7 +671,7 @@ class BattleSide:
         return self.country.iso
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(points=self.points, country=self.country, defender=self.defender, allies=self.allies,
                     deployed=self.deployed, battle=repr(self.battle))
 
@@ -709,9 +689,9 @@ class BattleDivision:
     battle: "Battle"
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(id=self.id, division=self.div, terrain=(self.terrain, self.terrain_display), wall=self.wall,
-                    dom_pts=self.dom_pts, epic=self.epic, battle=str(self.battle), end=self.div_end)
+                    epic=self.epic, battle=str(self.battle), end=self.div_end)
 
     @property
     def is_air(self):
@@ -743,7 +723,7 @@ class BattleDivision:
 
     @property
     def terrain_display(self):
-        return _TERRAINS[self.terrain]
+        return constants.TERRAINS[self.terrain]
 
     def __str__(self):
         base_name = f"Div #{self.id} d{self.div}"
@@ -771,7 +751,7 @@ class Battle:
     region_name: str
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(id=self.id, war_id=self.war_id, divisions=self.div, zone=self.zone_id, rw=self.is_rw,
                     dict_lib=self.is_dict_lib, start=self.start, sides={'inv': self.invader, 'def': self.defender},
                     region=[self.region_id, self.region_name])
@@ -805,27 +785,28 @@ class Battle:
         self.zone_id = int(battle.get('zone_id'))
         self.is_rw = bool(battle.get('is_rw'))
         self.is_as = bool(battle.get('is_as'))
+        self.is_dict_lib = bool(battle.get('is_dict')) or bool(battle.get('is_lib'))
         self.region_id = battle.get('region', {}).get('id')
         self.region_name = battle.get('region', {}).get('name')
-        self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=utils.erep_tz)
+        self.start = datetime.datetime.fromtimestamp(int(battle.get('start', 0)), tz=constants.erep_tz)
 
         self.invader = BattleSide(
-            self, COUNTRIES[battle.get('inv', {}).get('id')], battle.get('inv', {}).get('points'),
-            [COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list')],
-            [COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list') if row['deployed']], False
+            self, constants.COUNTRIES[battle.get('inv', {}).get('id')], battle.get('inv', {}).get('points'),
+            [constants.COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list')],
+            [constants.COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list') if row['deployed']], False
         )
 
         self.defender = BattleSide(
-            self, COUNTRIES[battle.get('def', {}).get('id')], battle.get('def', {}).get('points'),
-            [COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list')],
-            [COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list') if row['deployed']], True
+            self, constants.COUNTRIES[battle.get('def', {}).get('id')], battle.get('def', {}).get('points'),
+            [constants.COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list')],
+            [constants.COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list') if row['deployed']], True
         )
 
         self.div = {}
         for div, data in battle.get('div', {}).items():
             div = int(div)
             if data.get('end'):
-                end = datetime.datetime.fromtimestamp(data.get('end'), tz=utils.erep_tz)
+                end = datetime.datetime.fromtimestamp(data.get('end'), tz=constants.erep_tz)
             else:
                 end = utils.localize_dt(datetime.datetime.max - datetime.timedelta(days=1))
 
@@ -838,12 +819,12 @@ class Battle:
             self.div.update({div: battle_div})
 
     def __str__(self):
-        now = utils.now()
+        time_now = utils.now()
         is_started = self.start < utils.now()
         if is_started:
-            time_part = " {}".format(now - self.start)
+            time_part = " {}".format(time_now - self.start)
         else:
-            time_part = "-{}".format(self.start - now)
+            time_part = "-{}".format(self.start - time_now)
 
         return f"Battle {self.id} for {self.region_name[:16]} | {self.invader} : {self.defender} | Round time {time_part}"
 
@@ -902,7 +883,7 @@ class TelegramBot:
         self._next_time = utils.now()
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return {'chat_id': self.chat_id, 'api_url': self.api_url, 'player': self.player_name,
                 'last_time': self._last_time, 'next_time': self._next_time, 'queue': self.__queue,
                 'initialized': self.__initialized, 'has_threads': bool(len(self._threads))}
@@ -962,54 +943,7 @@ class TelegramBot:
 
 class OfferItem(NamedTuple):
     price: float = 99_999.
-    country: Country = Country(0, "", "", "")
+    country: constants.Country = constants.Country(0, "", "", "")
     amount: int = 0
     offer_id: int = 0
     citizen_id: int = 0
-
-
-COUNTRIES: Dict[int, Country] = {
-    1: Country(1, 'Romania', 'Romania', 'ROU'), 9: Country(9, 'Brazil', 'Brazil', 'BRA'),
-    10: Country(10, 'Italy', 'Italy', 'ITA'), 11: Country(11, 'France', 'France', 'FRA'),
-    12: Country(12, 'Germany', 'Germany', 'DEU'), 13: Country(13, 'Hungary', 'Hungary', 'HUN'),
-    14: Country(14, 'China', 'China', 'CHN'), 15: Country(15, 'Spain', 'Spain', 'ESP'),
-    23: Country(23, 'Canada', 'Canada', 'CAN'), 24: Country(24, 'USA', 'USA', 'USA'),
-    26: Country(26, 'Mexico', 'Mexico', 'MEX'), 27: Country(27, 'Argentina', 'Argentina', 'ARG'),
-    28: Country(28, 'Venezuela', 'Venezuela', 'VEN'), 29: Country(29, 'United Kingdom', 'United-Kingdom', 'GBR'),
-    30: Country(30, 'Switzerland', 'Switzerland', 'CHE'), 31: Country(31, 'Netherlands', 'Netherlands', 'NLD'),
-    32: Country(32, 'Belgium', 'Belgium', 'BEL'), 33: Country(33, 'Austria', 'Austria', 'AUT'),
-    34: Country(34, 'Czech Republic', 'Czech-Republic', 'CZE'), 35: Country(35, 'Poland', 'Poland', 'POL'),
-    36: Country(36, 'Slovakia', 'Slovakia', 'SVK'), 37: Country(37, 'Norway', 'Norway', 'NOR'),
-    38: Country(38, 'Sweden', 'Sweden', 'SWE'), 39: Country(39, 'Finland', 'Finland', 'FIN'),
-    40: Country(40, 'Ukraine', 'Ukraine', 'UKR'), 41: Country(41, 'Russia', 'Russia', 'RUS'),
-    42: Country(42, 'Bulgaria', 'Bulgaria', 'BGR'), 43: Country(43, 'Turkey', 'Turkey', 'TUR'),
-    44: Country(44, 'Greece', 'Greece', 'GRC'), 45: Country(45, 'Japan', 'Japan', 'JPN'),
-    47: Country(47, 'South Korea', 'South-Korea', 'KOR'), 48: Country(48, 'India', 'India', 'IND'),
-    49: Country(49, 'Indonesia', 'Indonesia', 'IDN'), 50: Country(50, 'Australia', 'Australia', 'AUS'),
-    51: Country(51, 'South Africa', 'South Africa', 'ZAF'),
-    52: Country(52, 'Republic of Moldova', 'Republic-of-Moldova', 'MDA'),
-    53: Country(53, 'Portugal', 'Portugal', 'PRT'), 54: Country(54, 'Ireland', 'Ireland', 'IRL'),
-    55: Country(55, 'Denmark', 'Denmark', 'DNK'), 56: Country(56, 'Iran', 'Iran', 'IRN'),
-    57: Country(57, 'Pakistan', 'Pakistan', 'PAK'), 58: Country(58, 'Israel', 'Israel', 'ISR'),
-    59: Country(59, 'Thailand', 'Thailand', 'THA'), 61: Country(61, 'Slovenia', 'Slovenia', 'SVN'),
-    63: Country(63, 'Croatia', 'Croatia', 'HRV'), 64: Country(64, 'Chile', 'Chile', 'CHL'),
-    65: Country(65, 'Serbia', 'Serbia', 'SRB'), 66: Country(66, 'Malaysia', 'Malaysia', 'MYS'),
-    67: Country(67, 'Philippines', 'Philippines', 'PHL'), 68: Country(68, 'Singapore', 'Singapore', 'SGP'),
-    69: Country(69, 'Bosnia and Herzegovina', 'Bosnia-Herzegovina', 'BiH'),
-    70: Country(70, 'Estonia', 'Estonia', 'EST'), 80: Country(80, 'Montenegro', 'Montenegro', 'MNE'),
-    71: Country(71, 'Latvia', 'Latvia', 'LVA'), 72: Country(72, 'Lithuania', 'Lithuania', 'LTU'),
-    73: Country(73, 'North Korea', 'North-Korea', 'PRK'), 74: Country(74, 'Uruguay', 'Uruguay', 'URY'),
-    75: Country(75, 'Paraguay', 'Paraguay', 'PRY'), 76: Country(76, 'Bolivia', 'Bolivia', 'BOL'),
-    77: Country(77, 'Peru', 'Peru', 'PER'), 78: Country(78, 'Colombia', 'Colombia', 'COL'),
-    79: Country(79, 'Republic of Macedonia (FYROM)', 'Republic-of-Macedonia-FYROM', 'MKD'),
-    81: Country(81, 'Republic of China (Taiwan)', 'Republic-of-China-Taiwan', 'TWN'),
-    82: Country(82, 'Cyprus', 'Cyprus', 'CYP'), 167: Country(167, 'Albania', 'Albania', 'ALB'),
-    83: Country(83, 'Belarus', 'Belarus', 'BLR'), 84: Country(84, 'New Zealand', 'New-Zealand', 'NZL'),
-    164: Country(164, 'Saudi Arabia', 'Saudi-Arabia', 'SAU'), 165: Country(165, 'Egypt', 'Egypt', 'EGY'),
-    166: Country(166, 'United Arab Emirates', 'United-Arab-Emirates', 'UAE'),
-    168: Country(168, 'Georgia', 'Georgia', 'GEO'), 169: Country(169, 'Armenia', 'Armenia', 'ARM'),
-    170: Country(170, 'Nigeria', 'Nigeria', 'NGA'), 171: Country(171, 'Cuba', 'Cuba', 'CUB')
-}
-
-_TERRAINS = {0: "Standard", 1: 'Industrial', 2: 'Urban', 3: 'Suburbs', 4: 'Airport', 5: 'Plains', 6: 'Wasteland',
-             7: 'Mountains', 8: 'Beach', 9: 'Swamp', 10: 'Mud', 11: 'Hills', 12: 'Jungle', 13: 'Forest', 14: 'Desert'}

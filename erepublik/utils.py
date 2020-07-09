@@ -9,109 +9,47 @@ import traceback
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
-import pytz
 import requests
 
-from . import __commit_id__, __version__
+from . import __commit_id__, __version__, constants
 
 try:
     import simplejson as json
 except ImportError:
     import json
 
-__all__ = ["FOOD_ENERGY", "COMMIT_ID", "erep_tz",
-           "now", "localize_dt", "localize_timestamp", "good_timedelta", "eday_from_date", "date_from_eday",
-           "get_sleep_seconds", "interactive_sleep", "silent_sleep",
-           "write_silent_log", "write_interactive_log", "get_file", "write_file",
-           "send_email", "normalize_html_json", "process_error", "process_warning",
-           'calculate_hit', 'get_ground_hit_dmg_value', 'get_air_hit_dmg_value']
+__all__ = ['COMMIT_ID', 'VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_from_date',
+           'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta',
+           'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now',
+           'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file',
+           'write_interactive_log', 'write_silent_log']
 
 if not sys.version_info >= (3, 7):
     raise AssertionError('This script requires Python version 3.7 and higher\n'
                          'But Your version is v{}.{}.{}'.format(*sys.version_info))
 
-FOOD_ENERGY: Dict[str, int] = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 COMMIT_ID: str = __commit_id__
 VERSION: str = __version__
 
-erep_tz = pytz.timezone('US/Pacific')
-AIR_RANKS: Dict[int, str] = {
-    1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**", 5: "Airman 1st Class***",
-    6: "Airman 1st Class****", 7: "Airman 1st Class*****", 8: "Senior Airman", 9: "Senior Airman*",
-    10: "Senior Airman**", 11: "Senior Airman***", 12: "Senior Airman****", 13: "Senior Airman*****",
-    14: "Staff Sergeant", 15: "Staff Sergeant*", 16: "Staff Sergeant**", 17: "Staff Sergeant***",
-    18: "Staff Sergeant****", 19: "Staff Sergeant*****", 20: "Aviator", 21: "Aviator*", 22: "Aviator**",
-    23: "Aviator***", 24: "Aviator****", 25: "Aviator*****", 26: "Flight Lieutenant", 27: "Flight Lieutenant*",
-    28: "Flight Lieutenant**", 29: "Flight Lieutenant***", 30: "Flight Lieutenant****", 31: "Flight Lieutenant*****",
-    32: "Squadron Leader", 33: "Squadron Leader*", 34: "Squadron Leader**", 35: "Squadron Leader***",
-    36: "Squadron Leader****", 37: "Squadron Leader*****", 38: "Chief Master Sergeant", 39: "Chief Master Sergeant*",
-    40: "Chief Master Sergeant**", 41: "Chief Master Sergeant***", 42: "Chief Master Sergeant****",
-    43: "Chief Master Sergeant*****", 44: "Wing Commander", 45: "Wing Commander*", 46: "Wing Commander**",
-    47: "Wing Commander***", 48: "Wing Commander****", 49: "Wing Commander*****", 50: "Group Captain",
-    51: "Group Captain*", 52: "Group Captain**", 53: "Group Captain***", 54: "Group Captain****",
-    55: "Group Captain*****", 56: "Air Commodore", 57: "Air Commodore*", 58: "Air Commodore**", 59: "Air Commodore***",
-    60: "Air Commodore****", 61: "Air Commodore*****",
-}
-
-GROUND_RANKS: Dict[int, str] = {
-    1: "Recruit", 2: "Private", 3: "Private*", 4: "Private**", 5: "Private***",
-    6: "Corporal", 7: "Corporal*", 8: "Corporal**", 9: "Corporal***",
-    10: "Sergeant", 11: "Sergeant*", 12: "Sergeant**", 13: "Sergeant***",
-    14: "Lieutenant", 15: "Lieutenant*", 16: "Lieutenant**", 17: "Lieutenant***",
-    18: "Captain", 19: "Captain*", 20: "Captain**", 21: "Captain***",
-    22: "Major", 23: "Major*", 24: "Major**", 25: "Major***",
-    26: "Commander", 27: "Commander*", 28: "Commander**", 29: "Commander***",
-    30: "Lt Colonel", 31: "Lt Colonel*", 32: "Lt Colonel**", 33: "Lt Colonel***",
-    34: "Colonel", 35: "Colonel*", 36: "Colonel**", 37: "Colonel***",
-    38: "General", 39: "General*", 40: "General**", 41: "General***",
-    42: "Field Marshal", 43: "Field Marshal*", 44: "Field Marshal**", 45: "Field Marshal***",
-    46: "Supreme Marshal", 47: "Supreme Marshal*", 48: "Supreme Marshal**", 49: "Supreme Marshal***",
-    50: "National Force", 51: "National Force*", 52: "National Force**", 53: "National Force***",
-    54: "World Class Force", 55: "World Class Force*", 56: "World Class Force**", 57: "World Class Force***",
-    58: "Legendary Force", 59: "Legendary Force*", 60: "Legendary Force**", 61: "Legendary Force***",
-    62: "God of War", 63: "God of War*", 64: "God of War**", 65: "God of War***",
-    66: "Titan", 67: "Titan*", 68: "Titan**", 69: "Titan***",
-    70: "Legends I", 71: "Legends II", 72: "Legends III", 73: "Legends IV", 74: "Legends V", 75: "Legends VI",
-    76: "Legends VII", 77: "Legends VIII", 78: "Legends IX", 79: "Legends X", 80: "Legends XI", 81: "Legends XII",
-    82: "Legends XIII", 83: "Legends XIV", 84: "Legends XV", 85: "Legends XVI", 86: "Legends XVII", 87: "Legends XVIII",
-    88: "Legends XIX", 89: "Legends XX",
-}
-
-GROUND_RANK_POINTS: Dict[int, int] = {
-    1: 0, 2: 15, 3: 45, 4: 80, 5: 120, 6: 170, 7: 250, 8: 350, 9: 450, 10: 600, 11: 800, 12: 1000,
-    13: 1400, 14: 1850, 15: 2350, 16: 3000, 17: 3750, 18: 5000, 19: 6500, 20: 9000, 21: 12000,
-    22: 15500, 23: 20000, 24: 25000, 25: 31000, 26: 40000, 27: 52000, 28: 67000, 29: 85000,
-    30: 110000, 31: 140000, 32: 180000, 33: 225000, 34: 285000, 35: 355000, 36: 435000, 37: 540000,
-    38: 660000, 39: 800000, 40: 950000, 41: 1140000, 42: 1350000, 43: 1600000, 44: 1875000,
-    45: 2185000, 46: 2550000, 47: 3000000, 48: 3500000, 49: 4150000, 50: 4900000, 51: 5800000,
-    52: 7000000, 53: 9000000, 54: 11500000, 55: 14500000, 56: 18000000, 57: 22000000, 58: 26500000,
-    59: 31500000, 60: 37000000, 61: 43000000, 62: 50000000, 63: 100000000, 64: 200000000,
-    65: 500000000, 66: 1000000000, 67: 2000000000, 68: 4000000000, 69: 10000000000, 70: 20000000000,
-    71: 30000000000, 72: 40000000000, 73: 50000000000, 74: 60000000000, 75: 70000000000,
-    76: 80000000000, 77: 90000000000, 78: 100000000000, 79: 110000000000, 80: 120000000000,
-    81: 130000000000, 82: 140000000000, 83: 150000000000, 84: 160000000000, 85: 170000000000,
-    86: 180000000000, 87: 190000000000, 88: 200000000000, 89: 210000000000
-}
-
 
 def now() -> datetime.datetime:
-    return datetime.datetime.now(erep_tz).replace(microsecond=0)
+    return datetime.datetime.now(constants.erep_tz).replace(microsecond=0)
 
 
 def localize_timestamp(timestamp: int) -> datetime.datetime:
-    return datetime.datetime.fromtimestamp(timestamp, erep_tz)
+    return datetime.datetime.fromtimestamp(timestamp, constants.erep_tz)
 
 
 def localize_dt(dt: Union[datetime.date, datetime.datetime]) -> datetime.datetime:
     try:
         try:
-            return erep_tz.localize(dt)
+            return constants.erep_tz.localize(dt)
         except AttributeError:
-            return erep_tz.localize(datetime.datetime.combine(dt, datetime.time(0, 0, 0)))
+            return constants.erep_tz.localize(datetime.datetime.combine(dt, datetime.time(0, 0, 0)))
     except ValueError:
-        return dt.astimezone(erep_tz)
+        return dt.astimezone(constants.erep_tz)
 
 
 def good_timedelta(dt: datetime.datetime, td: datetime.timedelta) -> datetime.datetime:
@@ -124,7 +62,7 @@ def good_timedelta(dt: datetime.datetime, td: datetime.timedelta) -> datetime.da
     :return: datetime object with correct timezone when jumped over DST
     :rtype: datetime.datetime
     """
-    return erep_tz.normalize(dt + td)
+    return constants.erep_tz.normalize(dt + td)
 
 
 def eday_from_date(date: Union[datetime.date, datetime.datetime] = now()) -> int:

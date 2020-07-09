@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Mapping, Union
 
 from requests import Response, Session
 
-from erepublik import utils
+from . import constants, utils
 
 __all__ = ['SlowRequests', 'CitizenAPI']
 
@@ -45,7 +45,7 @@ class SlowRequests(Session):
         })
 
     @property
-    def __dict__(self):
+    def as_dict(self):
         return dict(last_time=self.last_time, timeout=self.timeout, user_agent=self.headers['User-Agent'],
                     request_log_name=self.request_log_name, debug=self.debug)
 
@@ -461,13 +461,13 @@ class ErepublikPresidentAPI(CitizenBaseAPI):
 
     def _post_new_war(self, self_country_id: int, attack_country_id: int, debate: str = "") -> Response:
         data = dict(requirments=1, _token=self.token, debate=debate,
-                    countryNameConfirm=utils.COUNTRY_LINK[attack_country_id])
-        return self.post("{}/{}/new-war".format(self.url, utils.COUNTRY_LINK[self_country_id]), data=data)
+                    countryNameConfirm=constants.COUNTRIES[attack_country_id].link)
+        return self.post("{}/{}/new-war".format(self.url, constants.COUNTRIES[self_country_id].link), data=data)
 
     def _post_new_donation(self, country_id: int, amount: int, org_name: str, debate: str = "") -> Response:
         data = dict(requirments=1, _token=self.token, debate=debate, currency=1, value=amount, commit='Propose',
                     type_name=org_name)
-        return self.post("{}/{}/new-donation".format(self.url, utils.COUNTRY_LINK[country_id]), data=data)
+        return self.post("{}/{}/new-donation".format(self.url, constants.COUNTRIES[country_id].link), data=data)
 
 
 class ErepublikProfileAPI(CitizenBaseAPI):
