@@ -792,9 +792,11 @@ class CitizenTravel(BaseCitizen):
         if data.get('alreadyInRegion'):
             return True
         else:
-            r_json = self._travel(data.get('preselectCountryId'), data.get('preselectRegionId')).json()
+            country = COUNTRIES[data.get('preselectCountryId')]
+            region_id = data.get('preselectRegionId')
+            r_json = self._travel(country, region_id).json()
             if r_json.get('message', '') == 'success':
-                self._update_citizen_location(data.get('preselectCountryId'), data.get('preselectRegionId'))
+                self._update_citizen_location(country, region_id)
                 self._report_action("TRAVEL", f"Traveled to holding {holding}", response=r_json)
                 return True
             return False

@@ -53,6 +53,7 @@ class Country:
     def __dict__(self):
         return dict(id=self.id, name=self.name, iso=self.iso)
 
+
 class ErepublikException(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -274,7 +275,8 @@ class MyCompanies:
         """
         for holding in holdings.values():
             if holding.get('id') not in self.holdings:
-                self.holdings.update({int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)})
+                self.holdings.update(
+                    {int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)})
         if not self.holdings.get(0):
             self.holdings.update({0: Holding(0, 0, self.citizen)})  # unassigned
 
@@ -615,7 +617,8 @@ class Reporter:
     def fetch_battle_priorities(self, country: Country) -> List["Battle"]:
         try:
             battle_response = self._req.get(f'{self.url}/api/v1/battles/{country.id}')
-            return [self.citizen.all_battles[bid] for bid in battle_response.json().get('battle_ids', []) if bid in self.citizen.all_battles]
+            return [self.citizen.all_battles[bid] for bid in battle_response.json().get('battle_ids', []) if
+                    bid in self.citizen.all_battles]
         except:  # noqa
             return []
 
@@ -663,7 +666,8 @@ class BattleSide:
     country: Country
     defender: bool
 
-    def __init__(self, battle: "Battle", country: Country, points: int, allies: List[Country], deployed: List[Country], defender: bool):
+    def __init__(self, battle: "Battle", country: Country, points: int, allies: List[Country], deployed: List[Country],
+                 defender: bool):
         self.battle = battle
         self.country = country
         self.points = points
@@ -688,7 +692,8 @@ class BattleSide:
 
     @property
     def __dict__(self):
-        return dict(points=self.points, country=self.country, defender=self.defender, allies=self.allies, deployed=self.deployed)
+        return dict(points=self.points, country=self.country, defender=self.defender, allies=self.allies,
+                    deployed=self.deployed, battle=repr(self.battle))
 
 
 class BattleDivision:
@@ -768,7 +773,7 @@ class Battle:
     @property
     def __dict__(self):
         return dict(id=self.id, war_id=self.war_id, divisions=self.div, zone=self.zone_id, rw=self.is_rw,
-                    dict_lib=self.is_dict_lib, start=self.start, sides={'inv':self.invader,'def':self.defender},
+                    dict_lib=self.is_dict_lib, start=self.start, sides={'inv': self.invader, 'def': self.defender},
                     region=[self.region_id, self.region_name])
 
     @property
