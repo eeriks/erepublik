@@ -849,8 +849,9 @@ class CitizenCompanies(BaseCitizen):
             fin_factories = wam_holding.get_wam_companies(raw_factory=False)
 
             free_inventory = self.inventory["total"] - self.inventory["used"]
-            wam_list = [raw_factories + fin_factories][:self.energy.food_fights]
-            while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(companies=wam_list):
+            wam_list = raw_factories + fin_factories
+            wam_list = wam_list[:self.energy.food_fights]
+            while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
                 wam_list.pop(-1)
 
         if wam_list:
