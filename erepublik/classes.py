@@ -49,6 +49,9 @@ class Country:
             except ValueError:
                 return self == other
 
+    @property
+    def __dict__(self):
+        return dict(id=self.id, name=self.name, iso=self.iso)
 
 class ErepublikException(Exception):
     def __init__(self, message):
@@ -683,6 +686,10 @@ class BattleSide:
     def __format__(self, format_spec):
         return self.country.iso
 
+    @property
+    def __dict__(self):
+        return dict(points=self.points, country=self.country, defender=self.defender, allies=self.allies, deployed=self.deployed)
+
 
 class BattleDivision:
     id: int
@@ -695,6 +702,11 @@ class BattleDivision:
     terrain: int
     div: int
     battle: "Battle"
+
+    @property
+    def __dict__(self):
+        return dict(id=self.id, division=self.div, terrain=(self.terrain, self.terrain_display), wall=self.wall,
+                    dom_pts=self.dom_pts, epic=self.epic, battle=str(self.battle), end=self.div_end)
 
     @property
     def is_air(self):
@@ -752,6 +764,12 @@ class Battle:
     div: Dict[int, BattleDivision]
     region_id: int
     region_name: str
+
+    @property
+    def __dict__(self):
+        return dict(id=self.id, war_id=self.war_id, divisions=self.div, zone=self.zone_id, rw=self.is_rw,
+                    dict_lib=self.is_dict_lib, start=self.start, sides={'inv':self.invader,'def':self.defender},
+                    region=[self.region_id, self.region_name])
 
     @property
     def has_air(self) -> bool:
