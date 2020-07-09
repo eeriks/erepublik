@@ -551,7 +551,7 @@ class Reporter:
                 unreported_data = utils.json.load(utils.json.dumps(unreported_data, cls=MyJSONEncoder, sort_keys=True))
                 self._req.post("{}/bot/update".format(self.url), json=unreported_data)
             self.__to_update.clear()
-        data = utils.json.load(utils.json.dumps(data, cls=MyJSONEncoder, sort_keys=True))
+        data = utils.json.loads(utils.json.dumps(data, cls=MyJSONEncoder, sort_keys=True))
         r = self._req.post("{}/bot/update".format(self.url), json=data)
         return r
 
