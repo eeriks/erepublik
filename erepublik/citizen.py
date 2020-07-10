@@ -1757,7 +1757,7 @@ class CitizenMilitary(CitizenTravel):
         if not rang or elite is None:
             r = self._get_main_citizen_profile_json(self.details.citizen_id).json()
             if not rang:
-                rang = r['military']['militaryData']['air']['rankNumber']
+                rang = r['military']['militaryData']['aircraft']['rankNumber']
             if elite is None:
                 elite = r['citizenAttributes']['level'] > 100
 
