@@ -110,7 +110,7 @@ COUNTRIES: Dict[int, Country] = {
     44: Country(44, 'Greece', 'Greece', 'GRC'), 45: Country(45, 'Japan', 'Japan', 'JPN'),
     47: Country(47, 'South Korea', 'South-Korea', 'KOR'), 48: Country(48, 'India', 'India', 'IND'),
     49: Country(49, 'Indonesia', 'Indonesia', 'IDN'), 50: Country(50, 'Australia', 'Australia', 'AUS'),
-    51: Country(51, 'South Africa', 'South Africa', 'ZAF'),
+    51: Country(51, 'South Africa', 'South-Africa', 'ZAF'),
     52: Country(52, 'Republic of Moldova', 'Republic-of-Moldova', 'MDA'),
     53: Country(53, 'Portugal', 'Portugal', 'PRT'), 54: Country(54, 'Ireland', 'Ireland', 'IRL'),
     55: Country(55, 'Denmark', 'Denmark', 'DNK'), 56: Country(56, 'Iran', 'Iran', 'IRN'),
