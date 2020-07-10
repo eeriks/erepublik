@@ -184,7 +184,7 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Mapping[A
     from erepublik import Citizen
 
     file_content_template = "<html><head><title>{title}</title></head><body>{body}</body></html>"
-    if isinstance(player, Citizen):
+    if isinstance(player, Citizen) and player.r:
         resp = write_request(player.r, is_error=True)
     else:
         resp = {"name": "None.html", "mimetype": "text/html",
