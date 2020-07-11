@@ -161,14 +161,14 @@ class ErepublikArticleAPI(CitizenBaseAPI):
     def _get_main_article_json(self, article_id: int) -> Response:
         return self.get("{}/main/articleJson/{}".format(self.url, article_id))
 
-    def _post_main_article_comments(self, article: int, page: int = 1) -> Response:
-        data = dict(_token=self.token, articleId=article, page=page)
+    def _post_main_article_comments(self, article_id: int, page: int = 1) -> Response:
+        data = dict(_token=self.token, articleId=article_id, page=page)
         if page:
             data.update({'page': page})
         return self.post("{}/main/articleComments".format(self.url), data=data)
 
-    def _post_main_article_comments_create(self, message: str, article: int, parent: int = 0) -> Response:
-        data = dict(_token=self.token, message=message, articleId=article)
+    def _post_main_article_comments_create(self, message: str, article_id: int, parent: int = 0) -> Response:
+        data = dict(_token=self.token, message=message, articleId=article_id)
         if parent:
             data.update({"parentId": parent})
         return self.post("{}/main/articleComments/create".format(self.url), data=data)
@@ -177,9 +177,9 @@ class ErepublikArticleAPI(CitizenBaseAPI):
         data = dict(_token=self.token, articleId=article_id, amount=amount)
         return self.post("{}/main/donate-article".format(self.url), data=data)
 
-    def _post_main_write_article(self, title: str, content: str, country: int, kind: int) -> Response:
-        data = dict(_token=self.token, article_name=title, article_body=content, article_location=country,
-                    article_category=kind)
+    def _post_main_write_article(self, title: str, content: str, country_id: int, kind_id: int) -> Response:
+        data = dict(_token=self.token, article_name=title, article_body=content, article_location=country_id,
+                    article_category=kind_id)
         return self.post("{}/main/write-article".format(self.url), data=data)
 
     def _post_main_vote_article(self, article_id: int) -> Response:
@@ -188,12 +188,12 @@ class ErepublikArticleAPI(CitizenBaseAPI):
 
 
 class ErepublikCompanyAPI(CitizenBaseAPI):
-    def _post_economy_assign_to_holding(self, factory: int, holding: int) -> Response:
-        data = dict(_token=self.token, factoryId=factory, action="assign", holdingCompanyId=holding)
+    def _post_economy_assign_to_holding(self, factory_id: int, holding_id: int) -> Response:
+        data = dict(_token=self.token, factoryId=factory_id, action="assign", holdingCompanyId=holding_id)
         return self.post("{}/economy/assign-to-holding".format(self.url), data=data)
 
-    def _post_economy_create_company(self, industry: int, building_type: int = 1) -> Response:
-        data = {"_token": self.token, "company[industry_id]": industry, "company[building_type]": building_type}
+    def _post_economy_create_company(self, industry_id: int, building_type: int = 1) -> Response:
+        data = {"_token": self.token, "company[industry_id]": industry_id, "company[building_type]": building_type}
         return self.post("{}/economy/create-company".format(self.url), data=data,
                          headers={"Referer": "{}/economy/create-company".format(self.url)})
 

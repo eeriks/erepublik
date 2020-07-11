@@ -855,11 +855,7 @@ class CitizenCompanies(BaseCitizen):
 
                             Storage={1000: 1, 2000: 2} <- Building_type 2
         """
-        company_name = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
-                        7: "FRM q1", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
-                        12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
-                        18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
-                        24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5", }[industry_id]
+        company_name = constants.INDUSTRIES[industry_id]
         if building_type == 2:
             company_name = "Storage"
         self.write_log(f'{company_name} created!')
@@ -1260,8 +1256,8 @@ class CitizenMedia(BaseCitizen):
                  4: "Political debates and analysis", 5: "Financial business",
                  6: "Social interactions and entertainment"}
         if kind in kinds:
-            data = {'title': title, 'content': content, 'country': self.details.citizenship, 'kind': kind}
-            resp = self._post_main_write_article(**data)
+            data = {'title': title, 'content': content, 'country': self.details.citizenship.id, 'kind': kind}
+            resp = self._post_main_write_article(title, content, self.details.citizenship.id, kind)
             try:
                 article_id = int(resp.history[1].url.split("/")[-3])
                 self._report_action("ARTICLE_PUBLISH", f"Published new article \"{title}\" ({article_id})", kwargs=data)
