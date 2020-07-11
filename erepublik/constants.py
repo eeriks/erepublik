@@ -19,6 +19,9 @@ class Country:
         self.link = link
         self.iso = iso
 
+    def __hash__(self):
+        return hash((self.id, self.name))
+
     def __repr__(self):
         return f"Country({self.id}, '{self.name}', '{self.link}', '{self.iso}')"
 
