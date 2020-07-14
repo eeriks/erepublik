@@ -10,6 +10,10 @@ eRepublik script
         :target: https://erepublik.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://api.codacy.com/project/badge/Grade/eaa7ae43d23f4c0abab65c3bde89475a
+        :target: https://app.codacy.com/manual/eeriks/erepublik?utm_source=github.com&utm_medium=referral&utm_content=eeriks/erepublik&utm_campaign=Badge_Grade_Dashboard
+        :alt: Codacy Badge
+
 
 Python package for automated eRepublik playing
 
@@ -31,7 +35,3 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
 
-
-.. image:: https://api.codacy.com/project/badge/Grade/eaa7ae43d23f4c0abab65c3bde89475a
-   :alt: Codacy Badge
-   :target: https://app.codacy.com/manual/eeriks/erepublik?utm_source=github.com&utm_medium=referral&utm_content=eeriks/erepublik&utm_campaign=Badge_Grade_Dashboard
