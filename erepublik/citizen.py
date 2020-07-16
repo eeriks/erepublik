@@ -695,6 +695,17 @@ class CitizenTravel(BaseCitizen):
         self.details.current_region = region_id
         self.details.current_country = country
 
+    def _travel(self, country: constants.Country, region_id: int = 0) -> bool:
+        r_json = super()._travel(country, region_id).json()
+        if not bool(r_json.get('error')):
+            self._update_citizen_location(country, region_id)
+            return True
+        else:
+            if "Travelling too fast." in r_json.get('message'):
+                self.sleep(1)
+                return self._travel(country, region_id)
+        return False
+
     def get_country_travel_region(self, country: constants.Country) -> int:
         regions = self.get_travel_regions(country=country)
         regs = []
@@ -711,12 +722,12 @@ class CitizenTravel(BaseCitizen):
         self.update_citizen_info()
         res_r = self.details.residence_region
         if self.details.residence_country and res_r and not res_r == self.details.current_region:
-            r_json = self._travel(self.details.residence_country, self.details.residence_region).json()
-            if r_json.get('message', '') == 'success':
-                self._update_citizen_location(self.details.residence_country, self.details.current_region)
-                self._report_action("TRAVEL", "Traveled to residence", response=r_json)
+            if self._travel(self.details.residence_country, self.details.residence_region):
+                self._report_action("TRAVEL", "Traveled to residence")
                 return True
-            return False
+            else:
+                self._report_action("TRAVEL", "Unable to travel to residence!")
+                return False
         return True
 
     def travel_to_region(self, region_id: int) -> bool:
@@ -725,12 +736,14 @@ class CitizenTravel(BaseCitizen):
             return True
         else:
             country = constants.COUNTRIES[data.get('preselectCountryId')]
-            r_json = self._travel(country, region_id).json()
-            if r_json.get('message', '') == 'success':
-                self._update_citizen_location(country, region_id)
-                self._report_action("TRAVEL", "Traveled to region", response=r_json)
+
+            if self._travel(country, region_id):
+                self._report_action("TRAVEL", "Traveled to region")
                 return True
-            return False
+            else:
+                self._report_action("TRAVEL", "Unable to travel to region!")
+
+        return False
 
     def travel_to_country(self, country: constants.Country) -> bool:
         data = self._post_main_travel_data(countryId=country.id, check="getCountryRegions").json()
@@ -742,11 +755,13 @@ class CitizenTravel(BaseCitizen):
                     regs.append((region['id'], region['distanceInKm']))
         if regs:
             region_id = min(regs, key=lambda _: int(_[1]))[0]
-            r_json = self._travel(country, region_id).json()
-            if r_json.get('message', '') == 'success':
-                self._update_citizen_location(country, region_id)
-                self._report_action("TRAVEL", f"Traveled to {country.name}", response=r_json)
+
+            if self._travel(country, region_id):
+                self._report_action("TRAVEL", f"Traveled to {country.name}")
                 return True
+            else:
+                self._report_action("TRAVEL", f"Unable to travel to {country.name}!")
+
         return False
 
     def travel_to_holding(self, holding: classes.Holding) -> bool:
@@ -756,15 +771,36 @@ class CitizenTravel(BaseCitizen):
         else:
             country = constants.COUNTRIES[data.get('preselectCountryId')]
             region_id = data.get('preselectRegionId')
-            r_json = self._travel(country, region_id).json()
-            if r_json.get('message', '') == 'success':
-                self._update_citizen_location(country, region_id)
-                self._report_action("TRAVEL", f"Traveled to holding {holding}", response=r_json)
-                return True
-            return False
 
-    def get_travel_regions(self, holding: classes.Holding = None, battle: classes.Battle = None, country: constants.Country = None
-                           ) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
+            if self._travel(country, region_id):
+                self._report_action("TRAVEL", f"Traveled to {holding}")
+                return True
+            else:
+                self._report_action("TRAVEL", f"Unable to travel to {holding}!")
+
+    def travel_to_battle(self, battle: classes.Battle, allowed_countries: List[constants.Country]) -> bool:
+        data = self.get_travel_regions(battle=battle)
+
+        regs = []
+        countries: Dict[int, constants.Country] = {c.id: c for c in allowed_countries}
+        if data:
+            for region in data.values():
+                if region['countryId'] in countries:  # Is not occupied by other country
+                    regs.append((region['distanceInKm'], region['id'], countries[region['countryId']]))
+        if regs:
+            reg = min(regs, key=lambda _: int(_[0]))
+            region_id = reg[1]
+            country = reg[2]
+            if self._travel(country, region_id):
+                self._report_action("TRAVEL", f"Traveled to {battle}")
+                return True
+            else:
+                self._report_action("TRAVEL", f"Unable to travel to {battle}!")
+        return False
+
+    def get_travel_regions(
+        self, holding: classes.Holding = None, battle: classes.Battle = None, country: constants.Country = None
+    ) -> Union[List[Any], Dict[str, Dict[str, Any]]]:
         return self._post_main_travel_data(
             holdingId=holding.id if holding else 0,
             battleId=battle.id if battle else 0,
@@ -1893,25 +1929,6 @@ class CitizenMilitary(CitizenTravel):
     def launch_attack(self, war_id: int, region_id: int, region_name: str):
         self._post_wars_attack_region(war_id, region_id, region_name)
         self._report_action("MILITARY_QUEUE_ATTACK", f"Battle for *{region_name}* queued")
-
-    def travel_to_battle(self, battle: classes.Battle, allowed_countries: List[constants.Country]) -> bool:
-        data = self.get_travel_regions(battle=battle)
-
-        regs = []
-        countries: Dict[int, constants.Country] = {c.id: c for c in allowed_countries}
-        if data:
-            for region in data.values():
-                if region['countryId'] in countries:  # Is not occupied by other country
-                    regs.append((region['distanceInKm'], region['id'], countries[region['countryId']]))
-        if regs:
-            reg = min(regs, key=lambda _: int(_[0]))
-            region_id = reg[1]
-            country = reg[2]
-            r = self._travel(country, region_id).json()
-            if r.get('message', '') == 'success':
-                self._update_citizen_location(country, region_id)
-                return True
-        return False
 
     def get_country_mus(self, country: constants.Country) -> Dict[int, str]:
         ret = {}
