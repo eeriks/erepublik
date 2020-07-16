@@ -980,7 +980,7 @@ class CitizenEconomy(CitizenTravel):
             self.write_log(f"Trying to sell unsupported industry {industry}")
 
         data = {
-            "country": self.details.citizenship,
+            "country_id": self.details.citizenship,
             "industry": industry,
             "quality": quality,
             "amount": amount,
@@ -1161,9 +1161,9 @@ class CitizenEconomy(CitizenTravel):
         if self.details.cc < amount or amount < 20:
             return False
         data = dict(country=country.id, action='currency', value=amount)
-        r = self._post_main_country_donate(**data)
+        r = self._post_main_country_donate(country.id, 'currency', amount)
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {country}\'s treasury')
+            self._report_action("CONTRIBUTE_CC", f'Contributed {amount}cc to {country}\'s treasury', kwargs=data)
             return True
         else:
             self._report_action("CONTRIBUTE_CC", f"Unable to contribute {amount}cc to {country}'s"
@@ -1176,11 +1176,11 @@ class CitizenEconomy(CitizenTravel):
         if self.food["q" + str(quality)] < amount or amount < 10:
             return False
         data = dict(country=country.id, action='food', value=amount, quality=quality)
-        r = self._post_main_country_donate(**data)
+        r = self._post_main_country_donate(country.id, 'currency', amount, quality)
 
         if r.json().get('status') or not r.json().get('error'):
             self._report_action("CONTRIBUTE_FOOD", f"Contributed {amount}q{quality} food to "
-                                                   f"{country}'s treasury")
+                                                   f"{country}'s treasury", kwargs=data)
             return True
         else:
             self._report_action("CONTRIBUTE_FOOD", f"Unable to contribute {amount}q{quality} food to "
@@ -1193,11 +1193,10 @@ class CitizenEconomy(CitizenTravel):
         if self.details.cc < amount:
             return False
         data = dict(country=country.id, action='gold', value=amount)
-        self.reporter.report_action("CONTRIBUTE_GOLD", data, str(amount))
-        r = self._post_main_country_donate(**data)
+        r = self._post_main_country_donate(country.id, 'gold', amount)
 
         if r.json().get('status') or not r.json().get('error'):
-            self._report_action("CONTRIBUTE_GOLD", f"Contributed {amount}g to {country}'s treasury")
+            self._report_action("CONTRIBUTE_GOLD", f"Contributed {amount}g to {country}'s treasury", kwargs=data)
             return True
         else:
             self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {country}'s"
@@ -1865,9 +1864,9 @@ class CitizenMilitary(CitizenTravel):
     def get_battle_round_data(self, division: classes.BattleDivision) -> Tuple[Any, Any]:
         battle = division.battle
 
-        data = dict(zoneId=battle.zone_id, round_id=battle.zone_id, division=division.div,
-                    battleZoneId=division.id, type="damage")
-        r = self._post_military_battle_console(battle.id, "battleStatistics", 1, **data)
+        r = self._post_military_battle_console(battle.id, "battleStatistics", 1,
+                                               zoneId=battle.zone_id, round_id=battle.zone_id, division=division.div,
+                                               battleZoneId=division.id, type="damage")
         r_json = r.json()
         return (r_json.get(str(battle.invader.id)).get("fighterData"),
                 r_json.get(str(battle.defender.id)).get("fighterData"))
@@ -1944,9 +1943,8 @@ class CitizenMilitary(CitizenTravel):
         mu_id = profile.get('military', {}).get('militaryUnit', {}).get('id', 0)
         if mu_id:
             name = profile.get('citizen', {}).get('name')
-            params = dict(currentPage=1, panel="members", sortBy="dailyOrdersCompleted",
-                          weekFilter=f"week{weeks_ago}", search=name)
-            member = self._get_military_unit_data(mu_id, **params).json()
+            member = self._get_military_unit_data(mu_id, currentPage=1, panel="members", sortBy="dailyOrdersCompleted",
+                                                  weekFilter=f"week{weeks_ago}", search=name).json()
             return member.get('panelContents', {}).get('members', [{}])[0].get('dailyOrdersCompleted')
         return 0
 
@@ -2195,20 +2193,19 @@ class CitizenTasks(BaseCitizen):
         self._report_action('ECONOMY_TG_CONTRACT', 'Bought TG Contract', kwargs=extra)
         return ret
 
-    def find_new_job(self) -> Response:
+    def find_new_job(self) -> bool:
         r = self._get_economy_job_market_json(self.details.current_country.id)
         jobs = r.json().get("jobs")
-        data = dict(citizen=0, salary=10)
+        data = dict(citizen_id=0, salary=10)
         for posting in jobs:
             salary = posting.get("salary")
             limit = posting.get("salaryLimit", 0)
             citizen_id = posting.get("citizen").get("id")
 
             if (not limit or salary * 3 < limit) and salary > data["salary"]:
-                data.update({"citizen": citizen_id, "salary": salary})
+                data.update(citizen_id=citizen_id, salary=salary)
 
-        self._report_action("ECONOMY_APPLY_FOR_JOB", f"I'm working now for {str(data['citizen'])}", kwargs=r.json())
-        return self._post_economy_job_market_apply(**data)
+        return self.apply_to_employer(data['citizen_id'], data['salary'])
 
     def apply_to_employer(self, employer_id: int, salary: float) -> bool:
         data = dict(citizenId=employer_id, salary=salary)
