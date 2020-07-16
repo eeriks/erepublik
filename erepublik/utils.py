@@ -1,3 +1,4 @@
+import copy
 import datetime
 import inspect
 import os
@@ -9,7 +10,7 @@ import traceback
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union, Dict
 
 import requests
 
@@ -177,7 +178,7 @@ def write_request(response: requests.Response, is_error: bool = False):
                 "mimetype": "application/json" if ext == "json" else "text/html"}
 
 
-def send_email(name: str, content: List[Any], player=None, local_vars: Mapping[Any, Any] = None,
+def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str, Any] = None,
                promo: bool = False, captcha: bool = False):
     if local_vars is None:
         local_vars = {}
@@ -220,6 +221,14 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Mapping[A
     if local_vars:
         if "state_thread" in local_vars:
             local_vars.pop('state_thread', None)
+
+        if isinstance(local_vars.get('self'), Citizen):
+            local_vars['self'] = repr(local_vars['self'])
+        if isinstance(local_vars.get('player'), Citizen):
+            local_vars['player'] = repr(local_vars['player'])
+        if isinstance(local_vars.get('citizen'), Citizen):
+            local_vars['citizen'] = repr(local_vars['citizen'])
+
         from erepublik.classes import MyJSONEncoder
         files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder, sort_keys=True),
                                "application/json")))
