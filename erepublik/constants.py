@@ -49,16 +49,16 @@ class Country:
 
 
 class Industries:
-    __by_name = {'food': 1, 'weapons': 2, 'house': 4, 'aircraft': 23,
-                 'foodraw': 7, 'weaponraw': 12, 'weaponsraw': 12, 'houseraw': 18, 'aircraftraw': 24,
+    __by_name = {'food': 1, 'weapon': 2, 'house': 4, 'aircraft': 23,
+                 'foodraw': 7, 'weaponraw': 12, 'houseraw': 18, 'aircraftraw': 24,
                  'frm': 7, 'wrm': 12, 'hrm': 18, 'arm': 24,
                  'frm q1': 7, 'frm q2': 8, 'frm q3': 9, 'frm q4': 10, 'frm q5': 11,
                  'wrm q1': 12, 'wrm q2': 13, 'wrm q3': 14, 'wrm q4': 15, 'wrm q5': 16,
                  'hrm q1': 18, 'hrm q2': 19, 'hrm q3': 20, 'hrm q4': 21, 'hrm q5': 22,
                  'arm q1': 24, 'arm q2': 25, 'arm q3': 26, 'arm q4': 27, 'arm q5': 28}
-    __by_id = {1: "Food", 2: "Weapons", 4: "House", 23: "Aircraft",
+    __by_id = {1: "Food", 2: "Weapon", 4: "House", 23: "Aircraft",
                7: "foodRaw", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
-               12: "weaponsRaw", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
+               12: "weaponRaw", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
                18: "houseRaw", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
                24: "aircraftRaw", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5"}
 
