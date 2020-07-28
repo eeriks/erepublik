@@ -230,7 +230,7 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
             local_vars['citizen'] = repr(local_vars['citizen'])
 
         from erepublik.classes import MyJSONEncoder
-        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder, sort_keys=True),
+        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder),
                                "application/json")))
     if isinstance(player, Citizen):
         files.append(('file', ("instance.json", player.to_json(indent=True), "application/json")))
@@ -368,3 +368,11 @@ def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_pat
     rang = r['military']['militaryData']['aircraft']['rankNumber']
     elite = r['citizenAttributes']['level'] > 100
     return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
+
+
+def _clear_up_battle_memory(battle):
+    from . import classes
+    battle: classes.Battle
+    del battle.invader._battle, battle.defender._battle
+    for div_id, division in battle.div.items():
+        del division._battle

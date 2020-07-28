@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import threading
+import weakref
 from decimal import Decimal
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
@@ -27,9 +28,10 @@ class Holding:
     id: int
     region: int
     companies: List["Company"]
+    _citizen = weakref.ReferenceType
 
     def __init__(self, _id: int, region: int, citizen):
-        self.citizen = citizen
+        self._citizen = weakref.ref(citizen)
         self.id: int = _id
         self.region: int = region
         self.companies: List["Company"] = list()
@@ -93,8 +95,13 @@ class Holding:
     def as_dict(self):
         return dict(name=str(self), id=self.id, region=self.region, companies=self.companies, wam_count=self.wam_count)
 
+    @property
+    def citizen(self):
+        return self._citizen()
+
 
 class Company:
+    _holding: weakref.ReferenceType
     holding: Holding
     id: int
     quality: int
@@ -113,7 +120,7 @@ class Company:
         base_production: Decimal, wam_enabled: bool, can_wam: bool, cannot_wam_reason: str, industry: int,
         already_worked: bool, preset_works: int
     ):
-        self.holding: Holding = holding
+        self._holding = weakref.ref(holding)
         self.id: int = _id
         self.industry: int = industry
         self.quality: int = self._get_real_quality(quality)
@@ -211,6 +218,10 @@ class Company:
         # noinspection PyProtectedMember
         return self.holding.citizen._post_economy_upgrade_company(self.id, level, self.holding.citizen.details.pin)
 
+    @property
+    def holding(self):
+        return self._holding()
+
 
 class MyCompanies:
     work_units: int = 0
@@ -218,13 +229,13 @@ class MyCompanies:
     ff_lockdown: int = 0
 
     holdings: Dict[int, Holding]
-    companies: List[Company]
+    companies: weakref.WeakSet
+    _citizen: weakref.ReferenceType
 
     def __init__(self, citizen):
-        from erepublik import Citizen
-        self.citizen: Citizen = citizen
+        self._citizen = weakref.ref(citizen)
         self.holdings: Dict[int, Holding] = dict()
-        self.companies: List[Company] = list()
+        self.companies: weakref.WeakSet = weakref.WeakSet()
         self.next_ot_time = utils.now()
 
     def prepare_holdings(self, holdings: Dict[str, Dict[str, Any]]):
@@ -233,8 +244,9 @@ class MyCompanies:
         """
         for holding in holdings.values():
             if holding.get('id') not in self.holdings:
-                self.holdings.update(
-                    {int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)})
+                self.holdings.update({
+                    int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)
+                })
         if not self.holdings.get(0):
             self.holdings.update({0: Holding(0, 0, self.citizen)})  # unassigned
 
@@ -258,7 +270,7 @@ class MyCompanies:
                 company_dict.get('can_work_as_manager'), company_dict.get('cannot_work_as_manager_reason'),
                 company_dict.get('industry_id'), company_dict.get('already_worked'), company_dict.get('preset_works')
             )
-            self.companies.append(company)
+            self.companies.add(company)
             holding.add_company(company)
 
     def get_employable_factories(self) -> Dict[int, int]:
@@ -282,6 +294,8 @@ class MyCompanies:
 
     def __clear_data(self):
         for holding in self.holdings.values():
+            for company in holding.companies:
+                del company
             holding.companies.clear()
         self.companies.clear()
 
@@ -289,6 +303,10 @@ class MyCompanies:
     def as_dict(self):
         return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time,
                     ff_lockdown=self.ff_lockdown, holdings=self.holdings, company_count=len(self.companies))
+
+    @property
+    def citizen(self):
+        return self._citizen()
 
 
 class Config:
@@ -528,7 +546,7 @@ class Reporter:
                     queue=self.__to_update)
 
     def __init__(self, citizen):
-        self.citizen = citizen
+        self._citizen = weakref.ref(citizen)
         self._req = Session()
         self.url = "https://api.erep.lv"
         self._req.headers.update({"user-agent": "Bot reporter v2"})
@@ -541,17 +559,21 @@ class Reporter:
         self.register_account()
         self.allowed = True
 
+    @property
+    def citizen(self):
+        return self._citizen()
+
     def __update_key(self):
         self.key = hashlib.md5(bytes(f"{self.name}:{self.email}", encoding="UTF-8")).hexdigest()
 
     def __bot_update(self, data: dict) -> Response:
         if self.__to_update:
             for unreported_data in self.__to_update:
-                unreported_data.update(player_id=self.citizen_id, key=self.key)
-                unreported_data = utils.json.load(utils.json.dumps(unreported_data, cls=MyJSONEncoder, sort_keys=True))
+                unreported_data.update(player_id=self.citizen.id, key=self.key)
+                unreported_data = utils.json.load(utils.json.dumps(unreported_data, cls=MyJSONEncoder))
                 self._req.post("{}/bot/update".format(self.url), json=unreported_data)
             self.__to_update.clear()
-        data = utils.json.loads(utils.json.dumps(data, cls=MyJSONEncoder, sort_keys=True))
+        data = utils.json.loads(utils.json.dumps(data, cls=MyJSONEncoder))
         r = self._req.post("{}/bot/update".format(self.url), json=data)
         return r
 
@@ -645,12 +667,13 @@ class BattleSide:
     deployed: List[constants.Country]
     allies: List[constants.Country]
     battle: "Battle"
+    _battle: weakref.ReferenceType
     country: constants.Country
     defender: bool
 
     def __init__(self, battle: "Battle", country: constants.Country, points: int, allies: List[constants.Country],
                  deployed: List[constants.Country], defender: bool):
-        self.battle = battle
+        self._battle = weakref.ref(battle)
         self.country = country
         self.points = points
         self.allies = allies
@@ -677,6 +700,10 @@ class BattleSide:
         return dict(points=self.points, country=self.country, defender=self.defender, allies=self.allies,
                     deployed=self.deployed, battle=repr(self.battle))
 
+    @property
+    def battle(self):
+        return self._battle()
+
 
 class BattleDivision:
     id: int
@@ -689,6 +716,7 @@ class BattleDivision:
     terrain: int
     div: int
     battle: "Battle"
+    _battle: weakref.ReferenceType
 
     @property
     def as_dict(self):
@@ -715,7 +743,7 @@ class BattleDivision:
         :type wall_for: int
         :type wall_dom: float
         """
-        self.battle = battle
+        self._battle = weakref.ref(battle)
         self.id = div_id
         self.end = end
         self.epic = epic
@@ -737,6 +765,10 @@ class BattleDivision:
 
     def __repr__(self):
         return f"<BattleDivision #{self.id} (battle #{self.battle.id})>"
+
+    @property
+    def battle(self):
+        return self._battle()
 
 
 class Battle:
