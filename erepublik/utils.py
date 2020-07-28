@@ -368,3 +368,11 @@ def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_pat
     rang = r['military']['militaryData']['aircraft']['rankNumber']
     elite = r['citizenAttributes']['level'] > 100
     return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
+
+
+def _clear_up_battle_memory(battle):
+    from . import classes
+    battle: classes.Battle
+    del battle.invader._battle, battle.defender._battle
+    for div_id, division in battle.div.items():
+        del division._battle

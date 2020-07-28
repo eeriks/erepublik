@@ -1314,9 +1314,6 @@ class CitizenMilitary(CitizenTravel):
     boosters: Dict[int, Dict[int, int]] = {100: {}, 50: {}}
 
     def update_war_info(self):
-        if not self.details.current_country:
-            self.update_citizen_info()
-
         if self.__last_war_update_data and self.__last_war_update_data.get('last_updated',
                                                                            0) + 30 > self.now.timestamp():
             r_json = self.__last_war_update_data
@@ -1341,7 +1338,10 @@ class CitizenMilitary(CitizenTravel):
                 all_battles = {}
                 for battle_data in r_json.get("battles", {}).values():
                     all_battles[battle_data.get('id')] = classes.Battle(battle_data)
+                old_all_battles = self.all_battles
                 self.all_battles = all_battles
+                for battle in old_all_battles.values():
+                    utils._clear_up_battle_memory(battle)
 
     def get_battle_for_war(self, war_id: int) -> Optional[classes.Battle]:
         self.update_war_info()
