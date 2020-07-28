@@ -230,7 +230,7 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
             local_vars['citizen'] = repr(local_vars['citizen'])
 
         from erepublik.classes import MyJSONEncoder
-        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder, sort_keys=True),
+        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder),
                                "application/json")))
     if isinstance(player, Citizen):
         files.append(('file', ("instance.json", player.to_json(indent=True), "application/json")))

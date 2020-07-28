@@ -393,7 +393,7 @@ class BaseCitizen(access_points.CitizenAPI):
             sleep(seconds)
 
     def to_json(self, indent: bool = False) -> str:
-        return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+        return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None)
 
     def get_countries_with_regions(self) -> Set[constants.Country]:
         r_json = self._post_main_travel_data().json()
@@ -1657,7 +1657,7 @@ class CitizenMilitary(CitizenTravel):
                     self.write_log("Hits: {:>4} | Damage: {}".format(total_hits, total_damage))
                     ok_to_fight = False
                     if total_damage:
-                        self.reporter.report_action("FIGHT", dict(battle=battle, side=side, dmg=total_damage,
+                        self.reporter.report_action("FIGHT", dict(battle=str(battle), side=str(side), dmg=total_damage,
                                                                   air=battle.has_air, hits=total_hits))
         return error_count
 
