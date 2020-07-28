@@ -244,8 +244,9 @@ class MyCompanies:
         """
         for holding in holdings.values():
             if holding.get('id') not in self.holdings:
-                self.holdings.update(
-                    {int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)})
+                self.holdings.update({
+                    int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)
+                })
         if not self.holdings.get(0):
             self.holdings.update({0: Holding(0, 0, self.citizen)})  # unassigned
 
@@ -293,6 +294,8 @@ class MyCompanies:
 
     def __clear_data(self):
         for holding in self.holdings.values():
+            for company in holding.companies:
+                del company
             holding.companies.clear()
         self.companies.clear()
 
