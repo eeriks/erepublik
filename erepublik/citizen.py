@@ -1516,35 +1516,33 @@ class CitizenMilitary(CitizenTravel):
         ret_battles = ret_battles + cs_battles + deployed_battles + other_battles
         return ret_battles
 
-    def get_cheap_tp_divisions(self) -> Optional[classes.BattleDivision]:
-        air_divs: List[Tuple[classes.BattleDivision, int]] = []
-        ground_divs: List[Tuple[classes.BattleDivision, int]] = []
+    def get_cheap_tp_divisions(self) -> Dict[str, List[Tuple[int, classes.BattleDivision]]]:
+        air_divs: List[Tuple[int, classes.BattleDivision]] = []
+        ground_divs: List[Tuple[int, classes.BattleDivision]] = []
         for battle in reversed(self.sorted_battles(True, True)):
             for division in battle.div.values():
-                if not division.terrain:
+                is_start_ok = utils.good_timedelta(division.battle.start, timedelta(minutes=-1)) < self.now
+                if not division.terrain and is_start_ok and not division.div_end:
                     if division.is_air and self.config.air:
-                        medal = self.get_battle_round_data(division)[
-                            self.details.citizenship == division.battle.defender.id]
-                        if not medal and division.battle.start:
-                            return division
+                        division_medals = self.get_battle_round_data(division)
+                        medal = division_medals[self.details.citizenship == division.battle.defender.country]
+                        if not medal:
+                            air_divs.append((0, division))
                         else:
-                            air_divs.append((division, medal.get('1').get('raw_value')))
-                    elif self.config.ground:
+                            air_divs.append((medal.get('1').get('raw_value'), division))
+                    elif not division.is_air and self.config.ground:
                         if not division.div == self.division and not self.maverick:
                             continue
                         division_medals = self.get_battle_round_data(division)
                         medal = division_medals[self.details.citizenship == division.battle.defender.country]
-                        if not medal and division.battle.start:
-                            return division
+                        if not medal:
+                            ground_divs.append((0, division))
                         else:
-                            ground_divs.append((division, medal.get('1').get('raw_value')))
+                            ground_divs.append((medal.get('1').get('raw_value'), division))
 
-        if self.config.air:
-            return min(air_divs, key=lambda x: x[1])[0]
-        elif self.config.ground:
-            return min(ground_divs, key=lambda x: x[1])[0]
-        else:
-            return
+        air_divs.sort(key=lambda dmg, div: (dmg, div.start))
+        ground_divs.sort(key=lambda dmg, div: (dmg, div.start))
+        return {'air': air_divs, 'ground': ground_divs}
 
     @property
     def has_battle_contribution(self):
