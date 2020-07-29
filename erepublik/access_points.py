@@ -433,7 +433,7 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
 
 class ErepublikPoliticsAPI(CitizenBaseAPI):
     def _get_candidate_party(self, party_slug: str) -> Response:
-        return self.post(f"{self.url}/candidate/{party_slug}")
+        return self.get(f"{self.url}/candidate/{party_slug}")
 
     def _get_main_party_members(self, party_id: int) -> Response:
         return self.get(f"{self.url}/main/party-members/{party_id}")
@@ -447,6 +447,13 @@ class ErepublikPoliticsAPI(CitizenBaseAPI):
 
     def _get_presidential_elections(self, country_id: int, timestamp: int) -> Response:
         return self.get(f"{self.url}/main/presidential-elections/{country_id}/{timestamp}")
+
+    def _post_propose_president_candidate(self, party_slug: str, citizen_id: int) -> Response:
+        return self.post(f"{self.url}/propose-president-candidate/{party_slug}",
+                         data=dict(_token=self.token, citizen=citizen_id))
+
+    def _get_auto_propose_president_candidate(self, party_slug: str) -> Response:
+        return self.get(f"{self.url}/auto-propose-president-candidate/{party_slug}")
 
 
 class ErepublikPresidentAPI(CitizenBaseAPI):
