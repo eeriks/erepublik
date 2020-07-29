@@ -1540,8 +1540,8 @@ class CitizenMilitary(CitizenTravel):
                         else:
                             ground_divs.append((medal.get('1').get('raw_value'), division))
 
-        air_divs.sort(key=lambda z: (z[0],z[1].start))
-        ground_divs.sort(key=lambda z:(z[0],z[1].start))
+        air_divs.sort(key=lambda z: (z[0],z[1].battle.start))
+        ground_divs.sort(key=lambda z:(z[0],z[1].battle.start))
         return {'air': air_divs, 'ground': ground_divs}
 
     @property
