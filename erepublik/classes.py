@@ -569,8 +569,8 @@ class Reporter:
     def __bot_update(self, data: dict) -> Response:
         if self.__to_update:
             for unreported_data in self.__to_update:
-                unreported_data.update(player_id=self.citizen.id, key=self.key)
-                unreported_data = utils.json.load(utils.json.dumps(unreported_data, cls=MyJSONEncoder))
+                unreported_data.update(player_id=self.citizen_id, key=self.key)
+                unreported_data = utils.json.loads(utils.json.dumps(unreported_data, cls=MyJSONEncoder))
                 self._req.post("{}/bot/update".format(self.url), json=unreported_data)
             self.__to_update.clear()
         data = utils.json.loads(utils.json.dumps(data, cls=MyJSONEncoder))

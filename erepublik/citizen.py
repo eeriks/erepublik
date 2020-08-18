@@ -1540,8 +1540,8 @@ class CitizenMilitary(CitizenTravel):
                         else:
                             ground_divs.append((medal.get('1').get('raw_value'), division))
 
-        air_divs.sort(key=lambda z: (z[0],z[1].battle.start))
-        ground_divs.sort(key=lambda z:(z[0],z[1].battle.start))
+        air_divs.sort(key=lambda z: (z[0], z[1].battle.start))
+        ground_divs.sort(key=lambda z: (z[0], z[1].battle.start))
         return {'air': air_divs, 'ground': ground_divs}
 
     @property
@@ -1609,7 +1609,8 @@ class CitizenMilitary(CitizenTravel):
                     self.travel_to_residence()
                     break
 
-    def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None, count: int = None) -> int:
+    def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None,
+              count: int = None) -> int:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
@@ -1763,7 +1764,8 @@ class CitizenMilitary(CitizenTravel):
         if resp.json().get('error'):
             self.write_log(resp.json().get('message'))
             return False
-        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle.id}", kwargs=resp.json())
+        self._report_action("MILITARY_DIV_SWITCH", f"Switched to d{division.div} in battle {battle.id}",
+                            kwargs=resp.json())
         return True
 
     def get_ground_hit_dmg_value(self, rang: int = None, strength: float = None, elite: bool = None, ne: bool = False,
@@ -1962,6 +1964,13 @@ class CitizenMilitary(CitizenTravel):
                                                   weekFilter=f"week{weeks_ago}", search=name).json()
             return member.get('panelContents', {}).get('members', [{}])[0].get('dailyOrdersCompleted')
         return 0
+
+    def get_possibly_empty_medals(self):
+        self.update_war_info()
+        for battle in self.all_battles.values():
+            for division in battle.div.values():
+                if division.wall['dom'] == 50 or division.wall['dom'] > 98:
+                    yield division, division.wall['for'] == battle.invader.country.id
 
 
 class CitizenPolitics(BaseCitizen):
