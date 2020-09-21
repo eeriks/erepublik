@@ -551,7 +551,7 @@ class Reporter:
         self.url = "https://api.erep.lv"
         self._req.headers.update({"user-agent": "eRepublik Script Reporter v3",
                                   'erep-version': utils.__version__,
-                                  'erep-user-id': self.citizen_id,
+                                  'erep-user-id': str(self.citizen_id),
                                   'erep-user-name': self.citizen.name})
         self.__to_update = []
         self.__registered: bool = False
