@@ -1523,7 +1523,7 @@ class CitizenMilitary(CitizenTravel):
                 if not division.terrain and is_start_ok and not division.div_end:
                     if division.is_air and self.config.air:
                         division_medals = self.get_battle_round_data(division)
-                        medal = division_medals[self.details.citizenship == division.battle.is_defender.country]
+                        medal = division_medals[self.details.citizenship == division.battle.defender.country]
                         if not medal:
                             air_divs.append((0, division))
                         else:
@@ -1532,7 +1532,7 @@ class CitizenMilitary(CitizenTravel):
                         if not division.div == self.division and not self.maverick:
                             continue
                         division_medals = self.get_battle_round_data(division)
-                        medal = division_medals[self.details.citizenship == division.battle.is_defender.country]
+                        medal = division_medals[self.details.citizenship == division.battle.defender.country]
                         if not medal:
                             ground_divs.append((0, division))
                         else:
@@ -1906,7 +1906,7 @@ class CitizenMilitary(CitizenTravel):
                                                battleZoneId=division.id, type="damage")
         r_json = r.json()
         return (r_json.get(str(battle.invader.id)).get("fighterData"),
-                r_json.get(str(battle.is_defender.id)).get("fighterData"))
+                r_json.get(str(battle.defender.id)).get("fighterData"))
 
     def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime):
         if at_time:
