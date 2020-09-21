@@ -12,8 +12,8 @@ __all__ = ['SlowRequests', 'CitizenAPI']
 
 class SlowRequests(Session):
     last_time: datetime.datetime
-    timeout = datetime.timedelta(milliseconds=500)
-    uas = [
+    timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)
+    uas: List[str] = [
         # Chrome
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',  # noqa
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',  # noqa
@@ -36,7 +36,7 @@ class SlowRequests(Session):
         'Mozilla/5.0 (X11; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0',
         'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0',
     ]
-    debug = False
+    debug: bool = False
 
     def __init__(self):
         super().__init__()

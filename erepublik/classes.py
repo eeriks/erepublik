@@ -629,7 +629,7 @@ class Reporter:
         except:  # noqa
             return []
 
-    def fetch_tasks(self) -> List[str, Tuple[Any]]:
+    def fetch_tasks(self) -> List[Union[str, Tuple[Any]]]:
         try:
             task_response = self._req.get(f'{self.url}/api/v1/command',
                                           params=dict(citizen=self.citizen_id, key=self.key))

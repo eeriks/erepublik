@@ -1615,7 +1615,7 @@ class CitizenMilitary(CitizenTravel):
         :param battle: Battle battle to fight in
         :type battle: Battle
         :param side: BattleSide or None. Battle side to fight in, If side not == invader id or not in invader deployed
-                                     allies list, then defender's side is chosen
+        allies list, then defender's side is chosen
         :type side: BattleSide
         :param count: How many hits to do, if not specified self.should_fight() is called.
         :type count: int
