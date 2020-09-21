@@ -294,7 +294,7 @@ class MyCompanies:
 
     def __clear_data(self):
         for holding in self.holdings.values():
-            for company in holding.companies:
+            for company in holding.companies:  # noqa
                 del company
             holding.companies.clear()
         self.companies.clear()
@@ -549,7 +549,10 @@ class Reporter:
         self._citizen = weakref.ref(citizen)
         self._req = Session()
         self.url = "https://api.erep.lv"
-        self._req.headers.update({"user-agent": "Bot reporter v2"})
+        self._req.headers.update({"user-agent": "eRepublik Script Reporter v3",
+                                  'erep-version': utils.__version__,
+                                  'erep-user-id': self.citizen_id,
+                                  'erep-user-name': self.citizen.name})
         self.__to_update = []
         self.__registered: bool = False
 
@@ -626,13 +629,13 @@ class Reporter:
         except:  # noqa
             return []
 
-    def fetch_tasks(self) -> Optional[Tuple[str, Tuple[Any]]]:
+    def fetch_tasks(self) -> List[str, Tuple[Any]]:
         try:
             task_response = self._req.get(f'{self.url}/api/v1/command',
                                           params=dict(citizen=self.citizen_id, key=self.key))
             return task_response.json().get('task_collection')
         except:  # noqa
-            return
+            return []
 
 
 class MyJSONEncoder(utils.json.JSONEncoder):
@@ -669,7 +672,7 @@ class BattleSide:
     battle: "Battle"
     _battle: weakref.ReferenceType
     country: constants.Country
-    defender: bool
+    is_defender: bool
 
     def __init__(self, battle: "Battle", country: constants.Country, points: int, allies: List[constants.Country],
                  deployed: List[constants.Country], defender: bool):
@@ -678,18 +681,18 @@ class BattleSide:
         self.points = points
         self.allies = allies
         self.deployed = deployed
-        self.defender = defender
+        self.is_defender = defender
 
     @property
     def id(self) -> int:
         return self.country.id
 
     def __repr__(self):
-        side_text = "Defender" if self.defender else "Invader "
+        side_text = "Defender" if self.is_defender else "Invader "
         return f"<BattleSide: {side_text} {self.country.name}|{self.points:02d}p>"
 
     def __str__(self):
-        side_text = "Defender" if self.defender else "Invader "
+        side_text = "Defender" if self.is_defender else "Invader "
         return f"{side_text} {self.country.name} - {self.points:02d} points"
 
     def __format__(self, format_spec):
@@ -697,8 +700,8 @@ class BattleSide:
 
     @property
     def as_dict(self):
-        return dict(points=self.points, country=self.country, defender=self.defender, allies=self.allies,
-                    deployed=self.deployed, battle=repr(self.battle))
+        return dict(points=self.points, country=self.country, is_defender=self.is_defender, allies=self.allies,
+                    deployed=self.deployed)
 
     @property
     def battle(self):
@@ -721,7 +724,7 @@ class BattleDivision:
     @property
     def as_dict(self):
         return dict(id=self.id, division=self.div, terrain=(self.terrain, self.terrain_display), wall=self.wall,
-                    epic=self.epic, battle=str(self.battle), end=self.div_end)
+                    epic=self.epic, end=self.div_end)
 
     @property
     def is_air(self):
@@ -788,7 +791,7 @@ class Battle:
     def as_dict(self):
         return dict(id=self.id, war_id=self.war_id, divisions=self.div, zone=self.zone_id, rw=self.is_rw,
                     dict_lib=self.is_dict_lib, start=self.start, sides={'inv': self.invader, 'def': self.defender},
-                    region=[self.region_id, self.region_name])
+                    region=[self.region_id, self.region_name], link=self.link)
 
     @property
     def has_air(self) -> bool:
@@ -796,6 +799,10 @@ class Battle:
             if div.div == 11:
                 return True
         return not bool(self.zone_id % 4)
+
+    @property
+    def has_started(self) -> bool:
+        return self.start <= utils.now()
 
     @property
     def has_ground(self) -> bool:
@@ -920,7 +927,7 @@ class TelegramBot:
     def as_dict(self):
         return {'chat_id': self.chat_id, 'api_url': self.api_url, 'player': self.player_name,
                 'last_time': self._last_time, 'next_time': self._next_time, 'queue': self.__queue,
-                'initialized': self.__initialized, 'has_threads': bool(len(self._threads))}
+                'initialized': self.__initialized, 'has_threads': not self._threads}
 
     def do_init(self, chat_id: int, token: str, player_name: str = ""):
         self.chat_id = chat_id

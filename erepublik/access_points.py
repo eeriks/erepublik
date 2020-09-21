@@ -115,12 +115,13 @@ class SlowRequests(Session):
 
 class CitizenBaseAPI:
     url: str = "https://www.erepublik.com/en"
-    _req: SlowRequests = None
-    token: str = ""
+    _req: SlowRequests
+    token: str
 
     def __init__(self):
         """ Class for unifying eRepublik known endpoints and their required/optional parameters """
         self._req = SlowRequests()
+        self.token = ""
 
     def post(self, url: str, data=None, json=None, **kwargs) -> Response:
         return self._req.post(url, data, json, **kwargs)

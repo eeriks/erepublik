@@ -833,23 +833,21 @@ class CitizenCompanies(BaseCitizen):
     def work_as_manager_in_holding(self, holding: classes.Holding) -> Optional[Dict[str, Any]]:
         return self._work_as_manager(holding)
 
-    def _work_as_manager(self, wam_holding: classes.Holding = None) -> Optional[Dict[str, Any]]:
+    def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
         if self.restricted_ip:
             return None
         self.update_companies()
         self.update_inventory()
         data = {"action_type": "production"}
         extra = {}
-        wam_list = []
-        if wam_holding:
-            raw_factories = wam_holding.get_wam_companies(raw_factory=True)
-            fin_factories = wam_holding.get_wam_companies(raw_factory=False)
+        raw_factories = wam_holding.get_wam_companies(raw_factory=True)
+        fin_factories = wam_holding.get_wam_companies(raw_factory=False)
 
-            free_inventory = self.inventory["total"] - self.inventory["used"]
-            wam_list = raw_factories + fin_factories
-            wam_list = wam_list[:self.energy.food_fights]
-            while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
-                wam_list.pop(-1)
+        free_inventory = self.inventory["total"] - self.inventory["used"]
+        wam_list = raw_factories + fin_factories
+        wam_list = wam_list[:self.energy.food_fights]
+        while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
+            wam_list.pop(-1)
 
         if wam_list:
             data.update(extra)
@@ -1016,7 +1014,7 @@ class CitizenEconomy(CitizenTravel):
             self.write_log(f"Trying to sell unsupported industry {industry}")
 
         data = {
-            "country_id": self.details.citizenship,
+            "country_id": self.details.citizenship.id,
             "industry": industry,
             "quality": quality,
             "amount": amount,
@@ -1071,7 +1069,7 @@ class CitizenEconomy(CitizenTravel):
         start_dt = self.now
         iterable = [countries, [quality] if quality else range(1, max_quality + 1)]
         for country, q in product(*iterable):
-            r = self._post_economy_marketplace(country, constants.INDUSTRIES[product_name], q).json()
+            r = self._post_economy_marketplace(country.id, constants.INDUSTRIES[product_name], q).json()
             obj = offers[f"q{q}"]
             if not r.get("error", False):
                 for offer in r["offers"]:
@@ -1525,7 +1523,7 @@ class CitizenMilitary(CitizenTravel):
                 if not division.terrain and is_start_ok and not division.div_end:
                     if division.is_air and self.config.air:
                         division_medals = self.get_battle_round_data(division)
-                        medal = division_medals[self.details.citizenship == division.battle.defender.country]
+                        medal = division_medals[self.details.citizenship == division.battle.is_defender.country]
                         if not medal:
                             air_divs.append((0, division))
                         else:
@@ -1534,7 +1532,7 @@ class CitizenMilitary(CitizenTravel):
                         if not division.div == self.division and not self.maverick:
                             continue
                         division_medals = self.get_battle_round_data(division)
-                        medal = division_medals[self.details.citizenship == division.battle.defender.country]
+                        medal = division_medals[self.details.citizenship == division.battle.is_defender.country]
                         if not medal:
                             ground_divs.append((0, division))
                         else:
@@ -1656,6 +1654,9 @@ class CitizenMilitary(CitizenTravel):
                     self.write_log("Hits: {:>4} | Damage: {}".format(total_hits, total_damage))
                     ok_to_fight = False
                     if total_damage:
+                        self.reporter.report_action('FIGHT', dict(battle_id=battle.id, side=side, dmg=total_damage,
+                                                                  air=battle.has_air, hits=total_hits,
+                                                                  round=battle.zone_id))
                         self.reporter.report_action("FIGHT", dict(battle=str(battle), side=str(side), dmg=total_damage,
                                                                   air=battle.has_air, hits=total_hits))
         return error_count
@@ -1905,7 +1906,7 @@ class CitizenMilitary(CitizenTravel):
                                                battleZoneId=division.id, type="damage")
         r_json = r.json()
         return (r_json.get(str(battle.invader.id)).get("fighterData"),
-                r_json.get(str(battle.defender.id)).get("fighterData"))
+                r_json.get(str(battle.is_defender.id)).get("fighterData"))
 
     def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime):
         if at_time:
@@ -2344,11 +2345,11 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 self.reporter.report_action("NEW_MEDAL", info)
 
     def set_debug(self, debug: bool):
-        self.debug = debug
-        self._req.debug = debug
+        self.debug = bool(debug)
+        self._req.debug = bool(debug)
 
     def set_pin(self, pin: int):
-        self.details.pin = pin
+        self.details.pin = int(pin)
 
     def update_all(self, force_update=False):
         # Do full update max every 5 min
@@ -2521,7 +2522,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 else:
                     if not start_place == (self.details.current_country, self.details.current_region):
                         self.travel_to_holding(holding)
-                    return self._wam(holding)
+                    self._wam(holding)
+                    return
         elif response.get("message") == "not_enough_health_food":
             self.buy_food()
             self._wam(holding)
@@ -2537,7 +2539,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         :rtype: bool
         """
         if self.restricted_ip:
-            self._report_action("IP_BLACKLISTED", "Fighting is not allowed from restricted IP!")
+            self._report_action("IP_BLACKLISTED", "Work as manager is not allowed from restricted IP!")
             return False
         self.update_citizen_info()
         self.update_companies()
@@ -2554,6 +2556,10 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 self.update_companies()
 
             for holding in regions.values():
+                raw_usage = holding.get_wam_raw_usage()
+                if (raw_usage['frm'] + raw_usage['wrm']) * 100 + self.inventory['used'] > self.inventory['total']:
+                    self._report_action('WAM_UNAVAILABLE', 'Not enough storage!')
+                    continue
                 self.travel_to_holding(holding)
                 self._wam(holding)
                 self.update_companies()

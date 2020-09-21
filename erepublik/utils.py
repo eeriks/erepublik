@@ -1,4 +1,3 @@
-import copy
 import datetime
 import inspect
 import os
@@ -10,7 +9,7 @@ import traceback
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Union, Dict
+from typing import Any, List, Optional, Union, Dict
 
 import requests
 
@@ -43,12 +42,11 @@ def localize_timestamp(timestamp: int) -> datetime.datetime:
 
 
 def localize_dt(dt: Union[datetime.date, datetime.datetime]) -> datetime.datetime:
-    try:
-        try:
-            return constants.erep_tz.localize(dt)
-        except AttributeError:
-            return constants.erep_tz.localize(datetime.datetime.combine(dt, datetime.time(0, 0, 0)))
-    except ValueError:
+    if isinstance(dt, datetime.datetime):
+        return constants.erep_tz.localize(dt)
+    elif isinstance(dt, datetime.date):
+        return constants.erep_tz.localize(datetime.datetime.combine(dt, datetime.time(0, 0, 0)))
+    else:
         return dt.astimezone(constants.erep_tz)
 
 
@@ -117,10 +115,12 @@ def _write_log(msg, timestamp: bool = True, should_print: bool = False):
 
 
 def write_interactive_log(*args, **kwargs):
+    kwargs.pop("should_print", None)
     _write_log(should_print=True, *args, **kwargs)
 
 
 def write_silent_log(*args, **kwargs):
+    kwargs.pop("should_print", None)
     _write_log(should_print=False, *args, **kwargs)
 
 
@@ -278,16 +278,17 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     elif interactive is not None:
         write_silent_log(log_info)
     trace = inspect.trace()
+    local_vars = None
     if trace:
-        trace = trace[-1][0].f_locals
-        if trace.get('__name__') == '__main__':
-            trace = {'commit_id': trace.get('COMMIT_ID'),
-                     'interactive': trace.get('INTERACTIVE'),
-                     'version': trace.get('__version__'),
-                     'config': trace.get('CONFIG')}
+        trace_local_vars = trace[-1][0].f_locals
+        if trace_local_vars.get('__name__') == '__main__':
+            local_vars = {'commit_id': trace_local_vars.get('COMMIT_ID'),
+                          'interactive': trace_local_vars.get('INTERACTIVE'),
+                          'version': trace_local_vars.get('__version__'),
+                          'config': trace_local_vars.get('CONFIG')}
     else:
-        trace = dict()
-    send_email(name, content, citizen, local_vars=trace)
+        local_vars = dict()
+    send_email(name, content, citizen, local_vars=local_vars)
 
 
 def process_warning(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None):
@@ -307,10 +308,10 @@ def process_warning(log_info: str, name: str, exc_info: tuple, citizen=None, com
 
     trace = inspect.trace()
     if trace:
-        trace = trace[-1][0].f_locals
+        local_vars = trace[-1][0].f_locals
     else:
-        trace = dict()
-    send_email(name, content, citizen, local_vars=trace)
+        local_vars = dict()
+    send_email(name, content, citizen, local_vars=local_vars)
 
 
 def slugify(value, allow_unicode=False) -> str:
@@ -371,8 +372,6 @@ def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_pat
 
 
 def _clear_up_battle_memory(battle):
-    from . import classes
-    battle: classes.Battle
     del battle.invader._battle, battle.defender._battle
     for div_id, division in battle.div.items():
         del division._battle
