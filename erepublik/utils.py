@@ -278,14 +278,13 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     elif interactive is not None:
         write_silent_log(log_info)
     trace = inspect.trace()
-    local_vars = None
     if trace:
-        trace_local_vars = trace[-1][0].f_locals
-        if trace_local_vars.get('__name__') == '__main__':
-            local_vars = {'commit_id': trace_local_vars.get('COMMIT_ID'),
-                          'interactive': trace_local_vars.get('INTERACTIVE'),
-                          'version': trace_local_vars.get('__version__'),
-                          'config': trace_local_vars.get('CONFIG')}
+        local_vars = trace[-1][0].f_locals
+        if local_vars.get('__name__') == '__main__':
+            local_vars.update({'commit_id': local_vars.get('COMMIT_ID'),
+                               'interactive': local_vars.get('INTERACTIVE'),
+                               'version': local_vars.get('__version__'),
+                               'config': local_vars.get('CONFIG')})
     else:
         local_vars = dict()
     send_email(name, content, citizen, local_vars=local_vars)
