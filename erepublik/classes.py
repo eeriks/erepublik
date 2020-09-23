@@ -618,6 +618,12 @@ class Reporter:
         else:
             self.__to_update.append(json_data)
 
+    def report_fighting(self, battle: "Battle", invader: bool, division: "BattleDivision", damage: float, hits: int):
+        side = battle.invader if invader else battle.defender
+        self.report_action('FIGHT', dict(battle_id=battle.id, side=side, dmg=damage,
+                                         air=battle.has_air, hits=hits,
+                                         round=battle.zone_id, extra=dict(battle=battle, side=side, division=division)))
+
     def report_promo(self, kind: str, time_until: datetime.datetime):
         self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
