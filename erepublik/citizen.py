@@ -1664,9 +1664,8 @@ class CitizenMilitary(CitizenTravel):
                     if total_damage:
                         self.reporter.report_action('FIGHT', dict(battle_id=battle.id, side=side, dmg=total_damage,
                                                                   air=battle.has_air, hits=total_hits,
-                                                                  round=battle.zone_id))
-                        self.reporter.report_action("FIGHT", dict(battle=str(battle), side=str(side), dmg=total_damage,
-                                                                  air=battle.has_air, hits=total_hits))
+                                                                  round=battle.zone_id,
+                                                                  extra=dict(battle=battle, side=side)))
         return error_count
 
     def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
