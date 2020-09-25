@@ -882,6 +882,8 @@ class CitizenCompanies(BaseCitizen):
             self.my_companies.prepare_holdings(utils.json.loads(have_holdings.group(1)))
             self.my_companies.prepare_companies(utils.json.loads(have_companies.group(1)))
 
+        self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
+
     def assign_company_to_holding(self, company: classes.Company, holding: classes.Holding) -> Response:
         """
         Assigns factory to new holding
@@ -1146,7 +1148,6 @@ class CitizenEconomy(CitizenTravel):
         self.details.gold = float(response.json().get("gold").get("value"))
         if response.json().get('error'):
             self._report_action("BUY_GOLD", "Unable to buy gold!", kwargs=response.json())
-            self.stop_threads.wait()
             return False
         else:
             self._report_action('BUY_GOLD', f'New amount {self.details.cc}cc, {self.details.gold}g',
