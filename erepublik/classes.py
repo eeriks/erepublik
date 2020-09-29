@@ -3,7 +3,7 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, NoReturn
 
 from requests import Response, Session, post
 
@@ -28,13 +28,23 @@ class Holding:
     id: int
     region: int
     companies: List["Company"]
+    name: str
     _citizen = weakref.ReferenceType
 
-    def __init__(self, _id: int, region: int, citizen):
+    def __init__(self, _id: int, region: int, citizen, name: str = None):
         self._citizen = weakref.ref(citizen)
         self.id: int = _id
         self.region: int = region
         self.companies: List["Company"] = list()
+        if name:
+            self.name = name
+        else:
+            name = f"Holding (#{self.id}) with {len(self.companies)} "
+            if len(self.companies) == 1:
+                name += "company"
+            else:
+                name += "companies"
+            self.name = name
 
     @property
     def wam_count(self) -> int:
@@ -48,7 +58,7 @@ class Holding:
     def employable_companies(self) -> List["Company"]:
         return [company for company in self.companies if company.preset_works]
 
-    def add_company(self, company: "Company"):
+    def add_company(self, company: "Company") -> NoReturn:
         self.companies.append(company)
         self.companies.sort()
 
@@ -62,7 +72,7 @@ class Holding:
                 wrm += company.raw_usage
         return dict(frm=frm, wrm=wrm)
 
-    def get_wam_companies(self, raw_factory: bool = None):
+    def get_wam_companies(self, raw_factory: bool = None) -> Optional[List["Company"]]:
         raw = []
         factory = []
         for company in self.wam_companies:
@@ -80,7 +90,7 @@ class Holding:
         else:
             raise ErepublikException("raw_factory should be True/False/None")
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = f"Holding (#{self.id}) with {len(self.companies)} "
         if len(self.companies) % 10 == 1:
             name += "company"
@@ -92,8 +102,9 @@ class Holding:
         return str(self)
 
     @property
-    def as_dict(self):
-        return dict(name=str(self), id=self.id, region=self.region, companies=self.companies, wam_count=self.wam_count)
+    def as_dict(self) -> Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]:
+        return dict(name=self.name, id=self.id, region=self.region,
+                    companies=[c.as_dict for c in self.companies], wam_count=self.wam_count)
 
     @property
     def citizen(self):
@@ -203,7 +214,7 @@ class Company:
         return str(self)
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[str, int, bool, float, Decimal]]:
         return dict(name=str(self), holding=self.holding.id, id=self.id, quality=self.quality, is_raw=self.is_raw,
                     raw_usage=self.raw_usage, products_made=self.products_made, wam_enabled=self.wam_enabled,
                     can_wam=self.can_wam, cannot_wam_reason=self.cannot_wam_reason, industry=self.industry,
@@ -219,7 +230,7 @@ class Company:
         return self.holding.citizen._post_economy_upgrade_company(self.id, level, self.holding.citizen.details.pin)
 
     @property
-    def holding(self):
+    def holding(self) -> Holding:
         return self._holding()
 
 
@@ -245,10 +256,10 @@ class MyCompanies:
         for holding in holdings.values():
             if holding.get('id') not in self.holdings:
                 self.holdings.update({
-                    int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen)
+                    int(holding.get('id')): Holding(holding['id'], holding['region_id'], self.citizen, holding['name'])
                 })
         if not self.holdings.get(0):
-            self.holdings.update({0: Holding(0, 0, self.citizen)})  # unassigned
+            self.holdings.update({0: Holding(0, 0, self.citizen, 'Unassigned')})  # unassigned
 
     def prepare_companies(self, companies: Dict[str, Dict[str, Any]]):
         """
@@ -300,9 +311,11 @@ class MyCompanies:
         self.companies.clear()
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[str, int, datetime.datetime, Dict[str, Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]]]]:
         return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time,
-                    ff_lockdown=self.ff_lockdown, holdings=self.holdings, company_count=len(self.companies))
+                    ff_lockdown=self.ff_lockdown,
+                    holdings={str(hi): h.as_dict for hi, h in self.holdings.items()},
+                    company_count=len(self.companies))
 
     @property
     def citizen(self):
