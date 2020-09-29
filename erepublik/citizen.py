@@ -684,7 +684,6 @@ class CitizenAnniversary(BaseCitizen):
                              base.get('prizes').get('prizes').get(str(r.get('result'))).get('tooltip'))
         else:
             while max_cost >= current_cost if max_cost else spin_count >= current_count if spin_count else False:
-                return
                 r = self._spin_wheel_of_loosing(current_cost)
                 current_count += 1
                 current_cost = r.get('cost')
