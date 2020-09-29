@@ -164,7 +164,7 @@ class ErepublikAnniversaryAPI(CitizenBaseAPI):
         return self.post(f"{self.url}/main/map-rewards-claim", data=data)
 
     def _post_main_wheel_of_fortune_spin(self, cost) -> Response:
-        return self.post(f"{self.url}/main/wheeloffortune-spin", data={'_token': self.token, "cost": cost})
+        return self.post(f"{self.url}/main/wheeloffortune-spin", data={'_token': self.token, "_currentCost": cost})
 
     def _post_main_wheel_of_fortune_build(self) -> Response:
         return self.post(f"{self.url}/main/wheeloffortune-build", data={'_token': self.token})
