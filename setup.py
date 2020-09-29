@@ -43,6 +43,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/eeriks/erepublik/',
-    version='0.21.5.3',
+    version='0.21.5.4',
     zip_safe=False,
 )
