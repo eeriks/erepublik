@@ -683,9 +683,8 @@ class CitizenAnniversary(BaseCitizen):
             _write_spin_data(current_cost, r.get('account'),
                              base.get('prizes').get('prizes').get(str(r.get('result'))).get('tooltip'))
         else:
-            is_cost: Callable[[], bool] = lambda: (max_cost != current_cost if max_cost else True)
-            is_count: Callable[[], bool] = lambda: (spin_count != current_count if spin_count else True)
-            while is_cost() or is_count():
+            while max_cost >= current_cost if max_cost else spin_count >= current_count if spin_count else False:
+                return
                 r = self._spin_wheel_of_loosing(current_cost)
                 current_count += 1
                 current_cost = r.get('cost')
@@ -694,8 +693,8 @@ class CitizenAnniversary(BaseCitizen):
 
     def _spin_wheel_of_loosing(self, current_cost: int) -> Dict[str, Any]:
         r = self._post_main_wheel_of_fortune_spin(current_cost).json()
-        self.details.cc = r.get('account')
-        return r.get('result')
+        self.details.cc = float(Decimal(r.get('account')))
+        return r
 
 
 class CitizenTravel(BaseCitizen):

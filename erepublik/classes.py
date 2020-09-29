@@ -451,24 +451,25 @@ class Energy:
 
 
 class Details:
-    xp = 0
-    cc = 0
-    pp = 0
-    pin = None
-    gold = 0
+    xp: int = 0
+    cc: float = 0
+    pp: int = 0
+    pin: str = None
+    gold: float = 0
     next_pp: List[int] = None
-    citizen_id = 0
+    citizen_id: int = 0
     citizenship: constants.Country
-    current_region = 0
+    current_region: int = 0
     current_country: constants.Country
-    residence_region = 0
+    residence_region: int = 0
     residence_country: constants.Country
-    daily_task_done = False
-    daily_task_reward = False
-    mayhem_skills = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, }
+    daily_task_done: bool = False
+    daily_task_reward: bool = False
+    mayhem_skills: Dict[int, int]
 
     def __init__(self):
         self.next_pp = []
+        self.mayhem_skills = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0}
 
     @property
     def xp_till_level_up(self):
