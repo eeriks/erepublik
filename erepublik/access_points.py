@@ -38,8 +38,10 @@ class SlowRequests(Session):
     ]
     debug: bool = False
 
-    def __init__(self):
+    def __init__(self, proxies: Dict[str, str] = None):
         super().__init__()
+        if proxies:
+            self.proxies = proxies
         self.request_log_name = utils.get_file(utils.now().strftime("debug/requests_%Y-%m-%d.log"))
         self.last_time = utils.now()
         self.headers.update({
@@ -131,6 +133,14 @@ class CitizenBaseAPI:
 
     def _get_main(self) -> Response:
         return self.get(self.url)
+
+    def set_socks_proxy(self, host: str, port: int, username: str = None, password: str = None):
+        url = f'socks5://{username}:{password}@{host}:{port}' if username and password else f'socks5://{host}:{port}'
+        self._req.proxies = dict(http=url, https=url)
+
+    def set_http_proxy(self, host: str, port: int, username: str = None, password: str = None):
+        url = f'http://{username}:{password}@{host}:{port}' if username and password else f'socks5://{host}:{port}'
+        self._req.proxies = dict(http=url)
 
 
 class ErepublikAnniversaryAPI(CitizenBaseAPI):

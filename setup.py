@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['pytz==2020.1', 'requests==2.24.0']
+requirements = ['pytz==2020.1', 'requests[socks]==2.24.0']
 
 setup_requirements = []
 
