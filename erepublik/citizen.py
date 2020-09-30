@@ -1692,7 +1692,7 @@ class CitizenMilitary(CitizenTravel):
             elif r_json.get("message") == "Cannot activate a zone with a non-native division":
                 self.write_log("Wrong division!!")
                 return 0, 10, 0
-            elif r_json.get("message") == "FIGHT_DISABLED":
+            elif r_json.get("message") in ["FIGHT_DISABLED","DEPLOYMENT_MODE"]:
                 self._post_main_profile_update('options',
                                                params='{"optionName":"enable_web_deploy","optionValue":"off"}')
                 self.set_default_weapon(battle, division)
