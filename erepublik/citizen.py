@@ -1387,6 +1387,7 @@ class CitizenMilitary(CitizenTravel):
                 try:
                     if weapon['weaponQuantity'] > 30 and weapon['weaponInfluence'] > weapon_damage:
                         weapon_quality = int(weapon['weaponId'])
+                        weapon_damage = weapon['weaponInfluence']
                 except ValueError:
                     pass
         return self.change_weapon(battle, weapon_quality, division)
