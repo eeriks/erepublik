@@ -6,7 +6,7 @@ from decimal import Decimal
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from requests import HTTPError, RequestException, Response
 
@@ -1686,14 +1686,17 @@ class CitizenMilitary(CitizenTravel):
         damage = 0
         err = False
         if r_json.get("error"):
-            if r_json.get("message") == "SHOOT_LOCKOUT" or r_json.get("message") == "ZONE_INACTIVE":
+            if r_json.get("message") == "SHOOT_LOCKOUT":
                 pass
             elif r_json.get("message") == "NOT_ENOUGH_WEAPONS":
                 self.set_default_weapon(battle, division)
             elif r_json.get("message") == "Cannot activate a zone with a non-native division":
                 self.write_log("Wrong division!!")
                 return 0, 10, 0
-            elif r_json.get("message") in ["FIGHT_DISABLED","DEPLOYMENT_MODE"]:
+            elif r_json.get("message") == "ZONE_INACTIVE":
+                self.write_log("Wrong division!!")
+                return 0, 10, 0
+            elif r_json.get("message") in ["FIGHT_DISABLED", "DEPLOYMENT_MODE"]:
                 self._post_main_profile_update('options',
                                                params='{"optionName":"enable_web_deploy","optionValue":"off"}')
                 self.set_default_weapon(battle, division)
@@ -1998,7 +2001,8 @@ class CitizenPolitics(BaseCitizen):
         self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
         return self._get_candidate_party(self.politics.party_slug)
 
-    def get_country_president_election_result(self, country: constants.Country, year: int, month: int) -> Dict[str, int]:
+    def get_country_president_election_result(self, country: constants.Country, year: int, month: int) -> Dict[
+        str, int]:
         timestamp = int(constants.erep_tz.localize(datetime(year, month, 5)).timestamp())
         resp = self._get_presidential_elections(country.id, timestamp)
         candidates = re.findall(r'class="candidate_info">(.*?)</li>', resp.text, re.S | re.M)

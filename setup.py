@@ -11,11 +11,18 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['pytz==2020.1', 'requests==2.24.0', 'PySocks==1.7.1']
+requirements = [
+    'pytz==2020.1',
+    'requests==2.24.0',
+    'PySocks==1.7.1'
+]
 
 setup_requirements = []
 
-test_requirements = []
+test_requirements = [
+    "pytest==6.1.0",
+    "responses==0.12.0"
+]
 
 setup(
     author="Eriks Karls",
