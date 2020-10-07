@@ -938,8 +938,10 @@ class CitizenEconomy(CitizenTravel):
 
             global_cheapest = self.get_market_offers("house", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
-                self._travel(global_cheapest.country)
-                buy = self.buy_from_market(global_cheapest.offer_id, 1)
+                if self.travel_to_country(global_cheapest.country):
+                    buy = self.buy_from_market(global_cheapest.offer_id, 1)
+                else:
+                    buy = {'error': True, 'message': 'Unable to travel!'}
             else:
                 buy = self.buy_from_market(local_cheapest.offer_id, 1)
             if buy["error"]:
