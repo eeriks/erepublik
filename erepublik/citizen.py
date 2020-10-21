@@ -403,6 +403,41 @@ class BaseCitizen(access_points.CitizenAPI):
                 return_set.add(constants.COUNTRIES[country_data['id']])
         return return_set
 
+    def dump_instance(self):
+        filename = f"{self.__class__.__name__}__dump.json"
+        with open(filename, 'w') as f:
+            utils.json.dump(dict(email=self.config.email, password=self.config.password,
+                                 cookies=self._req.cookies.get_dict(), token=self.token,
+                                 user_agent=self._req.headers.get("User-Agent")), f, cls=classes.MyJSONEncoder)
+        self.write_log(f"Session saved to: '{filename}'")
+
+    @classmethod
+    def load_from_dump(cls, dump_name: str):
+        with open(dump_name) as f:
+            data = utils.json.load(f)
+        player = cls(data['email'], data['password'])
+        player._req.cookies.update(data['cookies'])
+        player._req.headers.update({"User-Agent": data['user_agent']})
+        player._resume_session()
+        return player
+
+    def _resume_session(self):
+        resp = self._req.get(self.url)
+        re_name_id = re.search(r'<a data-fblog="profile_avatar" href="/en/citizen/profile/(\d+)" '
+                               r'class="user_avatar" title="(.*?)">', resp.text)
+        if re_name_id:
+            self.name = re_name_id.group(2)
+            self.details.citizen_id = re_name_id.group(1)
+            self.write_log(f"Resumed as: {self.name}")
+            if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', resp.text):
+                self.restricted_ip = True
+                self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
+
+            self.logged_in = True
+            self.get_csrf_token()
+        else:
+            self._login()
+
     def __str__(self) -> str:
         return f"Citizen {self.name}"
 
@@ -1347,8 +1382,8 @@ class CitizenMilitary(CitizenTravel):
                     all_battles[battle_data.get('id')] = classes.Battle(battle_data)
                 old_all_battles = self.all_battles
                 self.all_battles = all_battles
-                for battle in old_all_battles.values():
-                    utils._clear_up_battle_memory(battle)
+                # for battle in old_all_battles.values():
+                #     utils._clear_up_battle_memory(battle)
 
     def get_battle_for_war(self, war_id: int) -> Optional[classes.Battle]:
         self.update_war_info()
@@ -2003,16 +2038,16 @@ class CitizenPolitics(BaseCitizen):
         self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
         return self._get_candidate_party(self.politics.party_slug)
 
-    def get_country_president_election_result(self, country: constants.Country, year: int, month: int) -> Dict[
-        str, int]:
+    def get_country_president_election_result(
+        self, country: constants.Country, year: int, month: int
+    ) -> Dict[str, int]:
         timestamp = int(constants.erep_tz.localize(datetime(year, month, 5)).timestamp())
         resp = self._get_presidential_elections(country.id, timestamp)
         candidates = re.findall(r'class="candidate_info">(.*?)</li>', resp.text, re.S | re.M)
         ret = {}
         for candidate in candidates:
-            name = re.search(
-                r'<a hovercard=1 class="candidate_name" href="//www.erepublik.com/en/citizen/profile/\d+" title="(.*)">',
-                candidate)
+            name = re.search(r'<a hovercard=1 class="candidate_name" href="//www.erepublik.com/en/citizen/profile/\d+"'
+                             r' title="(.*)">', candidate)
             name = name.group(1)
             votes = re.search(r'<span class="votes">(\d+) votes</span>', candidate).group(1)
             ret.update({name: int(votes)})
@@ -2271,6 +2306,16 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.set_debug(True)
         if auto_login:
             self.login()
+
+    @classmethod
+    def load_from_dump(cls, *args, **kwargs):
+        with open(f"{cls.__name__}__dump.json") as f:
+            data = utils.json.load(f)
+        player = cls(data['email'], data['password'], False)
+        player._req.cookies.update(data['cookies'])
+        player._req.headers.update({"User-Agent": data['user_agent']})
+        player._resume_session()
+        return player
 
     def config_setup(self, **kwargs):
         self.config.reset()

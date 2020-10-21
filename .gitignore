@@ -104,3 +104,4 @@ ENV/
 debug/
 log/
 docs/
+*dump.json
