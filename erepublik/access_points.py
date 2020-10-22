@@ -344,13 +344,17 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
                     orderBy="price_asc" if order_asc else "price_desc", _token=self.token)
         return self.post(f"{self.url}/economy/marketplaceAjax", data=data)
 
-    def _post_economy_marketplace_actions(self, amount: int, buy: bool = False, **kwargs) -> Response:
-        if buy:
-            data = dict(_token=self.token, offerId=kwargs['offer'], amount=amount, orderBy="price_asc", currentPage=1,
+    def _post_economy_marketplace_actions(self, action: str, **kwargs) -> Response:
+        if action == 'buy':
+            data = dict(_token=self.token, offerId=kwargs['offer'], amount=kwargs['amount'], orderBy="price_asc", currentPage=1,
                         buyAction=1)
-        else:
+        elif action == 'sell':
             data = dict(_token=self.token, countryId=kwargs["country_id"], price=kwargs["price"],
-                        industryId=kwargs["industry"], quality=kwargs["quality"], amount=amount, sellAction='postOffer')
+                        industryId=kwargs["industry"], quality=kwargs["quality"], amount=kwargs['amount'], sellAction='postOffer')
+        elif action == 'delete':
+            data = dict(_token=self.token, offerId=kwargs["offer_id"], sellAction='deleteOffer')
+        else:
+            raise ValueError(f"Action '{action}' is not supported! Only 'buy/sell/delete' actions are available")
         return self.post(f"{self.url}/economy/marketplaceActions", data=data)
 
 

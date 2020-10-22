@@ -7,6 +7,7 @@ import textwrap
 import time
 import traceback
 import unicodedata
+import warnings
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, List, Optional, Union, Dict
@@ -26,8 +27,8 @@ __all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_f
            'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file',
            'write_interactive_log', 'write_silent_log']
 
-if not sys.version_info >= (3, 7):
-    raise AssertionError('This script requires Python version 3.7 and higher\n'
+if not sys.version_info >= (3, 6):
+    raise AssertionError('This script requires Python version 3.6 and higher\n'
                          'But Your version is v{}.{}.{}'.format(*sys.version_info))
 
 VERSION: str = __version__
@@ -47,7 +48,7 @@ def localize_dt(dt: Union[datetime.date, datetime.datetime]) -> datetime.datetim
     elif isinstance(dt, datetime.date):
         return constants.erep_tz.localize(datetime.datetime.combine(dt, datetime.time(0, 0, 0)))
     else:
-        return dt.astimezone(constants.erep_tz)
+        raise TypeError(f"Argument dt must be and instance of datetime.datetime or datetime.date not {type(dt)}")
 
 
 def good_timedelta(dt: datetime.datetime, td: datetime.timedelta) -> datetime.datetime:
@@ -370,7 +371,11 @@ def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_pat
     return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
 
 
-def _clear_up_battle_memory(battle):
-    del battle.invader._battle, battle.defender._battle
-    for div_id, division in battle.div.items():
-        del division._battle
+# def _clear_up_battle_memory(battle):
+#     del battle.invader._battle, battle.defender._battle
+#     for div_id, division in battle.div.items():
+#         del division._battle
+
+
+def deprecation(message):
+    warnings.warn(message, DeprecationWarning, stacklevel=2)

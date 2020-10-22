@@ -2,6 +2,15 @@
 History
 =======
 
+0.22.0 (2020-10-22)
+-------------------
+* Ability to dump session and restore from file
+* Proxy support
+* Inventory updates
+* Remove market offers
+* Memory and network optimizations
+* Python 3.6 supported
+
 0.20.0 (2020-06-15)
 -------------------
 * Massive restructuring

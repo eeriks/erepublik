@@ -3,7 +3,7 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, NoReturn
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, NoReturn, Generator, Iterable
 
 from requests import Response, Session, post
 
@@ -39,8 +39,9 @@ class Holding:
         if name:
             self.name = name
         else:
-            name = f"Holding (#{self.id}) with {len(self.companies)} "
-            if len(self.companies) == 1:
+            comp_sum = len(self.companies)
+            name = f"Holding (#{self.id}) with {comp_sum} "
+            if comp_sum == 1:
                 name += "company"
             else:
                 name += "companies"
@@ -48,14 +49,14 @@ class Holding:
 
     @property
     def wam_count(self) -> int:
-        return sum([company.wam_enabled and not company.already_worked for company in self.companies])
+        return len([1 for company in self.companies if company.wam_enabled and not company.already_worked])
 
     @property
-    def wam_companies(self) -> List["Company"]:
+    def wam_companies(self) -> Iterable["Company"]:
         return [company for company in self.companies if company.wam_enabled]
 
     @property
-    def employable_companies(self) -> List["Company"]:
+    def employable_companies(self) -> Iterable["Company"]:
         return [company for company in self.companies if company.preset_works]
 
     def add_company(self, company: "Company") -> NoReturn:
@@ -72,7 +73,7 @@ class Holding:
                 wrm += company.raw_usage
         return dict(frm=frm, wrm=wrm)
 
-    def get_wam_companies(self, raw_factory: bool = None) -> Optional[List["Company"]]:
+    def get_wam_companies(self, raw_factory: bool = None) -> List["Company"]:
         raw = []
         factory = []
         for company in self.wam_companies:
@@ -81,18 +82,15 @@ class Holding:
                     raw.append(company)
                 else:
                     factory.append(company)
-        if raw_factory is not None and not raw_factory:
-            return factory
-        elif raw_factory is not None and raw_factory:
-            return raw
-        elif raw_factory is None:
+        if raw_factory is None:
             return raw + factory
         else:
-            raise ErepublikException("raw_factory should be True/False/None")
+            return raw if raw_factory else factory
 
     def __str__(self) -> str:
-        name = f"Holding (#{self.id}) with {len(self.companies)} "
-        if len(self.companies) % 10 == 1:
+        comp = len(self.companies)
+        name = f"Holding (#{self.id}) with {comp} "
+        if comp == 1:
             name += "company"
         else:
             name += "companies"
@@ -181,7 +179,7 @@ class Company:
 
     @property
     def _sort_keys(self):
-        return not self.is_raw, self._internal_industry, -self.quality, self.id
+        return not self.is_raw, self._internal_industry, self.quality, self.id
 
     def __hash__(self):
         return hash(self._sort_keys)
@@ -240,13 +238,14 @@ class MyCompanies:
     ff_lockdown: int = 0
 
     holdings: Dict[int, Holding]
-    companies: weakref.WeakSet
+    _companies: weakref.WeakSet
     _citizen: weakref.ReferenceType
+    companies: Generator[Company, None, None]
 
     def __init__(self, citizen):
         self._citizen = weakref.ref(citizen)
-        self.holdings: Dict[int, Holding] = dict()
-        self.companies: weakref.WeakSet = weakref.WeakSet()
+        self.holdings = dict()
+        self._companies = weakref.WeakSet()
         self.next_ot_time = utils.now()
 
     def prepare_holdings(self, holdings: Dict[str, Dict[str, Any]]):
@@ -281,7 +280,7 @@ class MyCompanies:
                 company_dict.get('can_work_as_manager'), company_dict.get('cannot_work_as_manager_reason'),
                 company_dict.get('industry_id'), company_dict.get('already_worked'), company_dict.get('preset_works')
             )
-            self.companies.add(company)
+            self._companies.add(company)
             holding.add_company(company)
 
     def get_employable_factories(self) -> Dict[int, int]:
@@ -291,14 +290,18 @@ class MyCompanies:
         return sum([holding.wam_count for holding in self.holdings.values()])
 
     @staticmethod
-    def get_needed_inventory_usage(companies: Union[Company, List[Company]]) -> Decimal:
+    def get_needed_inventory_usage(companies: Union[Company, Iterable[Company]]) -> Decimal:
         if isinstance(companies, list):
-            return sum([company.products_made * 100 if company.is_raw else 1 for company in companies])
+            return sum(company.products_made * 100 if company.is_raw else 1 for company in companies)
         else:
             return companies.products_made
 
+    @property
+    def companies(self) -> Generator[Company, None, None]:
+        return (c for c in self._companies)
+
     def __str__(self):
-        return f"MyCompanies: {len(self.companies)} companies in {len(self.holdings)} holdings"
+        return f"MyCompanies: {sum(1 for _ in self.companies)} companies in {len(self.holdings)} holdings"
 
     def __repr__(self):
         return str(self)
@@ -308,14 +311,14 @@ class MyCompanies:
             for company in holding.companies:  # noqa
                 del company
             holding.companies.clear()
-        self.companies.clear()
+        self._companies.clear()
 
     @property
     def as_dict(self) -> Dict[str, Union[str, int, datetime.datetime, Dict[str, Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]]]]:
         return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time,
                     ff_lockdown=self.ff_lockdown,
                     holdings={str(hi): h.as_dict for hi, h in self.holdings.items()},
-                    company_count=len(self.companies))
+                    company_count=sum(1 for _ in self.companies))
 
     @property
     def citizen(self):
@@ -869,7 +872,7 @@ class Battle:
             if data.get('end'):
                 end = datetime.datetime.fromtimestamp(data.get('end'), tz=constants.erep_tz)
             else:
-                end = utils.localize_dt(datetime.datetime.max - datetime.timedelta(days=1))
+                end = constants.max_datetime
 
             battle_div = BattleDivision(self, div_id=data.get('id'), div=data.get('div'), end=end,
                                         epic=data.get('epic_type') in [1, 5],

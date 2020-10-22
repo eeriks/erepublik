@@ -1,6 +1,7 @@
 import re
 import sys
 import warnings
+import weakref
 from datetime import datetime, timedelta
 from decimal import Decimal
 from itertools import product
@@ -14,10 +15,12 @@ from . import utils, classes, access_points, constants
 
 
 class BaseCitizen(access_points.CitizenAPI):
-    _last_full_update: datetime = utils.now().min
+    _last_full_update: datetime = constants.min_datetime
+    _last_inventory_update: datetime = constants.min_datetime
 
     promos: Dict[str, datetime] = None
-    inventory: Dict[str, int] = {'used': 0, 'total': 0}
+    inventory: Dict[str, Dict[str, Dict[int, Dict[str, Union[str, int, float]]]]]
+    inventory_status: Dict[str, int]
     boosters: Dict[int, Dict[int, int]] = {50: {}, 100: {}}
     ot_points: int = 0
 
@@ -56,6 +59,8 @@ class BaseCitizen(access_points.CitizenAPI):
 
         self.config.email = email
         self.config.password = password
+        self.inventory = {}
+        self.inventory_status = dict(used=0, total=0)
 
     def get_csrf_token(self):
         """
@@ -224,153 +229,165 @@ class BaseCitizen(access_points.CitizenAPI):
             self.politics.is_party_president = bool(party.get('is_party_president'))
             self.politics.party_slug = f"{party.get('stripped_title')}-{party.get('party_id')}"
 
-    def update_inventory(self) -> Dict[str, Any]:
+    def update_inventory(self):
         """
         Updates class properties and returns structured inventory.
         Return structure: {status: {used: int, total: int}, items: {active/final/raw: {item_token:{quality: data}}}
         If item kind is damageBoosters or aircraftDamageBoosters then kind is renamed to kind+quality and duration is
         used as quality.
-        :return: dict
         """
+        self._update_inventory_data(self._get_economy_inventory_items().json())
+
+    def get_inventory(self, force: bool = False):
+        if utils.good_timedelta(self._last_inventory_update, timedelta(minutes=2)) < self.now or force:
+            self.update_inventory()
+        return self.inventory
+
+    def _update_inventory_data(self, inv_data: Dict[str, Any]):
+        if not isinstance(inv_data, dict):
+            raise TypeError("Parameter `inv_data` must be dict not '{type(data)}'!")
+
+        status = inv_data.get("inventoryStatus", {})
+        if status:
+            self.inventory_status.clear()
+            self.inventory_status.update(used=status.get("usedStorage"), total=status.get("totalStorage"))
+        data = inv_data.get('inventoryItems', {})
+        if not data:
+            return
+        self._last_inventory_update = self.now
         self.food.update({"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0})
         self.eb_small = self.eb_double = self.eb_normal = 0
-
-        j = self._get_economy_inventory_items().json()
-        active_items = {}
-        if j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}):
-            for item in j.get("inventoryItems", {}).get("activeEnhancements", {}).get("items", {}).values():
-                if item.get('token'):
-                    kind = re.sub(r'_q\d\d*', "", item.get('token'))
+        active_items: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
+        if data.get("activeEnhancements", {}).get("items", {}):
+            for item_data in data.get("activeEnhancements", {}).get("items", {}).values():
+                if item_data.get('token'):
+                    kind = re.sub(r'_q\d\d*', "", item_data.get('token'))
                 else:
-                    kind = item.get('type')
+                    kind = item_data.get('type')
                 if kind not in active_items:
                     active_items[kind] = {}
-                icon = item['icon'] if item['icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
-                item_data = dict(name=item.get("name"), time_left=item['active']['time_left'], icon=icon, kind=kind,
-                                 quality=item.get("quality", 0))
+                icon = item_data['icon'] if item_data[
+                    'icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
+                item_data = dict(name=item_data.get("name"), time_left=item_data['active']['time_left'], icon=icon,
+                                 kind=kind,
+                                 quality=item_data.get("quality", 0))
 
-                if item.get('isPackBooster'):
+                if item_data.get('isPackBooster'):
                     active_items[kind].update({0: item_data})
                 else:
-                    active_items[kind].update({item.get("quality"): item_data})
+                    active_items[kind].update({item_data.get("quality"): item_data})
 
-        final_items = {}
-        for item in j.get("inventoryItems", {}).get("finalProducts", {}).get("items", {}).values():
-            name = item['name']
+        final_items: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
+        if data.get("finalProducts", {}).get("items", {}):
+            for item_data in data.get("finalProducts", {}).get("items", {}).values():
+                name = item_data['name']
 
-            if item.get('type'):
-                if item.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
-                    kind = f"{item['type']}{item['quality']}"
-                    if item['quality'] == 5:
-                        self.boosters[50].update({item['duration']: item['amount']})
-                    elif item['quality'] == 10:
-                        self.boosters[100].update({item['duration']: item['amount']})
+                if item_data.get('type'):
+                    if item_data.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
+                        kind = f"{item_data['type']}{item_data['quality']}"
+                        if item_data['quality'] == 5:
+                            self.boosters[50].update({item_data['duration']: item_data['amount']})
+                        elif item_data['quality'] == 10:
+                            self.boosters[100].update({item_data['duration']: item_data['amount']})
 
-                    delta = item['duration']
-                    if delta // 3600:
-                        name += f" {delta // 3600}h"
-                    if delta // 60 % 60:
-                        name += f" {delta // 60 % 60}m"
-                    if delta % 60:
-                        name += f" {delta % 60}s"
-                else:
-                    kind = item.get('type')
-            else:
-                if item['industryId'] == 1:
-                    amount = item['amount']
-                    q = item['quality']
-                    if 1 <= q <= 7:
-                        self.food.update({f"q{q}": amount})
+                        delta = item_data['duration']
+                        if delta // 3600:
+                            name += f" {delta // 3600}h"
+                        if delta // 60 % 60:
+                            name += f" {delta // 60 % 60}m"
+                        if delta % 60:
+                            name += f" {delta % 60}s"
                     else:
-                        if q == 10:
-                            self.eb_normal = amount
-                        elif q == 11:
-                            self.eb_double = amount
-                        elif q == 13:
-                            self.eb_small += amount
-                        elif q == 14:
-                            self.eb_small += amount
-                        elif q == 15:
-                            self.eb_small += amount
-                kind = re.sub(r'_q\d\d*', "", item.get('token'))
-
-            if item.get('token', "") == "house_q100":
-                self.ot_points = item['amount']
-
-            if kind not in final_items:
-                final_items[kind] = {}
-
-            if item['icon']:
-                icon = item['icon']
-            else:
-                if item['type'] == 'damageBoosters':
-                    icon = "/images/modules/pvp/damage_boosters/damage_booster.png"
-                elif item['type'] == 'aircraftDamageBoosters':
-                    icon = "/images/modules/pvp/damage_boosters/air_damage_booster.png"
-                elif item['type'] == 'prestigePointsBoosters':
-                    icon = "/images/modules/pvp/prestige_points_boosters/prestige_booster.png"
-                elif item['type'] == 'speedBoosters':
-                    icon = "/images/modules/pvp/speed_boosters/speed_booster.png"
-                elif item['type'] == 'catchupBoosters':
-                    icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
+                        kind = item_data.get('type')
                 else:
-                    icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
-            data = dict(kind=kind, quality=item.get('quality', 0), amount=item.get('amount', 0),
-                        durability=item.get('duration', 0), icon=icon, name=name)
-            if item.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
-                data = {data['durability']: data}
-            else:
-                if item.get('type') == 'bomb':
-                    firepower = 0
-                    try:
-                        firepower = item.get('attributes').get('firePower').get('value', 0)
-                    except AttributeError:
-                        pass
-                    finally:
-                        data.update(fire_power=firepower)
-                data = {data['quality']: data}
-            final_items[kind].update(data)
+                    if item_data['industryId'] == 1:
+                        amount = item_data['amount']
+                        q = item_data['quality']
+                        if 1 <= q <= 7:
+                            self.food.update({f"q{q}": amount})
+                        else:
+                            if q == 10:
+                                self.eb_normal = amount
+                            elif q == 11:
+                                self.eb_double = amount
+                            elif q == 13:
+                                self.eb_small += amount
+                            elif q == 14:
+                                self.eb_small += amount
+                            elif q == 15:
+                                self.eb_small += amount
+                    kind = re.sub(r'_q\d\d*', "", item_data.get('token'))
 
-        raw_materials = {}
-        if j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}):
-            for item in j.get("inventoryItems", {}).get("rawMaterials", {}).get("items", {}).values():
-                if item['isPartial']:
+                if item_data.get('token', "") == "house_q100":
+                    self.ot_points = item_data['amount']
+
+                if kind not in final_items:
+                    final_items[kind] = {}
+
+                if item_data['icon']:
+                    icon = item_data['icon']
+                else:
+                    if item_data['type'] == 'damageBoosters':
+                        icon = "/images/modules/pvp/damage_boosters/damage_booster.png"
+                    elif item_data['type'] == 'aircraftDamageBoosters':
+                        icon = "/images/modules/pvp/damage_boosters/air_damage_booster.png"
+                    elif item_data['type'] == 'prestigePointsBoosters':
+                        icon = "/images/modules/pvp/prestige_points_boosters/prestige_booster.png"
+                    elif item_data['type'] == 'speedBoosters':
+                        icon = "/images/modules/pvp/speed_boosters/speed_booster.png"
+                    elif item_data['type'] == 'catchupBoosters':
+                        icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
+                    else:
+                        icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
+                item_data = dict(kind=kind, quality=item_data.get('quality', 0), amount=item_data.get('amount', 0),
+                                 durability=item_data.get('duration', 0), icon=icon, name=name)
+                if item_data.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
+                    item_data = {item_data['durability']: item_data}
+                else:
+                    if item_data.get('type') == 'bomb':
+                        firepower = 0
+                        try:
+                            firepower = item_data.get('attributes').get('firePower').get('value', 0)
+                        except AttributeError:
+                            pass
+                        finally:
+                            item_data.update(fire_power=firepower)
+                    item_data = {item_data['quality']: item_data}
+                final_items[kind].update(item_data)
+
+        raw_materials: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
+        if data.get("rawMaterials", {}).get("items", {}):
+            for item_data in data.get("rawMaterials", {}).get("items", {}).values():
+                if item_data['isPartial']:
                     continue
-                kind = re.sub(r'_q\d\d*', "", item.get('token'))
-                if kind == "magnesium":
-                    kind = "raw_aircraft"
-                elif kind == "sand":
-                    kind = "raw_house"
+                kind = constants.INDUSTRIES[item_data['industryId']]
                 if kind not in raw_materials:
-                    raw_materials[kind] = []
-                if item['icon'].startswith('//www.erepublik.net/'):
-                    icon = item['icon']
+                    raw_materials[kind] = {}
+                if item_data['icon'].startswith('//www.erepublik.net/'):
+                    icon = item_data['icon']
                 else:
-                    icon = "//www.erepublik.net/" + item['icon']
+                    icon = "//www.erepublik.net/" + item_data['icon']
 
-                raw_materials[kind].append(
-                    dict(name=item.get("name"), amount=item['amount'] + (item.get('underCostruction', 0) / 100),
-                         icon=icon)
-                )
+                raw_materials[constants.INDUSTRIES[item_data.get('industryId')]].update({
+                    0: dict(name=item_data.get("name"),
+                            amount=item_data['amount'] + (item_data.get('underCostruction', 0) / 100),
+                            icon=icon)
+                })
 
-        offers = {}
+        offers: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
         for offer in self._get_economy_my_market_offers().json():
             kind = constants.INDUSTRIES[offer['industryId']]
-            data = dict(quality=offer.get('quality', 0), amount=offer.get('amount', 0), icon=offer.get('icon'),
-                        kind=kind, name=kind)
-            data = {data['quality']: data}
+            offer_data = dict(quality=offer.get('quality', 0), amount=offer.get('amount', 0), icon=offer.get('icon'),
+                              kind=kind, name=kind)
+            offer_data = {offer_data['quality']: offer_data}
 
             if kind not in offers:
                 offers[kind] = {}
 
-            offers[kind].update(data)
-
-        self.inventory.update({"used": j.get("inventoryStatus").get("usedStorage"),
-                               "total": j.get("inventoryStatus").get("totalStorage")})
-        inventory = dict(items=dict(active=active_items, final=final_items,
-                                    raw=raw_materials, offers=offers), status=self.inventory)
+            offers[kind].update(offer_data)
+        self.inventory.clear()
+        self.inventory.update(active=active_items, final=final_items, raw=raw_materials, offers=offers)
         self.food["total"] = sum([self.food[q] * constants.FOOD_ENERGY[q] for q in constants.FOOD_ENERGY])
-        return inventory
 
     def write_log(self, *args, **kwargs):
         if self.config.interactive:
@@ -406,8 +423,7 @@ class BaseCitizen(access_points.CitizenAPI):
     def dump_instance(self):
         filename = f"{self.__class__.__name__}__dump.json"
         with open(filename, 'w') as f:
-            utils.json.dump(dict(email=self.config.email, password=self.config.password,
-                                 cookies=self._req.cookies.get_dict(), token=self.token,
+            utils.json.dump(dict(config=self.config, cookies=self._req.cookies.get_dict(),
                                  user_agent=self._req.headers.get("User-Agent")), f, cls=classes.MyJSONEncoder)
         self.write_log(f"Session saved to: '{filename}'")
 
@@ -415,9 +431,12 @@ class BaseCitizen(access_points.CitizenAPI):
     def load_from_dump(cls, dump_name: str):
         with open(dump_name) as f:
             data = utils.json.load(f)
-        player = cls(data['email'], data['password'])
+        player = cls(data['config']['email'], "")
         player._req.cookies.update(data['cookies'])
         player._req.headers.update({"User-Agent": data['user_agent']})
+        for k, v in data.get('config', {}).items():
+            if hasattr(player.config, k):
+                setattr(player.config, k, v)
         player._resume_session()
         return player
 
@@ -878,15 +897,18 @@ class CitizenCompanies(BaseCitizen):
         if self.restricted_ip:
             return None
         self.update_companies()
-        self.update_inventory()
         data = {"action_type": "production"}
         extra = {}
         raw_factories = wam_holding.get_wam_companies(raw_factory=True)
         fin_factories = wam_holding.get_wam_companies(raw_factory=False)
 
-        free_inventory = self.inventory["total"] - self.inventory["used"]
+        free_inventory = self.inventory_status["total"] - self.inventory_status["used"]
         wam_list = raw_factories + fin_factories
         wam_list = wam_list[:self.energy.food_fights]
+
+        if int(free_inventory * 0.75) < self.my_companies.get_needed_inventory_usage(wam_list):
+            self.update_inventory()
+
         while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
             wam_list.pop(-1)
 
@@ -915,13 +937,12 @@ class CitizenCompanies(BaseCitizen):
             self.my_companies.prepare_holdings(utils.json.loads(have_holdings.group(1)))
             self.my_companies.prepare_companies(utils.json.loads(have_companies.group(1)))
 
-        self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
-
     def assign_company_to_holding(self, company: classes.Company, holding: classes.Holding) -> Response:
         """
         Assigns factory to new holding
         """
         self.write_log(f"{company} moved to {holding}")
+        company._holding = weakref.ref(holding)
         return self._post_economy_assign_to_holding(company.id, holding.id)
 
     def create_factory(self, industry_id: int, building_type: int = 1) -> Response:
@@ -954,17 +975,17 @@ class CitizenEconomy(CitizenTravel):
 
     def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
-        inv = self.update_inventory()
-        for house_quality, active_house in inv['items']['active'].get('house', {}).items():
+        inv = self.get_inventory()
+        for house_quality, active_house in inv['active'].get('house', {}).items():
             till = utils.good_timedelta(self.now, timedelta(seconds=active_house['time_left']))
             ret.update({house_quality: till})
         return ret
 
     def buy_and_activate_house(self, q: int) -> Dict[int, datetime]:
-        inventory = self.update_inventory()
         original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
-        if not inventory['items']['final'].get('house', {}).get(q, {}):
+        inv = self.get_inventory()
+        if not inv['final'].get('house', {}).get(q, {}):
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
                 countries.append(self.details.current_country)
@@ -1004,13 +1025,19 @@ class CitizenEconomy(CitizenTravel):
                 house_durability = self.buy_and_activate_house(q)
         return house_durability
 
-    def activate_house(self, quality: int) -> datetime:
-        active_until = self.now
-        r = self._post_economy_activate_house(quality)
-        if r.json().get("status") and not r.json().get("error"):
-            house = r.json()["inventoryItems"]["activeEnhancements"]["items"]["4_%i_active" % quality]
-            active_until = utils.good_timedelta(active_until, timedelta(seconds=house["active"]["time_left"]))
-        return active_until
+    def activate_house(self, quality: int) -> bool:
+        r = self._post_economy_activate_house(quality).json()
+        self._update_inventory_data(r)
+        if r.get("status") and not r.json().get("error"):
+            house: Dict[str, Union[int, str]] = self.get_inventory()['active']['house'][quality]
+            time_left = timedelta(seconds=house["time_left"])
+            active_until = utils.good_timedelta(self.now, time_left)
+            self._report_action(
+                'ACTIVATE_HOUSE',
+                f"Activated {house['name']}. Expires at {active_until.strftime('%F %T')} (after {time_left})"
+            )
+            return True
+        return False
 
     def get_game_token_offers(self):
         r = self._post_economy_game_tokens_market('retrieve').json()
@@ -1054,9 +1081,40 @@ class CitizenEconomy(CitizenTravel):
             ret.append(line)
         return ret
 
-    def post_market_offer(self, industry: int, quality: int, amount: int, price: float) -> Response:
+    def delete_my_market_offer(self, offer_id: int) -> bool:
+        offers = self.get_my_market_offers()
+        for offer in offers:
+            if offer['id'] == offer_id:
+                industry = constants.INDUSTRIES[offer['industry']]
+                amount = offer['amount']
+                q = offer['quality']
+                price = offer['price']
+                ret = self._post_economy_marketplace_actions('delete', offer_id=offer_id).json()
+                if ret.get('error'):
+                    self._report_action("ECONOMY_DELETE_OFFER", f"Unable to delete offer: '{ret.get('message')}'",
+                                        kwargs=offer)
+                else:
+                    self._report_action("ECONOMY_DELETE_OFFER",
+                                        f"Removed offer for {amount} x {industry} q{q} for {price}cc/each",
+                                        kwargs=offer)
+                return ret.get('error')
+        else:
+            self._report_action("ECONOMY_DELETE_OFFER", f"Unable to find offer id{offer_id}", kwargs={'offers': offers})
+        return False
+
+    def post_market_offer(self, industry: int, quality: int, amount: int, price: float) -> bool:
         if not constants.INDUSTRIES[industry]:
             self.write_log(f"Trying to sell unsupported industry {industry}")
+
+        final = industry in [1, 2, 4, 23]
+        items = self.inventory['final' if final else 'raw'][constants.INDUSTRIES[industry]]
+        if items[quality if final else 0]['amount'] < amount:
+            self.update_inventory()
+            items = self.inventory['final' if final else 'raw'][constants.INDUSTRIES[industry]]
+            if items[quality if final else 0]['amount'] < amount:
+                self._report_action("ECONOMY_SELL_PRODUCTS", "Unable to sell! Not enough items in storage!",
+                                    kwargs=dict(inventory=items[quality if final else 0], amount=amount))
+                return False
 
         data = {
             "country_id": self.details.citizenship.id,
@@ -1066,14 +1124,14 @@ class CitizenEconomy(CitizenTravel):
             "price": price,
             "buy": False,
         }
-        ret = self._post_economy_marketplace_actions(**data)
+        ret = self._post_economy_marketplace_actions('sell', **data).json()
         message = (f"Posted market offer for {amount}q{quality} "
                    f"{constants.INDUSTRIES[industry]} for price {price}cc")
-        self._report_action("ECONOMY_SELL_PRODUCTS", message, kwargs=ret.json())
-        return ret
+        self._report_action("ECONOMY_SELL_PRODUCTS", message, kwargs=ret)
+        return bool(ret.get('error', True))
 
     def buy_from_market(self, offer: int, amount: int) -> dict:
-        ret = self._post_economy_marketplace_actions(amount, True, offer=offer)
+        ret = self._post_economy_marketplace_actions('buy', offer=offer, amount=amount)
         json_ret = ret.json()
         if json_ret.get('error'):
             return json_ret
@@ -1380,7 +1438,7 @@ class CitizenMilitary(CitizenTravel):
                 all_battles = {}
                 for battle_data in r_json.get("battles", {}).values():
                     all_battles[battle_data.get('id')] = classes.Battle(battle_data)
-                old_all_battles = self.all_battles
+                # old_all_battles = self.all_battles
                 self.all_battles = all_battles
                 # for battle in old_all_battles.values():
                 #     utils._clear_up_battle_memory(battle)
@@ -1855,12 +1913,12 @@ class CitizenMilitary(CitizenTravel):
                     self._report_action("MILITARY_BOOSTER", f"Activated 50% {duration / 60}h damage booster")
                     self._post_economy_activate_booster(5, duration, "damage")
 
-    def get_active_ground_damage_booster(self):
-        inventory = self.update_inventory()
+    def get_active_ground_damage_booster(self) -> int:
+        inventory = self.get_inventory()
         quality = 0
-        if inventory['items']['active'].get('damageBoosters', {}).get(10):
+        if inventory['active'].get('damageBoosters', {}).get(10):
             quality = 100
-        elif inventory['items']['active'].get('damageBoosters', {}).get(5):
+        elif inventory['active'].get('damageBoosters', {}).get(5):
             quality = 50
         return quality
 
@@ -2055,17 +2113,7 @@ class CitizenPolitics(BaseCitizen):
 
 
 class CitizenSocial(BaseCitizen):
-    def send_mail_to_owner(self):
-        if not self.details.citizen_id == 1620414:
-            self.send_mail('Started', f'time {self.now.strftime("%Y-%m-%d %H-%M-%S")}', [1620414, ])
-            self.sleep(1)
-            msg_id = re.search(r'<input type="hidden" value="(\d+)" '
-                               r'id="delete_message_(\d+)" name="delete_message\[]">', self.r.text).group(1)
-            self._post_delete_message([msg_id])
-
-    def send_mail(self, subject: str, msg: str, ids: List[int] = None):
-        if ids is None:
-            ids = [1620414, ]
+    def send_mail(self, subject: str, msg: str, ids: List[int]):
         for player_id in ids:
             self._report_action('SOCIAL_MESSAGE', f'Sent a message to {player_id}',
                                 kwargs=dict(subject=subject, msg=msg, id=player_id))
@@ -2120,20 +2168,23 @@ class CitizenSocial(BaseCitizen):
     def get_report_notifications(self, page: int = 1) -> List[Dict[str, Any]]:
         return self._get_main_notifications_ajax_report(page).json().get('alertsList', [])
 
-    def delete_community_notification(self, notification_id: Union[int, List[int]]):
-        if not isinstance(notification_id, list):
-            notification_id = [notification_id]
-        self._post_main_notifications_ajax_community(notification_id)
+    def delete_community_notification(self, *notification_ids: int):
+        ids = []
+        for _id in sorted(notification_ids):
+            ids.append(int(_id))
+        self._post_main_notifications_ajax_community(ids)
 
-    def delete_system_notification(self, notification_id: Union[int, List[int]]):
-        if not isinstance(notification_id, list):
-            notification_id = [notification_id]
-        self._post_main_notifications_ajax_system(notification_id)
+    def delete_system_notification(self, *notification_ids: int):
+        ids = []
+        for _id in sorted(notification_ids):
+            ids.append(int(_id))
+        self._post_main_notifications_ajax_system(ids)
 
-    def delete_report_notification(self, notification_id: Union[int, List[int]]):
-        if not isinstance(notification_id, list):
-            notification_id = [notification_id]
-        self._post_main_notifications_ajax_report(notification_id)
+    def delete_report_notification(self, *notification_ids: int):
+        ids = []
+        for _id in sorted(notification_ids):
+            ids.append(int(_id))
+        self._post_main_notifications_ajax_report(ids)
 
     def get_all_notifications(self, page: int = 1) -> Dict[str, List[Dict[str, Any]]]:
         return dict(community=self.get_community_notifications(),
@@ -2144,11 +2195,11 @@ class CitizenSocial(BaseCitizen):
         for kind, notifications in self.get_all_notifications():
             if notifications:
                 if kind == "community":
-                    self.delete_community_notification([n['id'] for n in notifications])
+                    self.delete_community_notification(*[n['id'] for n in notifications])
                 elif kind == "report":
-                    self.delete_report_notification([n['id'] for n in notifications])
+                    self.delete_report_notification(*[n['id'] for n in notifications])
                 elif kind == "system":
-                    self.delete_system_notification([n['id'] for n in notifications])
+                    self.delete_system_notification(*[n['id'] for n in notifications])
                 else:
                     self.report_error(f"Unsupported notification kind: \"{kind}\"!")
 
@@ -2221,10 +2272,9 @@ class CitizenTasks(BaseCitizen):
                 self._eat("blue")
                 if self.energy.food_fights < len(tgs):
                     large = max(self.energy.reference_time, self.now)
-                    small = min(self.energy.reference_time, self.now)
-                    self.write_log("I don't have energy to train. Will sleep for {} seconds".format(
-                        (large - small).seconds))
-                    self.sleep(int((large - small).total_seconds()))
+                    sleep_seconds = utils.get_sleep_seconds(large)
+                    self.write_log(f"I don't have energy to train. Will sleep for {sleep_seconds} seconds")
+                    self.sleep(sleep_seconds)
                     self._eat("blue")
                 self.train()
 
@@ -2244,14 +2294,14 @@ class CitizenTasks(BaseCitizen):
             self._eat("blue")
             if self.energy.food_fights < 1:
                 large = max(self.energy.reference_time, self.now)
-                small = min(self.energy.reference_time, self.now)
-                self.write_log("I don't have energy to work OT. Will sleep for {}s".format((large - small).seconds))
-                self.sleep(int((large - small).total_seconds()))
+                sleep_seconds = utils.get_sleep_seconds(large)
+                self.write_log(f"I don't have energy to work OT. Will sleep for {sleep_seconds}s")
+                self.sleep(sleep_seconds)
                 self._eat("blue")
             self.work_ot()
 
     def resign_from_employer(self) -> bool:
-        r = self.update_job_info()
+        r = self._get_main_job_data()
         if r.json().get("isEmployee"):
             self._report_action('ECONOMY_RESIGN', 'Resigned from employer!', kwargs=r.json())
             self._post_economy_resign()
@@ -2293,28 +2343,24 @@ class CitizenTasks(BaseCitizen):
         if ot:
             self.next_ot_time = utils.localize_timestamp(int(ot.get("nextOverTime", 0)))
             self.ot_points = ot.get("points", 0)
-        return resp
 
 
 class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeaderBoard,
               CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
     debug: bool = False
 
-    def __init__(self, email: str = "", password: str = "", auto_login: bool = True):
+    def __init__(self, email: str = "", password: str = "", auto_login: bool = False):
         super().__init__(email, password)
-        self._last_full_update = utils.good_timedelta(self.now, - timedelta(minutes=5))
+        self._last_full_update = constants.min_datetime
         self.set_debug(True)
         if auto_login:
             self.login()
 
     @classmethod
-    def load_from_dump(cls, *args, **kwargs):
-        with open(f"{cls.__name__}__dump.json") as f:
-            data = utils.json.load(f)
-        player = cls(data['email'], data['password'], False)
-        player._req.cookies.update(data['cookies'])
-        player._req.headers.update({"User-Agent": data['user_agent']})
-        player._resume_session()
+    def load_from_dump(cls, dump_name: str = ""):
+        filename = dump_name if dump_name else f"{cls.__name__}__dump.json"
+        player: Citizen = super().load_from_dump(filename)  # noqa
+        player.login()
         return player
 
     def config_setup(self, **kwargs):
@@ -2337,7 +2383,6 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                                   "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
 
-        self._last_full_update = utils.good_timedelta(self.now, - timedelta(minutes=5))
         self.update_all(True)
 
     def update_citizen_info(self, html: str = None):
@@ -2407,23 +2452,21 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.debug = bool(debug)
         self._req.debug = bool(debug)
 
-    def set_pin(self, pin: int):
-        self.details.pin = int(pin)
+    def set_pin(self, pin: str):
+        self.details.pin = str(pin[:4])
 
     def update_all(self, force_update=False):
         # Do full update max every 5 min
-        if utils.good_timedelta(self._last_full_update, timedelta(minutes=5)) > self.now and not force_update:
-            return
-        else:
+        if utils.good_timedelta(self._last_full_update, timedelta(minutes=5)) < self.now or force_update:
             self._last_full_update = self.now
-        self.update_citizen_info()
-        self.update_war_info()
-        self.update_inventory()
-        self.update_companies()
-        self.update_money()
-        self.update_weekly_challenge()
-        self.send_state_update()
-        self.check_for_notification_medals()
+            self.update_citizen_info()
+            self.update_war_info()
+            self.update_inventory()
+            self.update_companies()
+            self.update_money()
+            self.update_weekly_challenge()
+            self.send_state_update()
+            self.check_for_notification_medals()
 
     def update_weekly_challenge(self):
         data = self._get_main_weekly_challenge_data().json()
@@ -2465,6 +2508,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         return count, log_msg, force_fight
 
     def collect_weekly_reward(self):
+        utils.deprecation(f"Logic moved to {self.__class__.__name__}.update_weekly_challenge()!")
         self.update_weekly_challenge()
 
     def collect_daily_task(self):
@@ -2484,6 +2528,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 start_time = utils.good_timedelta(start_time, timedelta(minutes=30))
                 self.send_state_update()
                 self.send_inventory_update()
+                self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
         except:  # noqa
@@ -2491,13 +2536,13 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
     def send_state_update(self):
         data = dict(xp=self.details.xp, cc=self.details.cc, gold=self.details.gold, pp=self.details.pp,
-                    inv_total=self.inventory['total'], inv=self.inventory['used'], hp_limit=self.energy.limit,
+                    inv_total=self.inventory_status['total'], inv=self.inventory_status['used'],
+                    hp_limit=self.energy.limit,
                     hp_interval=self.energy.interval, hp_available=self.energy.available, food=self.food['total'], )
         self.reporter.send_state_update(**data)
 
     def send_inventory_update(self):
-        to_report = self.update_inventory()
-        self.reporter.report_action("INVENTORY", json_val=to_report)
+        self.reporter.report_action("INVENTORY", json_val=self.get_inventory(True))
 
     def eat(self):
         """
@@ -2616,7 +2661,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
             for holding in regions.values():
                 raw_usage = holding.get_wam_raw_usage()
-                if (raw_usage['frm'] + raw_usage['wrm']) * 100 + self.inventory['used'] > self.inventory['total']:
+                free_storage = self.inventory_status['total'] - self.inventory_status['used']
+                if (raw_usage['frm'] + raw_usage['wrm']) * 100 > free_storage:
                     self._report_action('WAM_UNAVAILABLE', 'Not enough storage!')
                     continue
                 self.travel_to_holding(holding)

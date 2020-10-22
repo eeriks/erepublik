@@ -1,10 +1,14 @@
+import datetime
 from typing import Dict, Optional, Union
 
 import pytz
 
-__all__ = ["erep_tz", "Country", "AIR_RANKS", "COUNTRIES", "FOOD_ENERGY", "GROUND_RANKS", "GROUND_RANK_POINTS", "INDUSTRIES", "TERRAINS"]
+__all__ = ["erep_tz", 'min_datetime', "max_datetime", "Country", "AIR_RANKS", "COUNTRIES", "FOOD_ENERGY",
+           "GROUND_RANKS", "GROUND_RANK_POINTS", "INDUSTRIES", "TERRAINS"]
 
 erep_tz = pytz.timezone('US/Pacific')
+min_datetime = erep_tz.localize(datetime.datetime(2007, 11, 20))
+max_datetime = erep_tz.localize(datetime.datetime(2281, 9, 4))
 
 
 class Country:
@@ -59,7 +63,7 @@ class Industries:
     __by_id = {1: "Food", 2: "Weapon", 4: "House", 23: "Aircraft",
                7: "foodRaw", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
                12: "weaponRaw", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
-               18: "houseRaw", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
+               17: "houseRaw", 18: "houseRaw", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
                24: "aircraftRaw", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5"}
 
     def __getitem__(self, item) -> Optional[Union[int, str]]:

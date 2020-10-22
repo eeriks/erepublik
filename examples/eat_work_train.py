@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from erepublik import Citizen, utils
+from erepublik import Citizen, utils, constants
 
 CONFIG = {
     'email': 'player@email.com',
@@ -18,7 +18,7 @@ def main():
     player.set_debug(CONFIG.get('debug', False))
     player.login()
     now = player.now.replace(second=0, microsecond=0)
-    dt_max = now.replace(year=9999)
+    dt_max = constants.max_datetime
     tasks = {
         'eat': now,
     }
