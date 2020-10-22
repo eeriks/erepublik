@@ -9,4 +9,4 @@ __version__ = '0.22.1'
 from erepublik import classes, utils, constants
 from erepublik.citizen import Citizen
 
-__all__ = ["classes", "utils", "Citizen", ]
+__all__ = ["classes", "utils", "Citizen", 'constants']

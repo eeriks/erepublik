@@ -346,11 +346,12 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
 
     def _post_economy_marketplace_actions(self, action: str, **kwargs) -> Response:
         if action == 'buy':
-            data = dict(_token=self.token, offerId=kwargs['offer'], amount=kwargs['amount'], orderBy="price_asc", currentPage=1,
-                        buyAction=1)
+            data = dict(_token=self.token, offerId=kwargs['offer'], amount=kwargs['amount'],
+                        orderBy="price_asc", currentPage=1, buyAction=1)
         elif action == 'sell':
             data = dict(_token=self.token, countryId=kwargs["country_id"], price=kwargs["price"],
-                        industryId=kwargs["industry"], quality=kwargs["quality"], amount=kwargs['amount'], sellAction='postOffer')
+                        industryId=kwargs["industry"], quality=kwargs["quality"], amount=kwargs['amount'],
+                        sellAction='postOffer')
         elif action == 'delete':
             data = dict(_token=self.token, offerId=kwargs["offer_id"], sellAction='deleteOffer')
         else:
@@ -359,16 +360,16 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
 
 
 class ErepublikLeaderBoardAPI(CitizenBaseAPI):
-    def _get_main_leaderboards_damage_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response:
+    def _get_main_leaderboards_damage_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response: # noqa
         return self.get(f"{self.url}/main/leaderboards-damage-aircraft-rankings/{country_id}/{weeks}/{mu_id}/0")
 
-    def _get_main_leaderboards_damage_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response:
+    def _get_main_leaderboards_damage_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response: # noqa
         return self.get(f"{self.url}/main/leaderboards-damage-rankings/{country_id}/{weeks}/{mu_id}/{div}")
 
-    def _get_main_leaderboards_kills_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response:
+    def _get_main_leaderboards_kills_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response: # noqa
         return self.get(f"{self.url}/main/leaderboards-kills-aircraft-rankings/{country_id}/{weeks}/{mu_id}/0")
 
-    def _get_main_leaderboards_kills_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response:
+    def _get_main_leaderboards_kills_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response: # noqa
         return self.get(f"{self.url}/main/leaderboards-kills-rankings/{country_id}/{weeks}/{mu_id}/{div}")
 
 

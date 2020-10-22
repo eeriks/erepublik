@@ -1494,51 +1494,6 @@ class CitizenMilitary(CitizenTravel):
                                                f" new influence {influence}", kwargs=r.json())
         return influence
 
-    # def check_epic_battles(self):
-    #     active_fs = False
-    #     for battle_id in self.sorted_battles(self.config.sort_battles_time):
-    #         battle = self.all_battles.get(battle_id)
-    #         if not battle.is_air:
-    #             my_div: BattleDivision = battle.div.get(self.division)
-    #             if my_div.epic and my_div.end > self.now:
-    #                 if self.energy.food_fights > 50:
-    #                     inv_allies = battle.invader.deployed + [battle.invader.id]
-    #                     def_allies = battle.defender.deployed + [battle.defender.id]
-    #                     all_allies = inv_allies + def_allies
-    #                     if self.details.current_country not in all_allies:
-    #                         if self.details.current_country in battle.invader.allies:
-    #                             allies = battle.invader.deployed
-    #                             side = battle.invader.id
-    #                         else:
-    #                             allies = battle.defender.deployed
-    #                             side = battle.defender.id
-    #
-    #                         self.travel_to_battle(battle.id, allies)
-    #
-    #                     else:
-    #                         if self.details.current_country in inv_allies:
-    #                             side = battle.invader.id
-    #                         elif self.details.current_country in def_allies:
-    #                             side = battle.defender.id
-    #                         else:
-    #                             self.write_log(
-    #                                 f"Country {self.details.current_country} not in all allies list ({all_allies}) and "
-    #                                 f"also not in inv allies ({inv_allies}) nor def allies ({def_allies})")
-    #                             break
-    #                     error_count = 0
-    #                     while self.energy.food_fights > 5 and error_count < 20:
-    #                         errors = self.fight(battle_id, side_id=side, count=self.energy.food_fights - 5)
-    #                         if errors:
-    #                             error_count += errors
-    #                         if self.config.epic_hunt_ebs:
-    #                             self._eat('orange')
-    #                     self.travel_to_residence()
-    #                     break
-    #             elif bool(my_div.epic):
-    #                 active_fs = True
-    #
-    #     self.active_fs = active_fs
-
     def sorted_battles(self, sort_by_time: bool = True, only_tp=False) -> List[classes.Battle]:
         cs_battles_priority_air: List[classes.Battle] = []
         cs_battles_priority_ground: List[classes.Battle] = []

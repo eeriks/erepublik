@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `erepublik` package."""
-from typing import Callable
 
 from erepublik import Citizen
 
@@ -66,7 +65,8 @@ class TestErepublik(unittest.TestCase):
         self.assertEqual(self.citizen.next_reachable_energy, 0)
 
     def test_should_fight(self):
-        is_wc_close: Callable[[], bool] = lambda: self.citizen.max_time_till_full_ff > self.citizen.time_till_week_change
+        def is_wc_close():
+            return self.citizen.max_time_till_full_ff > self.citizen.time_till_week_change
         self.citizen.config.fight = False
         self.assertEqual(self.citizen.should_fight(), (0, "Fighting not allowed!", False))
 

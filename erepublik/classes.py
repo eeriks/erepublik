@@ -3,7 +3,7 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, NoReturn, Generator, Iterable
+from typing import Any, Dict, List, NamedTuple, Tuple, Union, NoReturn, Generator, Iterable
 
 from requests import Response, Session, post
 
@@ -314,7 +314,9 @@ class MyCompanies:
         self._companies.clear()
 
     @property
-    def as_dict(self) -> Dict[str, Union[str, int, datetime.datetime, Dict[str, Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]]]]:
+    def as_dict(self) -> Dict[str, Union[str, int, datetime.datetime, Dict[str, Dict[str, Union[
+        str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]
+    ]]]]:
         return dict(name=str(self), work_units=self.work_units, next_ot_time=self.next_ot_time,
                     ff_lockdown=self.ff_lockdown,
                     holdings={str(hi): h.as_dict for hi, h in self.holdings.items()},
@@ -857,13 +859,15 @@ class Battle:
         self.invader = BattleSide(
             self, constants.COUNTRIES[battle.get('inv', {}).get('id')], battle.get('inv', {}).get('points'),
             [constants.COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list')],
-            [constants.COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list') if row['deployed']], False
+            [constants.COUNTRIES[row.get('id')] for row in battle.get('inv', {}).get('ally_list') if row['deployed']],
+            False
         )
 
         self.defender = BattleSide(
             self, constants.COUNTRIES[battle.get('def', {}).get('id')], battle.get('def', {}).get('points'),
             [constants.COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list')],
-            [constants.COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list') if row['deployed']], True
+            [constants.COUNTRIES[row.get('id')] for row in battle.get('def', {}).get('ally_list') if row['deployed']],
+            True
         )
 
         self.div = {}
@@ -890,7 +894,8 @@ class Battle:
         else:
             time_part = "-{}".format(self.start - time_now)
 
-        return f"Battle {self.id} for {self.region_name[:16]} | {self.invader} : {self.defender} | Round time {time_part}"
+        return (f"Battle {self.id} for {self.region_name[:16]} | "
+                f"{self.invader} : {self.defender} | Round time {time_part}")
 
     def __repr__(self):
         return f"<Battle #{self.id} {self.invader}:{self.defender} R{self.zone_id}>"
