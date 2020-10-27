@@ -1026,9 +1026,9 @@ class CitizenEconomy(CitizenTravel):
         return house_durability
 
     def activate_house(self, quality: int) -> bool:
-        r = self._post_economy_activate_house(quality).json()
+        r: Dict[str, Any] = self._post_economy_activate_house(quality).json()
         self._update_inventory_data(r)
-        if r.get("status") and not r.json().get("error"):
+        if r.get("status") and not r.get("error"):
             house: Dict[str, Union[int, str]] = self.get_inventory()['active']['house'][quality]
             time_left = timedelta(seconds=house["time_left"])
             active_until = utils.good_timedelta(self.now, time_left)
