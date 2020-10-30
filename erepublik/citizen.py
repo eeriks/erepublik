@@ -264,6 +264,8 @@ class BaseCitizen(access_points.CitizenAPI):
                     kind = re.sub(r'_q\d\d*', "", item_data.get('token'))
                 else:
                     kind = item_data.get('type')
+                if constants.INDUSTRIES[kind]:
+                    kind = constants.INDUSTRIES[constants.INDUSTRIES[kind]]
                 if kind not in active_items:
                     active_items[kind] = {}
                 icon = item_data['icon'] if item_data[
@@ -316,10 +318,14 @@ class BaseCitizen(access_points.CitizenAPI):
                                 self.eb_small += amount
                             elif q == 15:
                                 self.eb_small += amount
+                                item_data.update(token='energy_bar')
                     kind = re.sub(r'_q\d\d*', "", item_data.get('token'))
 
                 if item_data.get('token', "") == "house_q100":
                     self.ot_points = item_data['amount']
+
+                if constants.INDUSTRIES[kind]:
+                    kind = constants.INDUSTRIES[constants.INDUSTRIES[kind]]
 
                 if kind not in final_items:
                     final_items[kind] = {}
@@ -339,10 +345,10 @@ class BaseCitizen(access_points.CitizenAPI):
                         icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
                     else:
                         icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
-                item_data = dict(kind=kind, quality=item_data.get('quality', 0), amount=item_data.get('amount', 0),
-                                 durability=item_data.get('duration', 0), icon=icon, name=name)
+                _item_data = dict(kind=kind, quality=item_data.get('quality', 0), amount=item_data.get('amount', 0),
+                                  durability=item_data.get('duration', 0), icon=icon, name=name)
                 if item_data.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
-                    item_data = {item_data['durability']: item_data}
+                    _item_data = {_item_data['durability']: item_data}
                 else:
                     if item_data.get('type') == 'bomb':
                         firepower = 0
@@ -351,9 +357,9 @@ class BaseCitizen(access_points.CitizenAPI):
                         except AttributeError:
                             pass
                         finally:
-                            item_data.update(fire_power=firepower)
-                    item_data = {item_data['quality']: item_data}
-                final_items[kind].update(item_data)
+                            _item_data.update(fire_power=firepower)
+                    _item_data = {_item_data['quality']: _item_data}
+                final_items[kind].update(_item_data)
 
         raw_materials: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
         if data.get("rawMaterials", {}).get("items", {}):
@@ -908,6 +914,7 @@ class CitizenCompanies(BaseCitizen):
 
         if int(free_inventory * 0.75) < self.my_companies.get_needed_inventory_usage(wam_list):
             self.update_inventory()
+            free_inventory = self.inventory_status["total"] - self.inventory_status["used"]
 
         while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
             wam_list.pop(-1)
@@ -985,7 +992,7 @@ class CitizenEconomy(CitizenTravel):
         original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
         inv = self.get_inventory()
-        if not inv['final'].get('house', {}).get(q, {}):
+        if not inv['final'].get('House', {}).get(q, {}):
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
                 countries.append(self.details.current_country)
@@ -1085,7 +1092,7 @@ class CitizenEconomy(CitizenTravel):
         offers = self.get_my_market_offers()
         for offer in offers:
             if offer['id'] == offer_id:
-                industry = constants.INDUSTRIES[offer['industry']]
+                industry = constants.INDUSTRIES[offer['industryId']]
                 amount = offer['amount']
                 q = offer['quality']
                 price = offer['price']
@@ -1097,7 +1104,7 @@ class CitizenEconomy(CitizenTravel):
                     self._report_action("ECONOMY_DELETE_OFFER",
                                         f"Removed offer for {amount} x {industry} q{q} for {price}cc/each",
                                         kwargs=offer)
-                return ret.get('error')
+                return not ret.get('error')
         else:
             self._report_action("ECONOMY_DELETE_OFFER", f"Unable to find offer id{offer_id}", kwargs={'offers': offers})
         return False
@@ -1128,7 +1135,7 @@ class CitizenEconomy(CitizenTravel):
         message = (f"Posted market offer for {amount}q{quality} "
                    f"{constants.INDUSTRIES[industry]} for price {price}cc")
         self._report_action("ECONOMY_SELL_PRODUCTS", message, kwargs=ret)
-        return bool(ret.get('error', True))
+        return not bool(ret.get('error', True))
 
     def buy_from_market(self, offer: int, amount: int) -> dict:
         ret = self._post_economy_marketplace_actions('buy', offer=offer, amount=amount)
