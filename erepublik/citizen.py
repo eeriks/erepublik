@@ -2593,6 +2593,9 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         elif response.get("message") == "not_enough_health_food":
             self.buy_food()
             self._wam(holding)
+        elif response.get("message") == "tax_money":
+            self._report_action("WORK_AS_MANAGER", "Not enough money to work as manager!", kwargs=response)
+            self.write_log("Not enough money to work as manager!")
         else:
             msg = "I was not able to wam and or employ because:\n{}".format(response)
             self._report_action("WORK_AS_MANAGER", f"Worked as manager failed: {msg}", kwargs=response)
