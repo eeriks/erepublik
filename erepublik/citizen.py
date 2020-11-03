@@ -348,7 +348,7 @@ class BaseCitizen(access_points.CitizenAPI):
                 _item_data = dict(kind=kind, quality=item_data.get('quality', 0), amount=item_data.get('amount', 0),
                                   durability=item_data.get('duration', 0), icon=icon, name=name)
                 if item_data.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
-                    _item_data = {_item_data['durability']: item_data}
+                    _item_data = {_item_data['durability']: _item_data}
                 else:
                     if item_data.get('type') == 'bomb':
                         firepower = 0
