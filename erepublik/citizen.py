@@ -996,10 +996,10 @@ class CitizenEconomy(CitizenTravel):
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
                 countries.append(self.details.current_country)
-            offers = [self.get_market_offers("house", q, country)[f"q{q}"] for country in countries]
+            offers = [self.get_market_offers("House", q, country)[f"q{q}"] for country in countries]
             local_cheapest = sorted(offers, key=lambda o: o.price)[0]
 
-            global_cheapest = self.get_market_offers("house", q)[f"q{q}"]
+            global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
                 if self.travel_to_country(global_cheapest.country):
                     buy = self.buy_from_market(global_cheapest.offer_id, 1)
@@ -1036,7 +1036,7 @@ class CitizenEconomy(CitizenTravel):
         r: Dict[str, Any] = self._post_economy_activate_house(quality).json()
         self._update_inventory_data(r)
         if r.get("status") and not r.get("error"):
-            house: Dict[str, Union[int, str]] = self.get_inventory()['active']['house'][quality]
+            house: Dict[str, Union[int, str]] = self.get_inventory()['active']['House'][quality]
             time_left = timedelta(seconds=house["time_left"])
             active_until = utils.good_timedelta(self.now, time_left)
             self._report_action(
@@ -1167,7 +1167,7 @@ class CitizenEconomy(CitizenTravel):
         if quality:
             offers[f"q{quality}"] = classes.OfferItem()
         else:
-            max_quality = 1 if product_name in q1_industries else 5 if product_name == 'house' else 7
+            max_quality = 1 if product_name in q1_industries else 5 if product_name.lower() == 'house' else 7
             for q in range(max_quality):
                 offers[f"q{q + 1}"] = classes.OfferItem()
 
