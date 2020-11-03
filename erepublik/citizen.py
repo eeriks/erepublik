@@ -983,7 +983,7 @@ class CitizenEconomy(CitizenTravel):
     def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
         inv = self.get_inventory()
-        for house_quality, active_house in inv['active'].get('house', {}).items():
+        for house_quality, active_house in inv['active'].get('House', {}).items():
             till = utils.good_timedelta(self.now, timedelta(seconds=active_house['time_left']))
             ret.update({house_quality: till})
         return ret
