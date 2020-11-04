@@ -2,6 +2,13 @@
 History
 =======
 
+0.22.1 (2020-11-4)
+-------------------
+* Requirement update
+* Unified product naming in inventory and other places based on `erepublik.constants.INDUSTRIES` values
+* `erepublik.Citizen` parameter `auto_login` now defaults to `False`
+* Continued work on more verbose action and result logging
+
 0.22.0 (2020-10-22)
 -------------------
 * Ability to dump session and restore from file

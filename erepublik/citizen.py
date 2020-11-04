@@ -1140,13 +1140,11 @@ class CitizenEconomy(CitizenTravel):
     def buy_from_market(self, offer: int, amount: int) -> dict:
         ret = self._post_economy_marketplace_actions('buy', offer=offer, amount=amount)
         json_ret = ret.json()
-        if json_ret.get('error'):
-            return json_ret
-        else:
+        if not json_ret.get('error', True):
             self.details.cc = ret.json()['currency']
             self.details.gold = ret.json()['gold']
             json_ret.pop("offerUpdate", None)
-            self._report_action("BOUGHT_PRODUCTS", "", kwargs=json_ret)
+            self._report_action("BOUGHT_PRODUCTS", json_ret.get('message'), kwargs=json_ret)
         return json_ret
 
     def get_market_offers(
@@ -2571,6 +2569,10 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 raw_kind = raw_kind.group(1)
                 result = response.get("result", {})
                 amount_needed = round(result.get("consume", 0) - result.get("stock", 0) + 0.49)
+                self._report_action(
+                    'WORK_AS_MANAGER', f"Unable to wam! Missing {amount_needed} {raw_kind}, will try to buy.",
+                    kwargs=response
+                )
                 start_place = (self.details.current_country, self.details.current_region)
                 while amount_needed > 0:
                     amount = amount_needed
@@ -2579,16 +2581,24 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
                     if not best_offer.country == self.details.current_country:
                         self.travel_to_country(best_offer.country)
+                    self._report_action("ECONOMY_BUY", f"Attempting to buy {amount} {raw_kind} for {best_offer.price*amount}cc")
                     rj = self.buy_from_market(amount=amount, offer=best_offer.offer_id)
                     if not rj.get('error'):
                         amount_needed -= amount
                     else:
                         self.write_log(rj.get('message', ""))
+                        self._report_action(
+                            "ECONOMY_BUY", f"Unable to buy products! Reason: {rj.get('message')}", kwargs=rj
+                        )
                         break
                 else:
                     if not start_place == (self.details.current_country, self.details.current_region):
                         self.travel_to_holding(holding)
                     self._wam(holding)
+                    return
+
+                if not start_place == (self.details.current_country, self.details.current_region):
+                    self.travel_to_residence()
                     return
         elif response.get("message") == "not_enough_health_food":
             self.buy_food()
