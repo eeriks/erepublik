@@ -2,6 +2,11 @@
 History
 =======
 
+0.22.2 (2020-11-9)
+-------------------
+* Allow querying market offers for q2-q5 aircrafts
+* Added "Ticket" industry
+
 0.22.1 (2020-11-4)
 -------------------
 * Requirement update

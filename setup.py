@@ -20,7 +20,7 @@ requirements = [
 setup_requirements = []
 
 test_requirements = [
-    "pytest==6.1.0",
+    "pytest==6.1.2",
     "responses==0.12.0"
 ]
 
