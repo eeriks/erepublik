@@ -1151,7 +1151,8 @@ class CitizenEconomy(CitizenTravel):
         self, product_name: str, quality: int = None, country: constants.Country = None
     ) -> Dict[str, classes.OfferItem]:
         raw_short_names = dict(frm="foodRaw", wrm="weaponRaw", hrm="houseRaw", arm="airplaneRaw")
-        q1_industries = ["aircraft"] + list(raw_short_names.values())
+        q1_industries = list(raw_short_names.values())
+        q5_industries = ['house', 'aircraft', 'ticket']
         if product_name in raw_short_names:
             quality = 1
             product_name = raw_short_names[product_name]
@@ -1165,7 +1166,7 @@ class CitizenEconomy(CitizenTravel):
         if quality:
             offers[f"q{quality}"] = classes.OfferItem()
         else:
-            max_quality = 1 if product_name in q1_industries else 5 if product_name.lower() == 'house' else 7
+            max_quality = 1 if product_name in q1_industries else 5 if product_name.lower() in q5_industries else 7
             for q in range(max_quality):
                 offers[f"q{q + 1}"] = classes.OfferItem()
 
