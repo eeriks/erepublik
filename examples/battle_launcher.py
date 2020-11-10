@@ -29,7 +29,7 @@ def _battle_launcher(player: Citizen):
     """
     global CONFIG
     finished_war_ids = {*[]}
-    war_data = CONFIG.get('start_battles', {})
+    war_data = CONFIG.get('battle_launcher', {})
     war_ids = {int(war_id) for war_id in war_data.keys()}
     next_attack_time = player.now
     next_attack_time = next_attack_time.replace(minute=next_attack_time.minute // 5 * 5, second=0)
@@ -45,7 +45,7 @@ def _battle_launcher(player: Citizen):
 
                 status = player.get_war_status(war_id)
                 if status.get('ended', False):
-                    CONFIG['start_battles'].pop(war_id, None)
+                    CONFIG['battle_launcher'].pop(war_id, None)
                     finished_war_ids.add(war_id)
                     continue
                 elif not status.get('can_attack'):
@@ -64,7 +64,15 @@ def _battle_launcher(player: Citizen):
                                     player.update_war_info()
                                     battle_id = player.get_war_status(war_id).get("battle_id")
                                     if battle_id is not None and battle_id in player.all_battles:
-                                        player.fight(battle_id, player.details.citizenship, hits)
+                                        battle = player.all_battles.get(battle_id)
+                                        for division in battle.div.values():
+                                            if division.div == player.division:
+                                                div = division
+                                                break
+                                        else:
+                                            player.report_error("Players division not found in the first round!")
+                                            break
+                                        player.fight(battle, div, battle.invader, hits)
                                         break
                                     player.sleep(1)
                         if attacked:

@@ -6,7 +6,11 @@ CONFIG = {
     'email': 'player@email.com',
     'password': 'Pa$5w0rd!',
     'interactive': True,
-    'debug': True
+    'debug': True,
+    'work': True,
+    'ot': True,  # Work OverTime
+    'wam': True,  # WorkAsManager
+    'train': True
 }
 
 
@@ -14,7 +18,10 @@ CONFIG = {
 def main():
     player = Citizen(email=CONFIG['email'], password=CONFIG['password'], auto_login=False)
     player.config.interactive = CONFIG['interactive']
-    player.config.fight = CONFIG['fight']
+    player.config.work = CONFIG['work']
+    player.config.train = CONFIG['train']
+    player.config.ot = CONFIG['ot']
+    player.config.wam = CONFIG['wam']
     player.set_debug(CONFIG.get('debug', False))
     player.login()
     now = player.now.replace(second=0, microsecond=0)
@@ -76,7 +83,7 @@ def main():
                 tasks.update({'eat': next_time})
 
             if tasks.get('ot', dt_max) <= now:
-                player.write_log("Doing task: ot")
+                player.write_log("Doing task: work overtime")
                 if now > player.my_companies.next_ot_time:
                     player.work_ot()
                     next_time = now + timedelta(minutes=60)
