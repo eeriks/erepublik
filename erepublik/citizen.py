@@ -689,9 +689,15 @@ class BaseCitizen(access_points.CitizenAPI):
         if re.search(r'Occasionally there are a couple of things which we need to check or to implement in order make '
                      r'your experience in eRepublik more pleasant. <strong>Don\'t worry about ongoing battles, timer '
                      r'will be stopped during maintenance.</strong>', response.text):
-            self.write_log("eRepublik ss having maintenance. Sleeping for 5 minutes")
+            self.write_log("eRepublik is having maintenance. Sleeping for 5 minutes")
             self.sleep(5 * 60)
             return True
+
+        if re.search('We are experiencing some tehnical dificulties', response.text):
+            self.write_log("eRepublik is having technical difficulties. Sleeping for 5 minutes")
+            self.sleep(5 * 60)
+            return True
+
         return bool(re.search(r'body id="error"|Internal Server Error|'
                               r'CSRF attack detected|meta http-equiv="refresh"|'
                               r'not_authenticated', response.text))
