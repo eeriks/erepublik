@@ -93,8 +93,8 @@
                                 <label class="custom-control-label" for="wam">Work as manager</label>
                             </div>
                             <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="employ">
-                                <label class="custom-control-label" for="employ">Employ employees</label>
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="employees">
+                                <label class="custom-control-label" for="employees">Employ employees</label>
                             </div>
                             <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="auto_buy_raw" checked>
@@ -236,8 +236,8 @@
         config.debug = debug.checked;
         let wam = document.getElementById('wam'); // Generated
         config.wam = wam.checked;
-        let employ = document.getElementById('employ'); // Generated
-        config.employ = employ.checked;
+        let employees = document.getElementById('employees'); // Generated
+        config.employees = employees.checked;
 
         let auto_buy_raw = document.getElementById('auto_buy_raw'); // Generated
         let auto_sell_all = document.getElementById('auto_sell_all'); // Generated
@@ -249,7 +249,7 @@
         let auto_sell_house = document.getElementById('auto_sell_house'); // Generated
         let auto_sell_arm = document.getElementById('auto_sell_arm'); // Generated
         let auto_sell_air = document.getElementById('auto_sell_air'); // Generated
-        if (config.wam || config.employ) {
+        if (config.wam || config.employees) {
             auto_buy_raw.disabled = false;
             auto_sell_all.disabled = false;
             auto_sell_frm.disabled = false;
@@ -359,7 +359,7 @@
   "interactive": true,
   "debug": true,
   "wam": true,
-  "employ": true,
+  "employees": true,
   "auto_buy_raw": true,
   "auto_sell_all": true,
   "auto_sell": [
