@@ -2569,7 +2569,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             if raw_kind:
                 raw_kind = raw_kind.group(1)
                 result = response.get("result", {})
-                amount_needed = round(result.get("consume", 0) - result.get("stock", 0) + 0.49)
+                amount_needed = round(result.get("consume", 0) - result.get("stock", 0) + 0.5)
                 self._report_action(
                     'WORK_AS_MANAGER', f"Unable to wam! Missing {amount_needed} {raw_kind}, will try to buy.",
                     kwargs=response
