@@ -2,12 +2,18 @@
 History
 =======
 
-0.22.2 (2020-11-9)
+0.22.3 (2020-11-16)
+-------------------
+* Fixed round to even bug when doing wam and not enough raw.
+* Added meta industry airplaneRaw
+* Added method `Citizen.buy_market_offer(OfferItem, amount=None)` to directly buy market offer with included travel to country and back.
+
+0.22.2 (2020-11-09)
 -------------------
 * Allow querying market offers for q2-q5 aircrafts
 * Added "Ticket" industry
 
-0.22.1 (2020-11-4)
+0.22.1 (2020-11-04)
 -------------------
 * Requirement update
 * Unified product naming in inventory and other places based on `erepublik.constants.INDUSTRIES` values
