@@ -54,7 +54,7 @@ class Country:
 
 class Industries:
     __by_name = {'food': 1, 'weapon': 2, 'ticket':3, 'house': 4, 'aircraft': 23,
-                 'foodraw': 7, 'weaponraw': 12, 'houseraw': 18, 'aircraftraw': 24,
+                 'foodraw': 7, 'weaponraw': 12, 'houseraw': 18, 'aircraftraw': 24, 'airplaneraw': 24,
                  'frm': 7, 'wrm': 12, 'hrm': 18, 'arm': 24,
                  'frm q1': 7, 'frm q2': 8, 'frm q3': 9, 'frm q4': 10, 'frm q5': 11,
                  'wrm q1': 12, 'wrm q2': 13, 'wrm q3': 14, 'wrm q4': 15, 'wrm q5': 16,
