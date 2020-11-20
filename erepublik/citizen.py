@@ -1120,14 +1120,16 @@ class CitizenEconomy(CitizenTravel):
         if not constants.INDUSTRIES[industry]:
             self.write_log(f"Trying to sell unsupported industry {industry}")
 
-        final = industry in [1, 2, 4, 23]
-        items = self.inventory['final' if final else 'raw'][constants.INDUSTRIES[industry]]
-        if items[quality if final else 0]['amount'] < amount:
-            self.update_inventory()
-            items = self.inventory['final' if final else 'raw'][constants.INDUSTRIES[industry]]
-            if items[quality if final else 0]['amount'] < amount:
+        _inv_qlt = quality if industry in [1, 2, 3, 4, 23] else 0
+        _kind = 'final' if industry in [1, 2, 4, 4, 23] else 'raw'
+        inventory = self.get_inventory()
+        items = inventory[_kind].get(constants.INDUSTRIES[industry], {_inv_qlt: {'amount': 0}})
+        if items[_inv_qlt]['amount'] < amount:
+            inventory = self.get_inventory(True)
+            items = inventory[_kind].get(constants.INDUSTRIES[industry], {_inv_qlt: {'amount': 0}})
+            if items[_inv_qlt]['amount'] < amount:
                 self._report_action("ECONOMY_SELL_PRODUCTS", "Unable to sell! Not enough items in storage!",
-                                    kwargs=dict(inventory=items[quality if final else 0], amount=amount))
+                                    kwargs=dict(inventory=items[_inv_qlt], amount=amount))
                 return False
 
         data = {
