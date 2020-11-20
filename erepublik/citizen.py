@@ -808,7 +808,14 @@ class CitizenTravel(BaseCitizen):
         if data.get('alreadyInRegion'):
             return True
         else:
-            country = constants.COUNTRIES[data.get('preselectCountryId')]
+            country = None
+            for country_data in data.get('countries').values():
+                if region_id in country_data.get('regions'):
+                    country = constants.COUNTRIES[country_data.get('id')]
+                    break
+
+            if country is None:
+                raise classes.ErepublikException('Region not found!')
 
             if self._travel(country, region_id):
                 self._report_action("TRAVEL", "Traveled to region")
