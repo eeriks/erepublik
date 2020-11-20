@@ -731,8 +731,8 @@ class CitizenAnniversary(BaseCitizen):
     def start_unlocking_map_quest_node(self, node_id: int):
         return self._post_map_rewards_unlock(node_id)
 
-    def collect_map_quest_node(self, node_id: int):
-        return self._post_map_rewards_claim(node_id)
+    def collect_map_quest_node(self, node_id: int, extra: bool = False):
+        return self._post_map_rewards_claim(node_id, extra)
 
     def speedup_map_quest_node(self, node_id: int):
         node = self.get_anniversary_quest_data().get('cities', {}).get(str(node_id), {})

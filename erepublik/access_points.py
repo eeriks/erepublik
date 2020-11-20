@@ -161,8 +161,10 @@ class ErepublikAnniversaryAPI(CitizenBaseAPI):
         data = {'nodeId': node_id, '_token': self.token, "currencyCost": currency_amount}
         return self.post(f"{self.url}/main/map-rewards-speedup", data=data)
 
-    def _post_map_rewards_claim(self, node_id: int) -> Response:
+    def _post_map_rewards_claim(self, node_id: int, extra: bool = False) -> Response:
         data = {'nodeId': node_id, '_token': self.token}
+        if extra:
+            data['claimExtra'] = 1
         return self.post(f"{self.url}/main/map-rewards-claim", data=data)
 
     def _post_main_wheel_of_fortune_spin(self, cost) -> Response:
