@@ -2221,7 +2221,8 @@ class CitizenTasks(BaseCitizen):
             js = response.json()
             good_msg = ["already_worked", "captcha"]
             if not js.get("status") and not js.get("message") in good_msg:
-                if js.get('message') == 'employee':
+                if js.get('message') in ['employee', 'money']:
+                    self.resign_from_employer()
                     self.find_new_job()
                 self.update_citizen_info()
                 self.work()
