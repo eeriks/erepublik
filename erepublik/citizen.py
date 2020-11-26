@@ -1444,6 +1444,19 @@ class CitizenMedia(BaseCitizen):
                 "\n".join(["{}: {}".format(k, v) for k, v in kinds.items()]), kind
             ))
 
+    def get_article(self, article_id: int) -> Dict[str, Any]:
+        return self._get_main_article_json(article_id).json()
+
+    def delete_article(self, article_id: int) -> NoReturn:
+        article_data = self.get_article(article_id)
+        if article_data and article_data['articleData']['canDelete']:
+            self._report_action("ARTICLE_DELETE",
+                                f"Attempting to delete article '{article_data['article']['title']}' (#{article_id})",
+                                kwargs=article_data)
+            self._get_main_delete_article(article_id)
+        else:
+            self.write_log(f"Unable to delete article (#{article_id})!")
+
 
 class CitizenMilitary(CitizenTravel):
     all_battles: Dict[int, classes.Battle] = None
@@ -1982,13 +1995,8 @@ class CitizenMilitary(CitizenTravel):
             count = self.energy.food_fights
             msg = "Fighting all-in. Doing %i hits" % count
 
-        # All-in for AIR battles
-        elif all([self.config.air, self.config.all_in, self.energy.available >= self.energy.limit]):
-            count = self.energy.food_fights
-            msg = "Fighting all-in in AIR. Doing %i hits" % count
-
         # Get to next Energy +1
-        elif self.next_reachable_energy and self.config.next_energy:
+        elif self.config.next_energy and self.next_reachable_energy:
             count = self.next_reachable_energy
             msg = "Fighting for +1 energy. Doing %i hits" % count
 

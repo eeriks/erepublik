@@ -178,6 +178,9 @@ class ErepublikArticleAPI(CitizenBaseAPI):
     def _get_main_article_json(self, article_id: int) -> Response:
         return self.get(f"{self.url}/main/articleJson/{article_id}")
 
+    def _get_main_delete_article(self, article_id: int) -> Response:
+        return self.get(f"{self.url}/main/delete-article/{article_id}/1")
+
     def _post_main_article_comments(self, article_id: int, page: int = 1) -> Response:
         data = dict(_token=self.token, articleId=article_id, page=page)
         if page:
