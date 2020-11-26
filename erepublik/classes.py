@@ -357,6 +357,7 @@ class Config:
     telegram = True
     telegram_chat_id = 0
     telegram_token = ""
+    maverick = False
 
     def __init__(self):
         self.auto_sell = []
@@ -389,6 +390,7 @@ class Config:
         self.telegram = True
         self.telegram_chat_id = 0
         self.telegram_token = ""
+        self.maverick = False
 
     @property
     def as_dict(self):
@@ -397,7 +399,7 @@ class Config:
                     fight=self.fight, air=self.air, ground=self.ground, all_in=self.all_in,
                     next_energy=self.next_energy, boosters=self.boosters, travel_to_fight=self.travel_to_fight,
                     always_travel=self.always_travel, epic_hunt=self.epic_hunt, epic_hunt_ebs=self.epic_hunt_ebs,
-                    rw_def_side=self.rw_def_side, interactive=self.interactive,
+                    rw_def_side=self.rw_def_side, interactive=self.interactive, maverick=self.maverick,
                     continuous_fighting=self.continuous_fighting, auto_buy_raw=self.auto_buy_raw,
                     force_wam=self.force_wam, sort_battles_time=self.sort_battles_time, force_travel=self.force_travel,
                     telegram=self.telegram, telegram_chat_id=self.telegram_chat_id, telegram_token=self.telegram_token)

@@ -1615,6 +1615,7 @@ class CitizenMilitary(CitizenTravel):
     def get_cheap_tp_divisions(self) -> Dict[str, List[Tuple[int, classes.BattleDivision]]]:
         air_divs: List[Tuple[int, classes.BattleDivision]] = []
         ground_divs: List[Tuple[int, classes.BattleDivision]] = []
+        check_maverick = self.maverick and self.config.maverick
         for battle in reversed(self.sorted_battles(True, True)):
             for division in battle.div.values():
                 is_start_ok = utils.good_timedelta(division.battle.start, timedelta(minutes=-1)) < self.now
@@ -1627,7 +1628,7 @@ class CitizenMilitary(CitizenTravel):
                         else:
                             air_divs.append((medal.get('1').get('raw_value'), division))
                     elif not division.is_air and self.config.ground:
-                        if not division.div == self.division and not self.maverick:
+                        if not division.div == self.division and not check_maverick:
                             continue
                         division_medals = self.get_battle_round_data(division)
                         medal = division_medals[self.details.citizenship == division.battle.defender.country]
