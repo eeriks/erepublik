@@ -2,6 +2,16 @@
 History
 =======
 
+0.23.0 (2020-11-26)
+-------------------
+* Added `Config.maverick` switch, to allow/deny automated fighting in non native divisions if the player has MaverickPack
+* Added `CitizenMedia.get_article(article_id:int)` method to get article data
+* Added `CitizenMedia.delete_article(article_id:int)` method to delete article
+* Fixed `CitizenTravel.travel_to_region(region_id:int)` method
+* Added `CitizenAnniversary.collect_map_quest_node(node_id:int, extra:bool=False)` to collect also extra rewards
+* Fixed `CitizenTasks.work()` when employer out of money - resign and find a new job
+* Fixed `CitizenEconomy.post_market_offer()`
+
 0.22.3 (2020-11-16)
 -------------------
 * Fixed round to even bug when doing wam and not enough raw.
