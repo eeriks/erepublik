@@ -2037,6 +2037,16 @@ class CitizenMilitary(CitizenTravel):
         r = self._get_military_battle_stats(battle.id, division.div, division.id)
         return r.json()
 
+    def get_division_max_hit(self, division: classes.BattleDivision) -> int:
+        """ Returns max hit in division for current side (if not on either side returns 0)
+
+        :param division: BattleDivision for which to get max hit value
+        :type division: classes.BattleDivision
+        :return: max hit value
+        :rtype: int
+        """
+        return self.get_battle_division_stats(division).get('maxHit', -1)
+
     def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime):
         if at_time:
             self.sleep(utils.get_sleep_seconds(at_time))
