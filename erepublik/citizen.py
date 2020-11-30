@@ -747,6 +747,7 @@ class CitizenAnniversary(BaseCitizen):
         if not self.config.spin_wheel_of_fortune:
             self.write_log("Unable to spin wheel of fortune because 'config.spin_wheel_of_fortune' is False")
             return
+
         def _write_spin_data(cost: int, prize: str):
             self._report_action("WHEEL_SPIN", f"Cost: {cost:4d} | Currency left: {self.details.cc:,} | Prize: {prize}")
 
