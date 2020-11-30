@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'pytz==2020.4',
-    'requests==2.24.0',
+    'requests==2.25.0',
     'PySocks==1.7.1'
 ]
 
@@ -21,7 +21,7 @@ setup_requirements = []
 
 test_requirements = [
     "pytest==6.1.2",
-    "responses==0.12.0"
+    "responses==0.12.1"
 ]
 
 setup(
