@@ -338,17 +338,8 @@ def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, b
     base_wpn = (1 + Decimal(str(weapon / 100)))
     dmg = 10 * base_str * base_rnk * base_wpn
 
-    if elite:
-        dmg = dmg * 11 / 10
-
-    if tp and rang >= 70:
-        dmg = dmg * (1 + Decimal((rang - 69) / 10))
-
-    dmg = dmg * (100 + booster) / 100
-
-    if ne:
-        dmg = dmg * 11 / 10
-    return round(dmg, dec)
+    dmg = get_final_hit_dmg(dmg, rang, tp=tp, elite=elite, ne=ne, booster=booster)
+    return Decimal(round(dmg, dec))
 
 
 def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
@@ -370,6 +361,19 @@ def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_pat
     elite = r['citizenAttributes']['level'] > 100
     return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
 
+
+def get_final_hit_dmg(base_dmg: Union[Decimal, float, str], rang: int,
+                      tp: bool = False, elite: bool = False, ne: bool = False, booster: int = 0) -> Decimal:
+    dmg = Decimal(str(base_dmg))
+
+    if elite:
+        dmg = dmg * 11 / 10
+    if tp and rang >= 70:
+        dmg = dmg * (1 + Decimal((rang - 69) / 10))
+    dmg = dmg * (100 + booster) / 100
+    if ne:
+        dmg = dmg * 11 / 10
+    return Decimal(dmg)
 
 # def _clear_up_battle_memory(battle):
 #     del battle.invader._battle, battle.defender._battle
