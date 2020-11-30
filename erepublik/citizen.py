@@ -33,6 +33,7 @@ class BaseCitizen(access_points.CitizenAPI):
     maverick: bool = False
 
     eday: int = 0
+    wheel_of_fortune: bool
 
     config: classes.Config = None
     energy: classes.Energy = None
@@ -62,6 +63,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.config.password = password
         self.inventory = {}
         self.inventory_status = dict(used=0, total=0)
+        self.wheel_of_fortune = False
 
     def get_csrf_token(self):
         """
@@ -229,6 +231,9 @@ class BaseCitizen(access_points.CitizenAPI):
             self.politics.party_id = party.get('party_id')
             self.politics.is_party_president = bool(party.get('is_party_president'))
             self.politics.party_slug = f"{party.get('stripped_title')}-{party.get('party_id')}"
+
+        self.wheel_of_fortune = bool(
+            re.search(r'<a id="launch_wof" class="powerspin_sidebar( show_free)?" href="javascript:">', html))
 
     def update_inventory(self):
         """
@@ -739,23 +744,32 @@ class CitizenAnniversary(BaseCitizen):
         return self._post_map_rewards_speedup(node_id, node.get("skipCost", 0))
 
     def spin_wheel_of_fortune(self, max_cost=0, spin_count=0):
-        def _write_spin_data(cost, cc, prize):
-            self._report_action("WHEEL_SPIN", f"Cost: {cost:4d} | Currency left: {cc:,} | Prize: {prize}")
+        if not self.config.spin_wheel_of_fortune:
+            self.write_log("Unable to spin wheel of fortune because 'config.spin_wheel_of_fortune' is False")
+            return
+        def _write_spin_data(cost: int, prize: str):
+            self._report_action("WHEEL_SPIN", f"Cost: {cost:4d} | Currency left: {self.details.cc:,} | Prize: {prize}")
 
+        if not self.wheel_of_fortune:
+            self.update_citizen_info()
         base = self._post_main_wheel_of_fortune_build().json()
         current_cost = 0 if base.get('progress').get('free_spin') else base.get('cost')
         current_count = base.get('progress').get('spins')
+        prizes = base.get('prizes')
         if not max_cost and not spin_count:
             r = self._post_main_wheel_of_fortune_spin(current_cost).json()
-            _write_spin_data(current_cost, r.get('account'),
-                             base.get('prizes').get('prizes').get(str(r.get('result'))).get('tooltip'))
+            _write_spin_data(current_cost, prizes.get('prizes').get(str(r.get('result'))).get('tooltip'))
         else:
             while max_cost >= current_cost if max_cost else spin_count >= current_count if spin_count else False:
                 r = self._spin_wheel_of_loosing(current_cost)
                 current_count += 1
+                prize_name = prizes.get('prizes').get(str(r.get('result'))).get('tooltip')
+                if r.get('result') == 7:
+                    prize_name += f" - {prizes.get('jackpot').get(str(r.get('jackpot'))).get('tooltip')}"
+                _write_spin_data(current_cost, prize_name)
                 current_cost = r.get('cost')
-                _write_spin_data(current_cost, r.get('account'),
-                                 base.get('prizes').get('prizes').get(str(r.get('result'))).get('tooltip'))
+                if r.get('jackpot', 0) == 3:
+                    return
 
     def _spin_wheel_of_loosing(self, current_cost: int) -> Dict[str, Any]:
         r = self._post_main_wheel_of_fortune_spin(current_cost).json()
@@ -2626,7 +2640,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
                     if not best_offer.country == self.details.current_country:
                         self.travel_to_country(best_offer.country)
-                    self._report_action("ECONOMY_BUY", f"Attempting to buy {amount} {raw_kind} for {best_offer.price*amount}cc")
+                    self._report_action("ECONOMY_BUY",
+                                        f"Attempting to buy {amount} {raw_kind} for {best_offer.price * amount}cc")
                     rj = self.buy_from_market(amount=amount, offer=best_offer.offer_id)
                     if not rj.get('error'):
                         amount_needed -= amount

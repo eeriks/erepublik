@@ -358,6 +358,7 @@ class Config:
     telegram_chat_id = 0
     telegram_token = ""
     maverick = False
+    spin_wheel_of_fortune = False
 
     def __init__(self):
         self.auto_sell = []
@@ -391,6 +392,7 @@ class Config:
         self.telegram_chat_id = 0
         self.telegram_token = ""
         self.maverick = False
+        self.spin_wheel_of_fortune = False
 
     @property
     def as_dict(self):
@@ -402,7 +404,8 @@ class Config:
                     rw_def_side=self.rw_def_side, interactive=self.interactive, maverick=self.maverick,
                     continuous_fighting=self.continuous_fighting, auto_buy_raw=self.auto_buy_raw,
                     force_wam=self.force_wam, sort_battles_time=self.sort_battles_time, force_travel=self.force_travel,
-                    telegram=self.telegram, telegram_chat_id=self.telegram_chat_id, telegram_token=self.telegram_token)
+                    telegram=self.telegram, telegram_chat_id=self.telegram_chat_id, telegram_token=self.telegram_token,
+                    spin_wheel_of_fortune=self.spin_wheel_of_fortune)
 
 
 class Energy:
