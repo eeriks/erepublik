@@ -388,6 +388,9 @@ class ErepublikLocationAPI(CitizenBaseAPI):
 
 
 class ErepublikMilitaryAPI(CitizenBaseAPI):
+    def _get_military_battle_stats(self, battle_id: int, division: int, division_id: int):
+        return self.get(f"{self.url}/military/battle-stats/{battle_id}/{division}/{division_id}")
+
     def _get_military_battlefield_choose_side(self, battle_id: int, side_id: int) -> Response:
         return self.get(f"{self.url}/military/battlefield-choose-side/{battle_id}/{side_id}")
 

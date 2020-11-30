@@ -2032,6 +2032,11 @@ class CitizenMilitary(CitizenTravel):
         return (r_json.get(str(battle.invader.id)).get("fighterData"),
                 r_json.get(str(battle.defender.id)).get("fighterData"))
 
+    def get_battle_division_stats(self, division: classes.BattleDivision) -> Dict[str, Any]:
+        battle = division.battle
+        r = self._get_military_battle_stats(battle.id, division.div, division.id)
+        return r.json()
+
     def schedule_attack(self, war_id: int, region_id: int, region_name: str, at_time: datetime):
         if at_time:
             self.sleep(utils.get_sleep_seconds(at_time))
