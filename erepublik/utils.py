@@ -25,7 +25,7 @@ __all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_f
            'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta',
            'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now',
            'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file',
-           'write_interactive_log', 'write_silent_log']
+           'write_interactive_log', 'write_silent_log', 'get_final_hit_dmg', 'wait_for_lock']
 
 if not sys.version_info >= (3, 6):
     raise AssertionError('This script requires Python version 3.6 and higher\n'
