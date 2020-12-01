@@ -87,9 +87,7 @@ class SlowRequests(Session):
 
             body = "[{dt}]\tURL: '{url}'\tMETHOD: {met}\tARGS: {args}\n".format(dt=utils.now().strftime("%F %T"),
                                                                                 url=url, met=method, args=args)
-            utils.get_file(self.request_log_name)
-            with open(self.request_log_name, 'ab') as file:
-                file.write(body.encode("UTF-8"))
+            utils.write_file(self.request_log_name, body)
 
     def _log_response(self, url, resp, redirect: bool = False):
         from erepublik import Citizen
@@ -115,6 +113,7 @@ class SlowRequests(Session):
             filename = 'debug/requests/{time}_{name}{extra}.{ext}'.format(**file_data)
             with open(utils.get_file(filename), 'wb') as f:
                 f.write(resp.text.encode('utf-8'))
+        pass
 
 
 class CitizenBaseAPI:
