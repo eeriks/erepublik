@@ -2,6 +2,10 @@
 History
 =======
 
+0.23.2 (2020-12-01)
+-------------------
+* Added concurrency checks to guard against simultaneous fighting/wam'ing/traveling *(Note: Probably will make it into a decorator at some time)*
+
 0.23.1 (2020-12-01)
 -------------------
 * Separated battle finding logic from CitizenMilitary.find_battle_and_fight method

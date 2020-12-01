@@ -35,12 +35,14 @@ class BaseCitizen(access_points.CitizenAPI):
     eday: int = 0
     wheel_of_fortune: bool
 
+    debug: bool = False
     config: classes.Config = None
     energy: classes.Energy = None
     details: classes.Details = None
     politics: classes.Politics = None
     reporter: classes.Reporter = None
     stop_threads: Event = None
+    concurrency_lock: Event = None
     telegram: classes.TelegramBot = None
 
     r: Response = None
@@ -57,6 +59,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.my_companies = classes.MyCompanies(self)
         self.reporter = classes.Reporter(self)
         self.stop_threads = Event()
+        self.concurrency_lock = Event()
         self.telegram = classes.TelegramBot(stop_event=self.stop_threads)
 
         self.config.email = email
@@ -420,6 +423,19 @@ class BaseCitizen(access_points.CitizenAPI):
             utils.interactive_sleep(seconds)
         else:
             sleep(seconds)
+
+    def set_debug(self, debug: bool):
+        self.debug = bool(debug)
+        self._req.debug = bool(debug)
+
+    def __wait_for_concurrency_cleared(self) -> bool:
+        self.concurrency_lock.wait(600)
+        if self.concurrency_lock.is_set():
+            self.write_log('Unable to acquire concurrency lock in 10min!')
+            if self.debug:
+                self.report_error("Lock not released in 10min!")
+            return False
+        return True
 
     def to_json(self, indent: bool = False) -> str:
         return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None)
@@ -931,6 +947,9 @@ class CitizenCompanies(BaseCitizen):
     def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
         if self.restricted_ip:
             return None
+        if not self.__wait_for_concurrency_cleared():
+            return
+        self.concurrency_lock.set()
         self.update_companies()
         data = {"action_type": "production"}
         extra = {}
@@ -952,6 +971,7 @@ class CitizenCompanies(BaseCitizen):
             data.update(extra)
             if not self.details.current_region == wam_holding.region:
                 self.write_log("Unable to work as manager because of location - please travel!")
+                self.concurrency_lock.clear()
                 return
 
             employ_factories = self.my_companies.get_employable_factories()
@@ -960,6 +980,7 @@ class CitizenCompanies(BaseCitizen):
 
             response = self._post_economy_work("production", wam=[c.id for c in wam_list],
                                                employ=employ_factories).json()
+            self.concurrency_lock.clear()
             return response
 
     def update_companies(self):
@@ -1030,6 +1051,9 @@ class CitizenEconomy(CitizenTravel):
 
             global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
+                if not self.__wait_for_concurrency_cleared():
+                    return self.check_house_durability()
+                self.concurrency_lock.set()
                 if self.travel_to_country(global_cheapest.country):
                     buy = self.buy_from_market(global_cheapest.offer_id, 1)
                 else:
@@ -1047,6 +1071,7 @@ class CitizenEconomy(CitizenTravel):
             self.activate_house(q)
         if original_region[1] != self.details.current_region:
             self._travel(*original_region)
+            self.concurrency_lock.clear()
         return self.check_house_durability()
 
     def renew_houses(self, forced: bool = False) -> Dict[int, datetime]:
@@ -1183,6 +1208,9 @@ class CitizenEconomy(CitizenTravel):
             amount = offer.amount
         traveled = False
         if not self.details.current_country == offer.country:
+            if not self.__wait_for_concurrency_cleared():
+                return {'error': True, 'message': 'Concurrency locked for travel'}
+            self.concurrency_lock.set()
             traveled = True
             self.travel_to_country(offer.country)
         ret = self._post_economy_marketplace_actions('buy', offer=offer.offer_id, amount=amount)
@@ -1194,6 +1222,7 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("BOUGHT_PRODUCTS", json_ret.get('message'), kwargs=json_ret)
         if traveled:
             self.travel_to_residence()
+            self.concurrency_lock.clear()
         return json_ret
 
     def get_market_offers(
@@ -1739,10 +1768,15 @@ class CitizenMilitary(CitizenTravel):
 
                     if not self.travel_to_battle(battle, countries_to_travel):
                         break
+
+                if not self.__wait_for_concurrency_cleared():
+                    return
+                self.concurrency_lock.set()
                 if self.change_division(battle, division):
                     self.set_default_weapon(battle, division)
                     self.fight(battle, division, side)
                     self.travel_to_residence()
+                    self.concurrency_lock.clear()
                     break
 
     def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None,
@@ -1858,6 +1892,10 @@ class CitizenMilitary(CitizenTravel):
         :return: Deployed count
         :rtype: int
         """
+
+        if not self.__wait_for_concurrency_cleared():
+            return 0
+        self.concurrency_lock.set()
         if not isinstance(count, int) or count < 1:
             count = 1
         has_traveled = False
@@ -1891,6 +1929,7 @@ class CitizenMilitary(CitizenTravel):
             self.travel_to_residence()
 
         self._report_action("MILITARY_BOMB", f"Deployed {deployed_count} bombs in battle {battle.id}")
+        self.concurrency_lock.clear()
         return deployed_count
 
     def change_division(self, battle: classes.Battle, division: classes.BattleDivision) -> bool:
@@ -2393,8 +2432,6 @@ class CitizenTasks(BaseCitizen):
 
 class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeaderBoard,
               CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
-    debug: bool = False
-
     def __init__(self, email: str = "", password: str = "", auto_login: bool = False):
         super().__init__(email, password)
         self._last_full_update = constants.min_datetime
@@ -2494,10 +2531,6 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             for info in data.values():
                 self.reporter.report_action("NEW_MEDAL", info)
 
-    def set_debug(self, debug: bool):
-        self.debug = bool(debug)
-        self._req.debug = bool(debug)
-
     def set_pin(self, pin: str):
         self.details.pin = str(pin[:4])
 
@@ -2574,7 +2607,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 start_time = utils.good_timedelta(start_time, timedelta(minutes=30))
                 self.send_state_update()
                 self.send_inventory_update()
-                self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
+                self.send_my_companies_update()
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
         except:  # noqa
@@ -2589,6 +2622,9 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
     def send_inventory_update(self):
         self.reporter.report_action("INVENTORY", json_val=self.get_inventory(True))
+
+    def send_my_companies_update(self):
+        self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
 
     def eat(self):
         """
