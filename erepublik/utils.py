@@ -384,3 +384,19 @@ def get_final_hit_dmg(base_dmg: Union[Decimal, float, str], rang: int,
 
 def deprecation(message):
     warnings.warn(message, DeprecationWarning, stacklevel=2)
+
+
+def wait_for_lock(function):
+    def wrapper(instance, *args, **kwargs):
+        if not instance.concurrency_available.wait(600):
+            e = 'Concurrency not freed in 10min!'
+            instance.write_log(e)
+            if instance.debug:
+                instance.report_error(e)
+            return None
+        else:
+            instance.concurrency_available.clear()
+            ret = function(instance, *args, **kwargs)
+            instance.concurrency_available.set()
+            return ret
+    return wrapper

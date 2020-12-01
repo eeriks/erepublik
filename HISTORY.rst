@@ -4,7 +4,8 @@ History
 
 0.23.2 (2020-12-01)
 -------------------
-* Added concurrency checks to guard against simultaneous fighting/wam'ing/traveling *(Note: Probably will make it into a decorator at some time)*
+* Added concurrency checks to guard against simultaneous fighting/wam'ing/traveling
+* For concurrency checking use `utils.wait_for_lock` decorator
 
 0.23.1 (2020-12-01)
 -------------------

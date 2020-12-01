@@ -42,7 +42,7 @@ class BaseCitizen(access_points.CitizenAPI):
     politics: classes.Politics = None
     reporter: classes.Reporter = None
     stop_threads: Event = None
-    concurrency_lock: Event = None
+    concurrency_available: Event = None
     telegram: classes.TelegramBot = None
 
     r: Response = None
@@ -59,7 +59,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.my_companies = classes.MyCompanies(self)
         self.reporter = classes.Reporter(self)
         self.stop_threads = Event()
-        self.concurrency_lock = Event()
+        self.concurrency_available = Event()
         self.telegram = classes.TelegramBot(stop_event=self.stop_threads)
 
         self.config.email = email
@@ -427,15 +427,6 @@ class BaseCitizen(access_points.CitizenAPI):
     def set_debug(self, debug: bool):
         self.debug = bool(debug)
         self._req.debug = bool(debug)
-
-    def _wait_for_concurrency_cleared(self) -> bool:
-        self.concurrency_lock.wait(600)
-        if self.concurrency_lock.is_set():
-            self.write_log('Unable to acquire concurrency lock in 10min!')
-            if self.debug:
-                self.report_error("Lock not released in 10min!")
-            return False
-        return True
 
     def to_json(self, indent: bool = False) -> str:
         return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None)
@@ -944,12 +935,10 @@ class CitizenCompanies(BaseCitizen):
     def work_as_manager_in_holding(self, holding: classes.Holding) -> Optional[Dict[str, Any]]:
         return self._work_as_manager(holding)
 
+    @utils.wait_for_lock
     def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
         if self.restricted_ip:
             return None
-        if not self._wait_for_concurrency_cleared():
-            return
-        self.concurrency_lock.set()
         self.update_companies()
         data = {"action_type": "production"}
         extra = {}
@@ -971,7 +960,6 @@ class CitizenCompanies(BaseCitizen):
             data.update(extra)
             if not self.details.current_region == wam_holding.region:
                 self.write_log("Unable to work as manager because of location - please travel!")
-                self.concurrency_lock.clear()
                 return
 
             employ_factories = self.my_companies.get_employable_factories()
@@ -980,7 +968,6 @@ class CitizenCompanies(BaseCitizen):
 
             response = self._post_economy_work("production", wam=[c.id for c in wam_list],
                                                employ=employ_factories).json()
-            self.concurrency_lock.clear()
             return response
 
     def update_companies(self):
@@ -1038,7 +1025,8 @@ class CitizenEconomy(CitizenTravel):
             ret.update({house_quality: till})
         return ret
 
-    def buy_and_activate_house(self, q: int) -> Dict[int, datetime]:
+    @utils.wait_for_lock
+    def buy_and_activate_house(self, q: int) -> Optional[Dict[int, datetime]]:
         original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
         inv = self.get_inventory()
@@ -1051,9 +1039,6 @@ class CitizenEconomy(CitizenTravel):
 
             global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
-                if not self._wait_for_concurrency_cleared():
-                    return self.check_house_durability()
-                self.concurrency_lock.set()
                 if self.travel_to_country(global_cheapest.country):
                     buy = self.buy_from_market(global_cheapest.offer_id, 1)
                 else:
@@ -1071,7 +1056,6 @@ class CitizenEconomy(CitizenTravel):
             self.activate_house(q)
         if original_region[1] != self.details.current_region:
             self._travel(*original_region)
-            self.concurrency_lock.clear()
         return self.check_house_durability()
 
     def renew_houses(self, forced: bool = False) -> Dict[int, datetime]:
@@ -1083,7 +1067,9 @@ class CitizenEconomy(CitizenTravel):
         house_durability = self.check_house_durability()
         for q, active_till in house_durability.items():
             if utils.good_timedelta(active_till, - timedelta(hours=48)) <= self.now or forced:
-                house_durability = self.buy_and_activate_house(q)
+                durability = self.buy_and_activate_house(q)
+                if durability:
+                    house_durability = durability
         return house_durability
 
     def activate_house(self, quality: int) -> bool:
@@ -1203,14 +1189,12 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("BOUGHT_PRODUCTS", json_ret.get('message'), kwargs=json_ret)
         return json_ret
 
-    def buy_market_offer(self, offer: OfferItem, amount: int = None) -> dict:
+    @utils.wait_for_lock
+    def buy_market_offer(self, offer: OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
         if amount is None or amount > offer.amount:
             amount = offer.amount
         traveled = False
         if not self.details.current_country == offer.country:
-            if not self._wait_for_concurrency_cleared():
-                return {'error': True, 'message': 'Concurrency locked for travel'}
-            self.concurrency_lock.set()
             traveled = True
             self.travel_to_country(offer.country)
         ret = self._post_economy_marketplace_actions('buy', offer=offer.offer_id, amount=amount)
@@ -1222,7 +1206,6 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("BOUGHT_PRODUCTS", json_ret.get('message'), kwargs=json_ret)
         if traveled:
             self.travel_to_residence()
-            self.concurrency_lock.clear()
         return json_ret
 
     def get_market_offers(
@@ -1702,7 +1685,8 @@ class CitizenMilitary(CitizenTravel):
     def has_battle_contribution(self):
         return bool(self.__last_war_update_data.get("citizen_contribution", []))
 
-    def find_battle_to_fight(self, silent: bool = False) -> Tuple[classes.Battle, classes.BattleDivision, classes.BattleSide]:
+    def find_battle_to_fight(self, silent: bool = False) -> Tuple[
+        classes.Battle, classes.BattleDivision, classes.BattleSide]:
         self.update_war_info()
         for battle in self.sorted_battles(self.config.sort_battles_time):
             if not isinstance(battle, classes.Battle):
@@ -1715,7 +1699,8 @@ class CitizenMilitary(CitizenTravel):
                     if self.config.air and div.is_air:
                         battle_zone = div
                         break
-                    elif self.config.ground and not div.is_air and (div.div == self.division or (self.maverick and self.config.maverick)):
+                    elif self.config.ground and not div.is_air and (
+                        div.div == self.division or (self.maverick and self.config.maverick)):
                         battle_zone = div
                         break
                     else:
@@ -1769,18 +1754,15 @@ class CitizenMilitary(CitizenTravel):
                     if not self.travel_to_battle(battle, countries_to_travel):
                         break
 
-                if not self._wait_for_concurrency_cleared():
-                    return
-                self.concurrency_lock.set()
                 if self.change_division(battle, division):
                     self.set_default_weapon(battle, division)
                     self.fight(battle, division, side)
                     self.travel_to_residence()
-                    self.concurrency_lock.clear()
                     break
 
+    @utils.wait_for_lock
     def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None,
-              count: int = None) -> int:
+              count: int = None) -> Optional[int]:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
@@ -1881,7 +1863,8 @@ class CitizenMilitary(CitizenTravel):
 
         return hits, err, damage
 
-    def deploy_bomb(self, battle: classes.Battle, bomb_id: int, inv_side: bool = None, count: int = 1) -> int:
+    @utils.wait_for_lock
+    def deploy_bomb(self, battle: classes.Battle, bomb_id: int, inv_side: bool = None, count: int = 1) -> Optional[int]:
         """Deploy bombs in a battle for given side.
 
         :param battle: Battle
@@ -1893,9 +1876,6 @@ class CitizenMilitary(CitizenTravel):
         :rtype: int
         """
 
-        if not self._wait_for_concurrency_cleared():
-            return 0
-        self.concurrency_lock.set()
         if not isinstance(count, int) or count < 1:
             count = 1
         has_traveled = False
@@ -1929,7 +1909,6 @@ class CitizenMilitary(CitizenTravel):
             self.travel_to_residence()
 
         self._report_action("MILITARY_BOMB", f"Deployed {deployed_count} bombs in battle {battle.id}")
-        self.concurrency_lock.clear()
         return deployed_count
 
     def change_division(self, battle: classes.Battle, division: classes.BattleDivision) -> bool:
