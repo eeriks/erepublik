@@ -1673,45 +1673,56 @@ class CitizenMilitary(CitizenTravel):
     def has_battle_contribution(self):
         return bool(self.__last_war_update_data.get("citizen_contribution", []))
 
+    def find_battle_to_fight(self, silent: bool = False) -> Tuple[classes.Battle, classes.BattleDivision, classes.BattleSide]:
+        self.update_war_info()
+        for battle in self.sorted_battles(self.config.sort_battles_time):
+            if not isinstance(battle, classes.Battle):
+                continue
+            battle_zone: Optional[classes.BattleDivision] = None
+            for div in battle.div.values():
+                if div.terrain == 0:
+                    if div.div_end:
+                        continue
+                    if self.config.air and div.is_air:
+                        battle_zone = div
+                        break
+                    elif self.config.ground and not div.is_air and (div.div == self.division or (self.maverick and self.config.maverick)):
+                        battle_zone = div
+                        break
+                    else:
+                        continue
+            if not battle_zone:
+                continue
+            allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.country,
+                                                                           battle.defender.country]
+
+            travel_needed = self.details.current_country not in allies
+
+            if battle.is_rw:
+                side = battle.defender if self.config.rw_def_side else battle.invader
+            else:
+                defender_side = self.details.current_country in battle.defender.allies + [battle.defender.country, ]
+                side = battle.defender if defender_side else battle.invader
+
+            if not silent:
+                self.write_log(battle)
+
+            travel = (self.config.travel_to_fight and self.should_travel_to_fight() or self.config.force_travel) \
+                if travel_needed else True
+
+            if not travel:
+                continue
+            yield battle, battle_zone, side
+
     def find_battle_and_fight(self):
         if self.should_fight()[0]:
             self.write_log("Checking for battles to fight in...")
-            for battle in self.sorted_battles(self.config.sort_battles_time):
-                if not isinstance(battle, classes.Battle):
-                    continue
-                battle_zone: Optional[classes.BattleDivision] = None
-                for div in battle.div.values():
-                    if div.terrain == 0:
-                        if div.div_end:
-                            continue
-                        if self.config.air and div.is_air:
-                            battle_zone = div
-                            break
-                        elif self.config.ground and not div.is_air and (div.div == self.division or self.maverick):
-                            battle_zone = div
-                            break
-                        else:
-                            continue
-                if not battle_zone:
-                    continue
+            for battle, division, side in self.find_battle_to_fight():
+
                 allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.country,
                                                                                battle.defender.country]
 
                 travel_needed = self.details.current_country not in allies
-
-                if battle.is_rw:
-                    side = battle.defender if self.config.rw_def_side else battle.invader
-                else:
-                    defender_side = self.details.current_country in battle.defender.allies + [battle.defender.country, ]
-                    side = battle.defender if defender_side else battle.invader
-
-                self.write_log(battle)
-
-                travel = (self.config.travel_to_fight and self.should_travel_to_fight() or self.config.force_travel) \
-                    if travel_needed else True
-
-                if not travel:
-                    continue
 
                 if battle.start > self.now:
                     self.sleep(utils.get_sleep_seconds(battle.start))
@@ -1728,9 +1739,9 @@ class CitizenMilitary(CitizenTravel):
 
                     if not self.travel_to_battle(battle, countries_to_travel):
                         break
-                if self.change_division(battle, battle_zone):
-                    self.set_default_weapon(battle, battle_zone)
-                    self.fight(battle, battle_zone, side)
+                if self.change_division(battle, division):
+                    self.set_default_weapon(battle, division)
+                    self.fight(battle, division, side)
                     self.travel_to_residence()
                     break
 

@@ -719,11 +719,11 @@ class BattleSide:
 
     def __repr__(self):
         side_text = "Defender" if self.is_defender else "Invader "
-        return f"<BattleSide: {side_text} {self.country.name}|{self.points:02d}p>"
+        return f"<BattleSide: {side_text} {self.country.name}|{self.points:>2d}p>"
 
     def __str__(self):
         side_text = "Defender" if self.is_defender else "Invader "
-        return f"{side_text} {self.country.name} - {self.points:02d} points"
+        return f"{side_text} {self.country.name} - {self.points:>2d} points"
 
     def __format__(self, format_spec):
         return self.country.iso
@@ -789,7 +789,7 @@ class BattleDivision:
         return constants.TERRAINS[self.terrain]
 
     def __str__(self):
-        base_name = f"Div #{self.id} d{self.div}"
+        base_name = f"D{self.div} #{self.id}"
         if self.terrain:
             base_name += f" ({self.terrain_display})"
         if self.div_end:
@@ -899,8 +899,8 @@ class Battle:
         else:
             time_part = "-{}".format(self.start - time_now)
 
-        return (f"Battle {self.id} for {self.region_name[:16]} | "
-                f"{self.invader} : {self.defender} | Round time {time_part}")
+        return (f"Battle {self.id} for {self.region_name[:16]:16} | "
+                f"{self.invader} : {self.defender} | Round time {time_part} | {'R'+str(self.zone_id):>3}")
 
     def __repr__(self):
         return f"<Battle #{self.id} {self.invader}:{self.defender} R{self.zone_id}>"
