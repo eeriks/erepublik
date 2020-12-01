@@ -152,7 +152,8 @@ def get_file(filepath: str) -> str:
 def write_file(filename: str, content: str) -> int:
     filename = get_file(filename)
     with open(filename, 'ab') as f:
-        return f.write(content.encode("utf-8"))
+        ret = f.write(content.encode("utf-8"))
+    return ret
 
 
 def write_request(response: requests.Response, is_error: bool = False):
