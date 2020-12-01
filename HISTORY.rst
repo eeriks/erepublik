@@ -2,8 +2,17 @@
 History
 =======
 
+0.23.1 (2020-12-01)
+-------------------
+* Separated battle finding logic from CitizenMilitary.find_battle_and_fight method
+* Base dmg calculations
+* Get max hit value for divisions on current side
+* Added method to get division stats
+* Wheel of fortune updates
+
 0.23.0 (2020-11-26)
 -------------------
+* ***0.23 - last supported version for Python 3.7.***
 * Added `Config.maverick` switch, to allow/deny automated fighting in non native divisions if the player has MaverickPack
 * Added `CitizenMedia.get_article(article_id:int)` method to get article data
 * Added `CitizenMedia.delete_article(article_id:int)` method to delete article
