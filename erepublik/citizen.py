@@ -428,7 +428,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.debug = bool(debug)
         self._req.debug = bool(debug)
 
-    def __wait_for_concurrency_cleared(self) -> bool:
+    def _wait_for_concurrency_cleared(self) -> bool:
         self.concurrency_lock.wait(600)
         if self.concurrency_lock.is_set():
             self.write_log('Unable to acquire concurrency lock in 10min!')
@@ -947,7 +947,7 @@ class CitizenCompanies(BaseCitizen):
     def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
         if self.restricted_ip:
             return None
-        if not self.__wait_for_concurrency_cleared():
+        if not self._wait_for_concurrency_cleared():
             return
         self.concurrency_lock.set()
         self.update_companies()
@@ -1051,7 +1051,7 @@ class CitizenEconomy(CitizenTravel):
 
             global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
-                if not self.__wait_for_concurrency_cleared():
+                if not self._wait_for_concurrency_cleared():
                     return self.check_house_durability()
                 self.concurrency_lock.set()
                 if self.travel_to_country(global_cheapest.country):
@@ -1208,7 +1208,7 @@ class CitizenEconomy(CitizenTravel):
             amount = offer.amount
         traveled = False
         if not self.details.current_country == offer.country:
-            if not self.__wait_for_concurrency_cleared():
+            if not self._wait_for_concurrency_cleared():
                 return {'error': True, 'message': 'Concurrency locked for travel'}
             self.concurrency_lock.set()
             traveled = True
@@ -1769,7 +1769,7 @@ class CitizenMilitary(CitizenTravel):
                     if not self.travel_to_battle(battle, countries_to_travel):
                         break
 
-                if not self.__wait_for_concurrency_cleared():
+                if not self._wait_for_concurrency_cleared():
                     return
                 self.concurrency_lock.set()
                 if self.change_division(battle, division):
@@ -1893,7 +1893,7 @@ class CitizenMilitary(CitizenTravel):
         :rtype: int
         """
 
-        if not self.__wait_for_concurrency_cleared():
+        if not self._wait_for_concurrency_cleared():
             return 0
         self.concurrency_lock.set()
         if not isinstance(count, int) or count < 1:
