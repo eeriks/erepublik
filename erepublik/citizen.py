@@ -417,7 +417,6 @@ class BaseCitizen(access_points.CitizenAPI):
         else:
             utils.process_error(msg, self.name, sys.exc_info(), self, None, None)
 
-    @utils.wait_for_lock
     def sleep(self, seconds: int):
         if seconds < 0:
             seconds = 0
