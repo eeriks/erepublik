@@ -60,6 +60,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.reporter = classes.Reporter(self)
         self.stop_threads = Event()
         self.concurrency_available = Event()
+        self.concurrency_available.set()
         self.telegram = classes.TelegramBot(stop_event=self.stop_threads)
 
         self.config.email = email
@@ -416,6 +417,7 @@ class BaseCitizen(access_points.CitizenAPI):
         else:
             utils.process_error(msg, self.name, sys.exc_info(), self, None, None)
 
+    @utils.wait_for_lock
     def sleep(self, seconds: int):
         if seconds < 0:
             seconds = 0
