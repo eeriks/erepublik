@@ -1026,7 +1026,6 @@ class CitizenEconomy(CitizenTravel):
             ret.update({house_quality: till})
         return ret
 
-    @utils.wait_for_lock
     def buy_and_activate_house(self, q: int) -> Optional[Dict[int, datetime]]:
         original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
@@ -1041,12 +1040,14 @@ class CitizenEconomy(CitizenTravel):
             global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
                 if self.travel_to_country(global_cheapest.country):
-                    buy = self.buy_from_market(global_cheapest.offer_id, 1)
+                    buy = self.buy_market_offer(global_cheapest, 1)
                 else:
                     buy = {'error': True, 'message': 'Unable to travel!'}
             else:
-                buy = self.buy_from_market(local_cheapest.offer_id, 1)
-            if buy["error"]:
+                buy = self.buy_market_offer(local_cheapest, 1)
+            if buy is None:
+                pass
+            elif buy["error"]:
                 msg = f"Unable to buy q{q} house! \n{buy['message']}"
                 self.write_log(msg)
             else:

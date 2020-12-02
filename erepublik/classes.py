@@ -1016,7 +1016,7 @@ class TelegramBot:
 
 
 class OfferItem(NamedTuple):
-    price: float = 99_999.
+    price: float = 999_999_999.
     country: constants.Country = constants.Country(0, "", "", "")
     amount: int = 0
     offer_id: int = 0
