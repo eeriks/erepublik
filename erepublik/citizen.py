@@ -1687,7 +1687,8 @@ class CitizenMilitary(CitizenTravel):
         return bool(self.__last_war_update_data.get("citizen_contribution", []))
 
     def find_battle_to_fight(self, silent: bool = False) -> Tuple[
-        classes.Battle, classes.BattleDivision, classes.BattleSide]:
+        classes.Battle, classes.BattleDivision, classes.BattleSide
+    ]:
         self.update_war_info()
         for battle in self.sorted_battles(self.config.sort_battles_time):
             if not isinstance(battle, classes.Battle):
@@ -1697,11 +1698,11 @@ class CitizenMilitary(CitizenTravel):
                 if div.terrain == 0:
                     if div.div_end:
                         continue
+                    maverick_ok = self.maverick and self.config.maverick
                     if self.config.air and div.is_air:
                         battle_zone = div
                         break
-                    elif self.config.ground and not div.is_air and (
-                        div.div == self.division or (self.maverick and self.config.maverick)):
+                    elif self.config.ground and not div.is_air and (div.div == self.division or maverick_ok):
                         battle_zone = div
                         break
                     else:
