@@ -1183,7 +1183,7 @@ class CitizenEconomy(CitizenTravel):
         self._report_action("ECONOMY_SELL_PRODUCTS", message, kwargs=ret)
         return not bool(ret.get('error', True))
 
-    def buy_from_market(self, offer: int, amount: int) -> dict:
+    def buy_from_market(self, offer: int, amount: int) -> Dict[str, Any]:
         ret = self._post_economy_marketplace_actions('buy', offer=offer, amount=amount)
         json_ret = ret.json()
         if not json_ret.get('error', True):
@@ -1201,13 +1201,7 @@ class CitizenEconomy(CitizenTravel):
         if not self.details.current_country == offer.country:
             traveled = True
             self.travel_to_country(offer.country)
-        ret = self._post_economy_marketplace_actions('buy', offer=offer.offer_id, amount=amount)
-        json_ret = ret.json()
-        if not json_ret.get('error', True):
-            self.details.cc = ret.json()['currency']
-            self.details.gold = ret.json()['gold']
-            json_ret.pop("offerUpdate", None)
-            self._report_action("BOUGHT_PRODUCTS", json_ret.get('message'), kwargs=json_ret)
+        json_ret = self.buy_from_market(offer.offer_id, amount)
         if traveled:
             self.travel_to_residence()
         return json_ret
