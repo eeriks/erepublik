@@ -2443,9 +2443,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.reporter.do_init()
         if self.config.telegram:
             # noinspection SpellCheckingInspection
-            self.telegram.do_init(self.config.telegram_chat_id or 620981703,
-                                  self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
-                                  "" if self.config.telegram_chat_id or self.config.telegram_token else self.name)
+            if self.config.telegram_chat_id and self.config.telegram_token:
+                self.telegram.do_init(self.config.telegram_chat_id, self.config.telegram_token, self.name)
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
 
         self.update_all(True)
