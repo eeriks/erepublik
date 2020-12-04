@@ -1152,11 +1152,13 @@ class CitizenEconomy(CitizenTravel):
         return False
 
     def post_market_offer(self, industry: int, quality: int, amount: int, price: float) -> bool:
+        if isinstance(industry, str):
+            industry = constants.INDUSTRIES[industry]
         if not constants.INDUSTRIES[industry]:
             self.write_log(f"Trying to sell unsupported industry {industry}")
 
         _inv_qlt = quality if industry in [1, 2, 3, 4, 23] else 0
-        _kind = 'final' if industry in [1, 2, 4, 4, 23] else 'raw'
+        _kind = 'final' if industry in [1, 2, 4, 23] else 'raw'
         inventory = self.get_inventory()
         items = inventory[_kind].get(constants.INDUSTRIES[industry], {_inv_qlt: {'amount': 0}})
         if items[_inv_qlt]['amount'] < amount:
