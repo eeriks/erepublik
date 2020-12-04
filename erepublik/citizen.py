@@ -2464,7 +2464,6 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                 if self.details.gold >= 54:
                     self.buy_tg_contract()
                 else:
-
                     self.write_log(f"Training ground contract active but "
                                    f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
         if self.energy.is_energy_full and self.config.telegram:
