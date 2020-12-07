@@ -1690,6 +1690,8 @@ class CitizenMilitary(CitizenTravel):
         for battle in self.sorted_battles(self.config.sort_battles_time):
             if not isinstance(battle, classes.Battle):
                 continue
+            if battle.is_dict_lib:
+                continue
             battle_zone: Optional[classes.BattleDivision] = None
             for div in battle.div.values():
                 if div.terrain == 0:
@@ -1840,6 +1842,9 @@ class CitizenMilitary(CitizenTravel):
                 return 0, 10, 0
             elif r_json.get("message") == "ZONE_INACTIVE":
                 self.write_log("Wrong division!!")
+                return 0, 10, 0
+            elif r_json.get("message") == "NON_BELLIGERENT":
+                self.write_log("Dictatorship/Liberation wars are not supported!")
                 return 0, 10, 0
             elif r_json.get("message") in ["FIGHT_DISABLED", "DEPLOYMENT_MODE"]:
                 self._post_main_profile_update('options',
