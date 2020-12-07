@@ -1039,16 +1039,22 @@ class CitizenEconomy(CitizenTravel):
 
             global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
             if global_cheapest.price + 200 < local_cheapest.price:
-                if self.travel_to_country(global_cheapest.country):
-                    buy = self.buy_market_offer(global_cheapest, 1)
+                if global_cheapest.price + 2000 < self.details.cc:
+                    if self.travel_to_country(global_cheapest.country):
+                        buy = self.buy_market_offer(global_cheapest, 1)
+                    else:
+                        buy = dict(error=True, message='Unable to travel!')
                 else:
-                    buy = {'error': True, 'message': 'Unable to travel!'}
+                    buy = dict(error=True, message='Not enough money to buy house!')
             else:
-                buy = self.buy_market_offer(local_cheapest, 1)
+                if local_cheapest.price < self.details.cc:
+                    buy = self.buy_market_offer(local_cheapest, 1)
+                else:
+                    buy = dict(error=True, message='Not enough money to buy house!')
             if buy is None:
                 pass
             elif buy["error"]:
-                msg = f"Unable to buy q{q} house! \n{buy['message']}"
+                msg = f'Unable to buy q{q} house! \n{buy["message"]}'
                 self.write_log(msg)
             else:
                 ok_to_activate = True
