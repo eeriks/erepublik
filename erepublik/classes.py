@@ -10,7 +10,7 @@ from requests import Response, Session, post
 from . import utils, constants
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
-           'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramBot']
+           'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramReporter']
 
 
 class ErepublikException(Exception):
@@ -937,7 +937,7 @@ class EnergyToFight:
         return self.energy
 
 
-class TelegramBot:
+class TelegramReporter:
     __initialized: bool = False
     __queue: List[str]
     chat_id: int = 0

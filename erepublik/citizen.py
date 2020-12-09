@@ -43,7 +43,7 @@ class BaseCitizen(access_points.CitizenAPI):
     reporter: classes.Reporter = None
     stop_threads: Event = None
     concurrency_available: Event = None
-    telegram: classes.TelegramBot = None
+    telegram: classes.TelegramReporter = None
 
     r: Response = None
     name: str = "Not logged in!"
@@ -61,7 +61,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.stop_threads = Event()
         self.concurrency_available = Event()
         self.concurrency_available.set()
-        self.telegram = classes.TelegramBot(stop_event=self.stop_threads)
+        self.telegram = classes.TelegramReporter(stop_event=self.stop_threads)
 
         self.config.email = email
         self.config.password = password
