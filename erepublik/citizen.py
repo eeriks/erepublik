@@ -607,8 +607,8 @@ class BaseCitizen(access_points.CitizenAPI):
             except AttributeError:
                 continue
         if data:
-            msgs = ["{count} x {kind}, totaling {} {currency}\n"
-                    "{about}".format(d["count"] * d["reward"], **d) for d in data.values()]
+            msgs = [f"{d['count']} x {d['kind']}, totaling {d['count'] * d['reward']} "
+                    f"{d['currency']}" for d in data.values()]
 
             msgs = "\n".join(msgs)
             if self.config.telegram:
@@ -1471,9 +1471,8 @@ class CitizenMedia(BaseCitizen):
                 article_id = 0
             return article_id
         else:
-            raise classes.ErepublikException("Article kind must be one of:\n{}\n'{}' is not supported".format(
-                "\n".join(["{}: {}".format(k, v) for k, v in kinds.items()]), kind
-            ))
+            kinds = "\n".join([f"{k}: {v}" for k, v in kinds.items()])
+            raise classes.ErepublikException(f"Article kind must be one of:\n{kinds}\n'{kind}' is not supported")
 
     def get_article(self, article_id: int) -> Dict[str, Any]:
         return self._get_main_article_json(article_id).json()
@@ -1812,7 +1811,7 @@ class CitizenMilitary(CitizenTravel):
             else:
                 self._eat('blue')
                 if self.energy.recovered < 50 or error_count >= 10 or count <= 0:
-                    self.write_log("Hits: {:>4} | Damage: {}".format(total_hits, total_damage))
+                    self.write_log(f"Hits: {total_hits:>4} | Damage: {total_damage}")
                     ok_to_fight = False
                     if total_damage:
                         self.reporter.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
@@ -2317,7 +2316,7 @@ class CitizenTasks(BaseCitizen):
             self._eat("blue")
             if self.energy.food_fights < 1:
                 seconds = (self.energy.reference_time - self.now).total_seconds()
-                self.write_log("I don't have energy to work. Will sleep for {}s".format(seconds))
+                self.write_log(f"I don't have energy to work. Will sleep for {seconds}s")
                 self.sleep(seconds)
                 self._eat("blue")
             self.work()
@@ -2450,7 +2449,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         self.reporter.do_init()
         if self.config.telegram and self.config.telegram_chat_id:
             self.telegram.do_init(self.config.telegram_chat_id,
-                                  self.config.telegram_token or "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o",
+                                  self.config.telegram_token,
                                   self.name)
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
 
@@ -2508,8 +2507,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                     data[(title, reward)]['count'] += count
             self._post_main_global_alerts_close(medal.get('id'))
         if data:
-            msgs = ["{count} x {kind},"
-                    " totaling {} {currency}".format(d["count"] * d["reward"], **d) for d in data.values()]
+            msgs = [f"{d['count']} x {d['kind']}, totaling {d['count'] * d['reward']} "
+                    f"{d['currency']}" for d in data.values()]
 
             msgs = "\n".join(msgs)
             if self.config.telegram:
@@ -2642,7 +2641,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
         if not amount:
             inv_resp = self._get_economy_inventory_items().json()
             category = "rawMaterials" if kind.endswith("Raw") else "finalProducts"
-            item = "{}_{}".format(constants.INDUSTRIES[kind], quality)
+            item = f"{constants.INDUSTRIES[kind]}_{quality}"
             amount = inv_resp.get("inventoryItems").get(category).get("items").get(item).get("amount", 0)
 
         if amount >= 1:
@@ -2671,7 +2670,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                         elif kind.endswith("Raw"):
                             self.sell_produced_product(kind, 1)
                         else:
-                            raise classes.ErepublikException("Unknown kind produced '{kind}'".format(kind=kind))
+                            raise classes.ErepublikException(f"Unknown kind produced '{kind}'")
         elif self.config.auto_buy_raw and re.search(r"not_enough_[^_]*_raw", response.get("message")):
             raw_kind = re.search(r"not_enough_(\w+)_raw", response.get("message"))
             if raw_kind:
@@ -2717,7 +2716,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
             self._report_action("WORK_AS_MANAGER", "Not enough money to work as manager!", kwargs=response)
             self.write_log("Not enough money to work as manager!")
         else:
-            msg = "I was not able to wam and or employ because:\n{}".format(response)
+            msg = f"I was not able to wam and or employ because:\n{response}"
             self._report_action("WORK_AS_MANAGER", f"Worked as manager failed: {msg}", kwargs=response)
             self.write_log(msg)
 
@@ -2756,7 +2755,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
 
             wam_count = self.my_companies.get_total_wam_count()
             if wam_count:
-                self.write_log("Wam ff lockdown is now {}, was {}".format(wam_count, self.my_companies.ff_lockdown))
+                self.write_log(f"Wam ff lockdown is now {wam_count}, was {self.my_companies.ff_lockdown}")
             self.my_companies.ff_lockdown = wam_count
             self.travel_to_residence()
             return bool(wam_count)

@@ -419,7 +419,7 @@ class Energy:
         self._recovery_time = utils.now()
 
     def __repr__(self):
-        return "{:4}/{:4} + {:4}, {:3}hp/6min".format(self.recovered, self.limit, self.recoverable, self.interval)
+        return f"{self.recovered:4}/{self.limit:4} + {self.recoverable:4}, {self.interval:3}hp/6min"
 
     def set_reference_time(self, recovery_time: datetime.datetime):
         self._recovery_time = recovery_time.replace(microsecond=0)
@@ -598,10 +598,10 @@ class Reporter:
             for unreported_data in self.__to_update:
                 unreported_data.update(player_id=self.citizen_id, key=self.key)
                 unreported_data = utils.json.loads(utils.json.dumps(unreported_data, cls=MyJSONEncoder))
-                self._req.post("{}/bot/update".format(self.url), json=unreported_data)
+                self._req.post(f"{self.url}/bot/update", json=unreported_data)
             self.__to_update.clear()
         data = utils.json.loads(utils.json.dumps(data, cls=MyJSONEncoder))
-        r = self._req.post("{}/bot/update".format(self.url), json=data)
+        r = self._req.post(f"{self.url}/bot/update", json=data)
         return r
 
     def register_account(self):
@@ -609,8 +609,8 @@ class Reporter:
             try:
                 r = self.__bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
                 if not r.json().get("status"):
-                    self._req.post("{}/bot/register".format(self.url), json=dict(name=self.name, email=self.email,
-                                                                                 player_id=self.citizen_id))
+                    self._req.post(f"{self.url}/bot/register", json=dict(name=self.name, email=self.email,
+                                                                         player_id=self.citizen_id))
             finally:
                 self.__registered = True
                 self.allowed = True
@@ -895,9 +895,9 @@ class Battle:
         time_now = utils.now()
         is_started = self.start < utils.now()
         if is_started:
-            time_part = " {}".format(time_now - self.start)
+            time_part = f" {time_now - self.start}"
         else:
-            time_part = "-{}".format(self.start - time_now)
+            time_part = f"-{self.start - time_now}"
 
         return (f"Battle {self.id} for {self.region_name[:16]:16} | "
                 f"{self.invader} : {self.defender} | Round time {time_part} | {'R'+str(self.zone_id):>3}")
@@ -981,7 +981,7 @@ class TelegramBot:
         self._threads = [t for t in self._threads if t.is_alive()]
         self._next_time = utils.good_timedelta(utils.now(), datetime.timedelta(seconds=20))
         if not self._threads:
-            name = "telegram_{}send".format(f"{self.player_name}_" if self.player_name else "")
+            name = f"telegram_{f'{self.player_name}_' if self.player_name else ''}send"
             send_thread = threading.Thread(target=self.__send_messages, name=name)
             send_thread.start()
             self._threads.append(send_thread)

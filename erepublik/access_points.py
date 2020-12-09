@@ -81,8 +81,7 @@ class SlowRequests(Session):
             if params:
                 args.update({"params": params})
 
-            body = "[{dt}]\tURL: '{url}'\tMETHOD: {met}\tARGS: {args}\n".format(dt=utils.now().strftime("%F %T"),
-                                                                                url=url, met=method, args=args)
+            body = f"[{utils.now().strftime('%F %T')}]\tURL: '{url}'\tMETHOD: {method}\tARGS: {args}\n"
             with open(self.request_log_name, 'ab') as file:
                 file.write(body.encode("UTF-8"))
             pass
@@ -95,20 +94,18 @@ class SlowRequests(Session):
                     self._log_request(hist_resp.request.url, "REDIRECT")
                     self._log_response(hist_resp.request.url, hist_resp, redirect=True)
 
-            file_data = {
-                "path": 'debug/requests',
-                "time": self.last_time.strftime('%Y/%m/%d/%H-%M-%S'),
-                "name": utils.slugify(url[len(Citizen.url):]),
-                "extra": "_REDIRECT" if redirect else ""
-            }
+            fd_path = 'debug/requests'
+            fd_time = self.last_time.strftime('%Y/%m/%d/%H-%M-%S')
+            fd_name = utils.slugify(url[len(Citizen.url):])
+            fd_extra = "_REDIRECT" if redirect else ""
 
             try:
                 utils.json.loads(resp.text)
-                file_data.update({"ext": "json"})
+                fd_ext = 'json'
             except utils.json.JSONDecodeError:
-                file_data.update({"ext": "html"})
+                fd_ext = 'html'
 
-            filename = 'debug/requests/{time}_{name}{extra}.{ext}'.format(**file_data)
+            filename = f'{fd_path}/{fd_time}_{fd_name}{fd_extra}.{fd_ext}'
             utils.write_file(filename, resp.text)
         pass
 
@@ -483,7 +480,7 @@ class ErepublikPoliticsAPI(CitizenBaseAPI):
 class ErepublikPresidentAPI(CitizenBaseAPI):
     def _post_wars_attack_region(self, war_id: int, region_id: int, region_name: str) -> Response:
         data = {'_token': self.token, 'warId': war_id, 'regionName': region_name, 'regionNameConfirm': region_name}
-        return self.post('{}/wars/attack-region/{}/{}'.format(self.url, war_id, region_id), data=data)
+        return self.post(f'{self.url}/wars/attack-region/{war_id}/{region_id}', data=data)
 
     def _post_new_war(self, self_country_id: int, attack_country_id: int, debate: str = "") -> Response:
         data = dict(requirments=1, _token=self.token, debate=debate,

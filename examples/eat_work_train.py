@@ -94,15 +94,15 @@ def main():
             closest_next_time = dt_max
             next_tasks = []
             for task, next_time in sorted(tasks.items(), key=lambda s: s[1]):
-                next_tasks.append("{}: {}".format(next_time.strftime('%F %T'), task))
+                next_tasks.append(f"{next_time.strftime('%F %T')}: {task}")
                 if next_time < closest_next_time:
                     closest_next_time = next_time
             sleep_seconds = int(utils.get_sleep_seconds(closest_next_time))
             if sleep_seconds <= 0:
                 player.write_log(f"Loop detected! Offending task: '{next_tasks[0]}'")
             player.write_log("My next Tasks and there time:\n" + "\n".join(sorted(next_tasks)))
-            player.write_log("Sleeping until (eRep): {} (sleeping for {}s)".format(
-                closest_next_time.strftime("%F %T"), sleep_seconds))
+            player.write_log(f"Sleeping until (eRep): {closest_next_time.strftime('%F %T')}"
+                             f" (sleeping for {sleep_seconds}s)")
             seconds_to_sleep = sleep_seconds if sleep_seconds > 0 else 0
             player.sleep(seconds_to_sleep)
         except Exception as e:

@@ -93,7 +93,7 @@ def interactive_sleep(sleep_seconds: int):
         #     seconds = seconds % 30 if seconds % 30 else 30
         else:
             seconds = 1
-        sys.stdout.write("\rSleeping for {:4} more seconds".format(sleep_seconds))
+        sys.stdout.write(f"\rSleeping for {sleep_seconds:4} more seconds")
         sys.stdout.flush()
         time.sleep(seconds)
         sleep_seconds -= seconds
@@ -105,7 +105,7 @@ silent_sleep = time.sleep
 
 def _write_log(msg, timestamp: bool = True, should_print: bool = False):
     erep_time_now = now()
-    txt = "[{}] {}".format(erep_time_now.strftime('%F %T'), msg) if timestamp else msg
+    txt = f"[{erep_time_now.strftime('%F %T')}] {msg}" if timestamp else msg
     txt = "\n".join(["\n".join(textwrap.wrap(line, 120)) for line in txt.splitlines()])
     if not os.path.isdir('log'):
         os.mkdir('log')
@@ -172,10 +172,10 @@ def write_request(response: requests.Response, is_error: bool = False):
         ext = "html"
 
     if not is_error:
-        filename = "debug/requests/{}_{}.{}".format(now().strftime('%F_%H-%M-%S'), name, ext)
+        filename = f"debug/requests/{now().strftime('%F_%H-%M-%S')}_{name}.{ext}"
         write_file(filename, html)
     else:
-        return {"name": "{}_{}.{}".format(now().strftime('%F_%H-%M-%S'), name, ext),
+        return {"name": f"{now().strftime('%F_%H-%M-%S')}_{name}.{ext}",
                 "content": html.encode('utf-8'),
                 "mimetype": "application/json" if ext == "json" else "text/html"}
 
@@ -196,14 +196,14 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
     if promo:
         resp = {"name": "%s.html" % name, "mimetype": "text/html",
                 "content": file_content_template.format(title="Promo", body="<br/>".join(content))}
-        subject = "[eBot][{}] Promos: {}".format(now().strftime('%F %T'), name)
+        subject = f"[eBot][{now().strftime('%F %T')}] Promos: {name}"
 
     elif captcha:
         resp = {"name": "%s.html" % name, "mimetype": "text/html",
                 "content": file_content_template.format(title="ReCaptcha", body="<br/>".join(content))}
-        subject = "[eBot][{}] RECAPTCHA: {}".format(now().strftime('%F %T'), name)
+        subject = f"[eBot][{now().strftime('%F %T')}] RECAPTCHA: {name}"
     else:
-        subject = "[eBot][%s] Bug trace: %s" % (now().strftime('%F %T'), name)
+        subject = f"[eBot][{now().strftime('%F %T')}] Bug trace: {name}"
 
     body = "".join(traceback.format_stack()) + \
            "\n\n" + \

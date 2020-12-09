@@ -97,7 +97,7 @@ def main():
     player.set_debug(CONFIG.get('debug', False))
     player.login()
     if CONFIG.get('battle_launcher'):
-        name = "{}-battle_launcher-{}".format(player.name, threading.active_count() - 1)
+        name = f"{player.name}-battle_launcher-{threading.active_count() - 1}"
         state_thread = threading.Thread(target=_battle_launcher, args=(player,), name=name)
         state_thread.start()
 
