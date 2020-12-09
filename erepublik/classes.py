@@ -962,10 +962,12 @@ class TelegramBot:
                 'last_time': self._last_time, 'next_time': self._next_time, 'queue': self.__queue,
                 'initialized': self.__initialized, 'has_threads': not self._threads}
 
-    def do_init(self, chat_id: int, token: str, player_name: str = ""):
+    def do_init(self, chat_id: int, token: str = None, player_name: str = None):
+        if token is None:
+            token = "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o"
         self.chat_id = chat_id
-        self.api_url = "https://api.telegram.org/bot{}/sendMessage".format(token)
-        self.player_name = player_name
+        self.api_url = f"https://api.telegram.org/bot{token}/sendMessage"
+        self.player_name = player_name or ""
         self.__initialized = True
         self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
         self._last_full_energy_report = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-30))
