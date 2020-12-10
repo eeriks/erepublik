@@ -10,6 +10,7 @@ from requests import Response, Session, post
 from . import utils, constants
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
+           'ErepublikNetworkException', 'EnergyToFight',
            'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramReporter']
 
 

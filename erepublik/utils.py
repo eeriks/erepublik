@@ -21,10 +21,10 @@ try:
 except ImportError:
     import json
 
-__all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_from_date',
+__all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_from_date', 'deprecation',
            'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta',
            'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now',
-           'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file',
+           'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file', 'write_request',
            'write_interactive_log', 'write_silent_log', 'get_final_hit_dmg', 'wait_for_lock']
 
 if not sys.version_info >= (3, 6):

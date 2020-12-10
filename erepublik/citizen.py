@@ -1905,9 +1905,10 @@ class CitizenMilitary(CitizenTravel):
                         battle.defender.country] + battle.invader.deployed + battle.defender.deployed
             if self.details.current_country not in involved:
                 count = 0
+        side = battle.invader if inv_side else battle.defender
         errors = deployed_count = 0
         while (not deployed_count == count) and errors < 10:
-            r = self._post_military_deploy_bomb(battle.id, division.id, bomb_id).json()
+            r = self._post_military_deploy_bomb(battle.id, division.id, side.id, bomb_id).json()
             if not r.get('error'):
                 deployed_count += 1
             elif r.get('message') == 'LOCKED':
