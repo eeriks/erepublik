@@ -15,10 +15,14 @@ class SlowRequests(Session):
     timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)
     uas: List[str] = [
         # Chrome
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',  # noqa
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',  # noqa
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',  # noqa
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36',  # noqa
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',
+        # noqa
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
+        # noqa
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
+        # noqa
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36',
+        # noqa
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
@@ -285,7 +289,6 @@ class ErepublikCountryAPI(CitizenBaseAPI):
 
     def _post_main_country_donate(self, country_id: int, action: str, value: Union[int, float],
                                   quality: int = None) -> Response:
-
         data = dict(countryId=country_id, action=action, _token=self.token, value=value, quality=quality)
         return self.post(f"{self.url}/main/country-donate", data=data,
                          headers={"Referer": f"{self.url}/country/economy/Latvia"})
@@ -360,16 +363,20 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
 
 
 class ErepublikLeaderBoardAPI(CitizenBaseAPI):
-    def _get_main_leaderboards_damage_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response: # noqa
+    def _get_main_leaderboards_damage_aircraft_rankings(self, country_id: int, weeks: int = 0,
+                                                        mu_id: int = 0) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-damage-aircraft-rankings/{country_id}/{weeks}/{mu_id}/0")
 
-    def _get_main_leaderboards_damage_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response: # noqa
+    def _get_main_leaderboards_damage_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0,
+                                               div: int = 0) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-damage-rankings/{country_id}/{weeks}/{mu_id}/{div}")
 
-    def _get_main_leaderboards_kills_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response: # noqa
+    def _get_main_leaderboards_kills_aircraft_rankings(self, country_id: int, weeks: int = 0,
+                                                       mu_id: int = 0) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-kills-aircraft-rankings/{country_id}/{weeks}/{mu_id}/0")
 
-    def _get_main_leaderboards_kills_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response: # noqa
+    def _get_main_leaderboards_kills_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0,
+                                              div: int = 0) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-kills-rankings/{country_id}/{weeks}/{mu_id}/{div}")
 
 
@@ -435,8 +442,9 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
             data.update(page=page)
         return self.post(f"{self.url}/military/battle-console", data=data)
 
-    def _post_military_deploy_bomb(self, battle_id: int, bomb_id: int) -> Response:
-        data = dict(battleId=battle_id, bombId=bomb_id, _token=self.token)
+    def _post_military_deploy_bomb(self, battle_id: int, division_id: int, side_id: int, bomb_id: int) -> Response:
+        data = dict(battleId=battle_id, battleZoneId=division_id, sideId=side_id, sideCountryId=side_id,
+                    bombId=bomb_id, _token=self.token)
         return self.post(f"{self.url}/military/deploy-bomb", data=data)
 
     def _post_military_fight_air(self, battle_id: int, side_id: int, zone_id: int) -> Response:

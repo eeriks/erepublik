@@ -1873,14 +1873,19 @@ class CitizenMilitary(CitizenTravel):
         return hits, err, damage
 
     @utils.wait_for_lock
-    def deploy_bomb(self, battle: classes.Battle, bomb_id: int, inv_side: bool = None, count: int = 1) -> Optional[int]:
+    def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool, count: int = 1) -> Optional[int]:
         """Deploy bombs in a battle for given side.
 
         :param battle: Battle
-        :type battle: Battle
+        :type battle: classes.Battle
+        :param division: BattleDivision
+        :type division: classes.BattleDivision
         :param bomb_id: int bomb id
-        :param inv_side: should deploy on invader side, if None then will deploy in currently available side
-        :param count: int how many bombs to deploy
+        :type bomb_id: int
+        :param inv_side: should deploy on invader side
+        :type inv_side: bool
+        :param count: how many bombs to deploy
+        :type count: int
         :return: Deployed count
         :rtype: int
         """
@@ -1895,10 +1900,6 @@ class CitizenMilitary(CitizenTravel):
             good_countries = [battle.invader.country] + battle.invader.deployed
             if self.details.current_country not in good_countries:
                 has_traveled = self.travel_to_battle(battle, good_countries)
-        elif inv_side is not None:
-            good_countries = [battle.defender.country] + battle.defender.deployed
-            if self.details.current_country not in good_countries:
-                has_traveled = self.travel_to_battle(battle, good_countries)
         else:
             involved = [battle.invader.country,
                         battle.defender.country] + battle.invader.deployed + battle.defender.deployed
@@ -1906,7 +1907,7 @@ class CitizenMilitary(CitizenTravel):
                 count = 0
         errors = deployed_count = 0
         while (not deployed_count == count) and errors < 10:
-            r = self._post_military_deploy_bomb(battle.id, bomb_id).json()
+            r = self._post_military_deploy_bomb(battle.id, division.id, bomb_id).json()
             if not r.get('error'):
                 deployed_count += 1
             elif r.get('message') == 'LOCKED':
