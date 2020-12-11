@@ -1863,7 +1863,18 @@ class CitizenMilitary(CitizenTravel):
                     self.travel_to_battle(battle, countries)
                 err = True
         elif r_json.get("message") == "ENEMY_KILLED":
-            hits = (self.energy.recovered - r_json["details"]["wellness"]) // 10
+            # Non-InfantryKit players
+            if r_json['user']['earnedXp']:
+                hits = r_json['user']['earnedXp']
+            # InfantryKit player
+            # The almost always safe way (breaks on levelup hit)
+            elif self.energy.recovered >= r_json["details"]["wellness"]:  # Haven't reached levelup
+                hits = (self.energy.recovered - r_json["details"]["wellness"]) // 10
+            else:
+                hits = r_json['hits']
+                if r_json['user']['epicBattle']:
+                    hits /= 1+r_json['user']['epicBattle']
+
             self.energy.recovered = r_json["details"]["wellness"]
             self.details.xp = int(r_json["details"]["points"])
             damage = r_json["user"]["givenDamage"] * (1.1 if r_json["oldEnemy"]["isNatural"] else 1)
