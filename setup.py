@@ -45,7 +45,7 @@ setup(
     keywords='erepublik',
     name='eRepublik',
     packages=find_packages(include=['erepublik']),
-    python_requires='>=3.6, <4',
+    python_requires='>=3.7, <4',
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
