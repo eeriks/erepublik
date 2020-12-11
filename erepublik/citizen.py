@@ -417,7 +417,7 @@ class BaseCitizen(access_points.CitizenAPI):
         else:
             utils.process_error(msg, self.name, sys.exc_info(), self, None, None)
 
-    def sleep(self, seconds: int):
+    def sleep(self, seconds: Union[int, float, Decimal]):
         if seconds < 0:
             seconds = 0
         if self.config.interactive:
@@ -1922,8 +1922,9 @@ class CitizenMilitary(CitizenTravel):
             r = self._post_military_deploy_bomb(battle.id, division.id, side.id, bomb_id).json()
             if not r.get('error'):
                 deployed_count += 1
+                self.sleep(0.5)
             elif r.get('message') == 'LOCKED':
-                sleep(0.5)
+                self.sleep(0.5)
             else:
                 errors += 1
 
