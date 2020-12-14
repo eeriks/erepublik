@@ -2304,7 +2304,7 @@ class CitizenSocial(BaseCitizen):
             return self._get_main_city_data_residents(city_id, params={"search": name}).json()
 
 
-class CitizenTasks(BaseCitizen):
+class CitizenTasks(CitizenEconomy):
     tg_contract: dict = {}
     ot_points: int = 0
     next_ot_time: datetime = None
@@ -2322,6 +2322,8 @@ class CitizenTasks(BaseCitizen):
                 if js.get('message') in ['employee', 'money']:
                     self.resign_from_employer()
                     self.find_new_job()
+                elif js.get('message') in ['not_enough_health_food']:
+                    self.buy_food(120)
                 self.update_citizen_info()
                 self.work()
             else:
@@ -2376,6 +2378,8 @@ class CitizenTasks(BaseCitizen):
             else:
                 if r.json().get('message') == 'employee':
                     self.find_new_job()
+                elif r.json().get('message') == 'not_enough_health_food':
+                    self.buy_food(120)
                 self.reporter.report_action("WORK_OT", r.json())
         elif self.energy.food_fights < 1 and self.ot_points >= 24:
             self._eat("blue")
