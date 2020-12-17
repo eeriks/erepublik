@@ -10,7 +10,7 @@ import unicodedata
 import warnings
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, List, Optional, Union, Dict
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 
@@ -158,6 +158,7 @@ def write_file(filename: str, content: str) -> int:
 
 def write_request(response: requests.Response, is_error: bool = False):
     from erepublik import Citizen
+
     # Remove GET args from url name
     url = response.url
     last_index = url.index("?") if "?" in url else len(response.url)

@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from erepublik import Citizen, utils, constants
+from erepublik import Citizen, constants, utils
 
 CONFIG = {
     'email': 'player@email.com',
