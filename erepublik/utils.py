@@ -397,7 +397,11 @@ def wait_for_lock(function):
             return None
         else:
             instance.concurrency_available.clear()
-            ret = function(instance, *args, **kwargs)
+            try:
+                ret = function(instance, *args, **kwargs)
+            except Exception as e:
+                instance.concurrency_available.set()
+                raise e
             instance.concurrency_available.set()
             return ret
     return wrapper
