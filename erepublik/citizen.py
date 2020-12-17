@@ -2444,8 +2444,8 @@ class CitizenTasks(CitizenEconomy):
             self.ot_points = ot.get("points", 0)
 
 
-class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeaderBoard,
-              CitizenMedia, CitizenMilitary, CitizenPolitics, CitizenSocial, CitizenTasks):
+class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
+              CitizenMedia, CitizenPolitics, CitizenSocial, CitizenMilitary, CitizenTasks):
     def __init__(self, email: str = "", password: str = "", auto_login: bool = False):
         super().__init__(email, password)
         self._last_full_update = constants.min_datetime
