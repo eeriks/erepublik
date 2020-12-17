@@ -3,11 +3,11 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Tuple, Union, NoReturn, Generator, Iterable
+from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Tuple, Union
 
 from requests import Response, Session, post
 
-from . import utils, constants
+from . import constants, utils
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
            'ErepublikNetworkException', 'EnergyToFight',

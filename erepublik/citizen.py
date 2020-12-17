@@ -11,7 +11,7 @@ from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from requests import HTTPError, RequestException, Response
 
-from . import utils, classes, access_points, constants
+from . import access_points, classes, constants, utils
 from .classes import OfferItem
 
 

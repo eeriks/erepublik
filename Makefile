@@ -47,7 +47,6 @@ clean-pyc: ## remove Python file artifacts
 	rm -rf log/
 
 clean-test: ## remove test and coverage artifacts
-	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
@@ -57,9 +56,6 @@ lint: ## check style with flake8
 
 test: ## run tests quickly with the default Python
 	python setup.py test
-
-test-all: ## run tests on every Python version with tox
-	tox
 
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source erepublik setup.py test
@@ -80,6 +76,7 @@ servedocs: docs ## compile the docs watching for changes
 
 release: dist ## package and upload a release
 	twine upload dist/*
+	clean
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist

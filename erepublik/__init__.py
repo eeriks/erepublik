@@ -6,7 +6,7 @@ __author__ = """Eriks Karls"""
 __email__ = 'eriks@72.lv'
 __version__ = '0.23.3.2'
 
-from erepublik import classes, utils, constants
+from erepublik import classes, constants, utils
 from erepublik.citizen import Citizen
 
 __all__ = ["classes", "utils", "Citizen", 'constants']
