@@ -8,27 +8,24 @@
     <meta name="generator" content="Jekyll v4.0.1">
     <title>eBot configuration</title>
     <!-- CSS only -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
-          crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
 
     <!-- JS, Popper.js, and jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-            crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
-            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="container">
     <div class="p-3 text-center">
         <h1>eBot configuration file generator</h1>
-<!--        <h2>-->
-<!--            <span class="d-inline d-sm-none d-md-none d-lg-none d-xl-none">XS</span>-->
-<!--            <span class="d-none d-sm-inline d-md-none d-lg-none d-xl-none">SM</span>-->
-<!--            <span class="d-none d-sm-none d-md-inline d-lg-none d-xl-none">MD</span>-->
-<!--            <span class="d-none d-sm-none d-md-none d-lg-inline d-xl-none">LG</span>-->
-<!--            <span class="d-none d-sm-none d-md-none d-lg-none d-xl-inline">XL</span>-->
-<!--        </h2>-->
+        <h2>
+            <span class="d-inline d-sm-none d-md-none d-lg-none d-xl-none">XS</span>
+            <span class="d-none d-sm-inline d-md-none d-lg-none d-xl-none">SM</span>
+            <span class="d-none d-sm-none d-md-inline d-lg-none d-xl-none">MD</span>
+            <span class="d-none d-sm-none d-md-none d-lg-inline d-xl-none">LG</span>
+            <span class="d-none d-sm-none d-md-none d-lg-none d-xl-inline">XL</span>
+        </h2>
     </div>
     <div class="row pt-4">
         <div class="col-12">
@@ -37,14 +34,14 @@
                     <div class="col-12 col-sm-8 col-md-6">
                         <h3>Login data</h3>
                         <div class="form-group">
-                            <input type="email" class="form-control form-control-sm" onchange="updateJson()" id="email" placeholder="E-mail...">
-                            <input type="password" class="form-control form-control-sm mt-3" onchange="updateJson()" id="password" disabled placeholder="Password..."
+                            <label for="email" class="hidden"></label><input type="email" class="form-control" onchange="updateJson()" id="email" placeholder="E-mail...">
+                            <label for="password" class="hidden"></label><input type="password" class="form-control" onchange="updateJson()" id="password" disabled placeholder="Password..."
                                    aria-describedby="passwordHelpBlock">
                             <small id="passwordHelpBlock" class="form-text text-muted"><strong>NEVER</strong> enter Your passwords on 3rd party sites and <strong class="text-upper">DO NOT</strong> reuse Your
                                 password!</small>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-sm-4 col-md-3">
                         <h3>Basic tasks</h3>
                         <div class="custom-control custom-switch">
                             <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="work" checked>
@@ -57,29 +54,6 @@
                         <div class="custom-control custom-switch">
                             <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="ot" checked>
                             <label class="custom-control-label" for="ot">Work overtime</label>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <h3>Misc</h3>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="renew_houses" checked>
-                            <label class="custom-control-label" for="renew_houses">Auto renew houses</label>
-                        </div>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="random_sleep" checked>
-                            <label class="custom-control-label" for="random_sleep">Random sleep</label>
-                        </div>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="buy_gold">
-                            <label class="custom-control-label" for="buy_gold">Auto buy 10g</label>
-                        </div>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="interactive" checked>
-                            <label class="custom-control-label" for="interactive">Interactive</label>
-                        </div>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="debug">
-                            <label class="custom-control-label" for="debug">Debug</label>
                         </div>
                     </div>
                 </div>
@@ -200,6 +174,90 @@
                             <label class="custom-control-label" for="epic_hunt_ebs">Spend <small>[all]</small> EBs in epics</label>
                         </div>
                     </div>
+                    <div class="col-12 col-sm-6">
+                        <h3 class="mt-4">Misc</h3>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="renew_houses" checked>
+                            <label class="custom-control-label" for="renew_houses">Auto renew houses</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="random_sleep" checked>
+                            <label class="custom-control-label" for="random_sleep">Random sleep</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="buy_gold">
+                            <label class="custom-control-label" for="buy_gold">Auto buy 10g</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="interactive" checked>
+                            <label class="custom-control-label" for="interactive">Interactive</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="debug">
+                            <label class="custom-control-label" for="debug">Debug</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="spin_wheel_of_fortune">
+                            <label class="custom-control-label" for="spin_wheel_of_fortune">Auto spin 10% of cc in WheelOfFortune</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="congress">
+                            <label class="custom-control-label" for="congress">Auto candidate for congress</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="party_president">
+                            <label class="custom-control-label" for="party_president">Auto candidate for party presidency</label>
+                        </div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="contribute_cc">
+                            <label class="custom-control-label" for="contribute_cc">Contribute cc to country's account (weekly)</label>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <h3 class="mt-4">Advanced</h3>
+
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="telegram">
+                                <label class="custom-control-label" for="telegram">Notify trough Telegram</label>
+                            </div>
+
+                            <label for="telegram_chat_id">Telegram's chat ID</label>
+                            <input type="text" class="form-control" onchange="updateJson()" id="telegram_chat_id" placeholder="Chat ID">
+                            <label for="telegram_token">Telegram Bot token</label>
+                            <input type="text" class="form-control" onchange="updateJson()" id="telegram_token" placeholder="864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o">
+                            <small id="telegramTokenHelp" class="form-text text-muted">Only enter token if You want to use your own Telegram bot for notification sending</small>
+                        </div>
+
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="proxy">
+                            <label class="custom-control-label" for="proxy">Use proxy</label>
+                        </div>
+                        <label for="proxy_kind">Proxy kind</label>
+                        <div class="form-group">
+                            <select class="form-control custom-select" id="proxy_kind">
+                                <option value="socks" selected>SOCKS5</option>
+                                <option value="http">HTTP</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="proxy_host">Proxy hostname or IP address</label>
+                            <input type="text" class="form-control" onchange="updateJson()" id="proxy_host" placeholder="localhost">
+                        </div>
+                        <div class="form-group">
+                            <label for="proxy_port">Proxy port</label>
+                            <input type="text" class="form-control" onchange="updateJson()" id="proxy_port" placeholder="8080">
+                        </div>
+                        <div class="form-group">
+                            <label for="proxy_user">Proxy username (optional)</label>
+                            <input type="text" class="form-control" onchange="updateJson()" id="proxy_user" placeholder="user">
+                        </div>
+                        <div class="form-group">
+                            <label for="proxy_password">Proxy password (optional)</label>
+                            <input type="password" class="form-control" onchange="updateJson()" id="proxy_password" placeholder="password" disabled>
+                            <small id="proxyHelpBlock" class="form-text text-muted"><strong>NEVER</strong> enter Your passwords on 3rd party sites and <strong class="text-upper">DO NOT</strong> reuse Your password!</small>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -212,7 +270,9 @@
     function disable(element){
         element.checked = false;
         element.disabled = true;
+        element.value = null;
     }
+
     function updateJson() {
         let config = {};
         let email = document.getElementById('email'); // Generated
@@ -228,6 +288,14 @@
         config.renew_houses = renew_houses.checked;
         let random_sleep = document.getElementById('random_sleep'); // Generated
         config.random_sleep = random_sleep.checked;
+        let spin_wheel_of_fortune = document.getElementById('spin_wheel_of_fortune'); // Generated
+        config.spin_wheel_of_fortune = spin_wheel_of_fortune.checked;
+        let congress = document.getElementById('congress'); // Generated
+        config.congress = congress.checked;
+        let party_president = document.getElementById('party_president'); // Generated
+        config.party_president = party_president.checked;
+        let contribute_cc = document.getElementById('contribute_cc'); // Generated
+        config.contribute_cc = contribute_cc.checked ? 10000 : false;
         let buy_gold = document.getElementById('buy_gold'); // Generated
         config.buy_gold = buy_gold.checked;
         let interactive = document.getElementById('interactive'); // Generated
@@ -297,7 +365,7 @@
         let travel_to_fight = document.getElementById('travel_to_fight'); // Generated
         let epic_hunt = document.getElementById('epic_hunt'); // Generated
         let epic_hunt_ebs = document.getElementById('epic_hunt_ebs'); // Generated
-        if (config.fight){
+        if (config.fight) {
             air.disabled = false;
             ground.disabled = false;
             boosters.disabled = false;
@@ -334,6 +402,60 @@
         config.travel_to_fight = travel_to_fight.checked;
         config.epic_hunt = epic_hunt.checked;
         config.epic_hunt_ebs = config.epic_hunt ? epic_hunt_ebs.checked : config.epic_hunt;
+
+        // Advanced
+
+
+        let telegram = document.getElementById('telegram'); // Generated
+        config.telegram = telegram.checked;
+        let telegram_chat_id = document.getElementById('telegram_chat_id'); // Generated
+        let telegram_token = document.getElementById('telegram_token'); // Generated
+        if (config.telegram) {
+            telegram_chat_id.disabled = false;
+            telegram_token.disabled = false;
+        } else {
+            disable(telegram_chat_id);
+            disable(telegram_token);
+        }
+        config.telegram_chat_id = telegram_chat_id.value;
+        config.telegram_token = telegram_token.value;
+
+        let _proxy = {};
+        let proxy = document.getElementById('proxy'); // Generated
+        let proxy_kind = document.getElementById('proxy_kind'); // Generated
+        let proxy_host = document.getElementById('proxy_host'); // Generated
+        let proxy_port = document.getElementById('proxy_port'); // Generated
+        let proxy_user = document.getElementById('proxy_user'); // Generated
+
+        if (proxy.checked) {
+            proxy_kind.disabled = false;
+            proxy_host.disabled = false;
+            proxy_port.disabled = false;
+            proxy_user.disabled = false;
+        } else {
+            disable(proxy_kind);
+            disable(proxy_host);
+            disable(proxy_port);
+            disable(proxy_user);
+        }
+        _proxy.kind = proxy_kind.value;
+        _proxy.host = proxy_host.value;
+        _proxy.port = proxy_port.value;
+        _proxy.username = proxy_user.value;
+        _proxy.password = ""
+        if (proxy.checked) {
+            delete config._proxy;
+            config.proxy = _proxy;
+        } else {
+            delete config.proxy;
+            config._proxy = {
+                'kind': 'socks or http',
+                'host': 'localhost',
+                'port': 8080,
+                'username': 'optional',
+                'password': 'optional'
+            }
+        }
         let pre = document.getElementById('json-output');
         pre.textContent = JSON.stringify(config, null, 2);
     }
