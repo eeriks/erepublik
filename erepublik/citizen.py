@@ -2174,13 +2174,21 @@ class CitizenPolitics(BaseCitizen):
             ret.update({int(id_): name})
         return ret
 
-    def candidate_for_congress(self, presentation: str = "") -> Response:
-        self._report_action('POLITIC_CONGRESS', 'Applied for congress elections')
-        return self._post_candidate_for_congress(presentation)
+    def candidate_for_party_presidency(self) -> Optional[Response]:
+        if self.politics.is_party_member:
+            self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
+            return self._get_candidate_party(self.politics.party_slug)
+        else:
+            self._report_action('POLITIC_CONGRESS', 'Unable to apply for party president elections - not a party member')
+            return None
 
-    def candidate_for_party_presidency(self) -> Response:
-        self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
-        return self._get_candidate_party(self.politics.party_slug)
+    def candidate_for_congress(self, presentation: str = "") -> Optional[Response]:
+        if self.politics.is_party_member:
+            self._report_action('POLITIC_CONGRESS', 'Applied for congress elections')
+            return self._post_candidate_for_congress(presentation)
+        else:
+            self._report_action('POLITIC_CONGRESS', 'Unable to apply for congress elections - not a party member')
+            return None
 
     def get_country_president_election_result(
         self, country: constants.Country, year: int, month: int
@@ -2586,7 +2594,8 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenEconomy, CitizenLeade
                        f"(Recoverable until WC end {max_count}hp | want to do {count}hits)")
             count = count if max_count > count else max_count
 
-        self.write_log(log_msg, False)
+        if not silent:
+            self.write_log(log_msg, False)
 
         return count, log_msg, force_fight
 
