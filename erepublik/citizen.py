@@ -1925,6 +1925,8 @@ class CitizenMilitary(CitizenTravel):
                 self.sleep(0.5)
             elif r.get('message') == 'LOCKED':
                 self.sleep(0.5)
+            elif r.get('message') == 'INVALID_BOMB':
+                errors = 10
             else:
                 errors += 1
 
