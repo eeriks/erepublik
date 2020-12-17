@@ -2,6 +2,18 @@
 History
 =======
 
+0.23.3 (2020-12-17)
+-------------------
+* Fixed carpet bombing
+* Fixed hits done amount when fighting on ground
+* Minor requirement updates
+* Minor tweaks to method signatures
+* Fixed buy food if unable to work or train because not enough energy and not enough food
+* Fixed applications for party presidency and congress if not a party member
+* Removed tox
+* Updates to github.io config generator
+* Fixed `Citizen.concurrency_available` stuck in unset state if exception is being raised while doing concurrency task
+
 0.23.2 (2020-12-01)
 -------------------
 * Added concurrency checks to guard against simultaneous fighting/wam'ing/traveling
