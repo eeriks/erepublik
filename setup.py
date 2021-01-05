@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'pytz==2020.4',
+    'pytz>=2020.0',
     'requests>=2.24.0,<2.26.0',
     'PySocks==1.7.1'
 ]

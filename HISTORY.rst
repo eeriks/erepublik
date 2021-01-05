@@ -2,6 +2,13 @@
 History
 =======
 
+0.23.4 (2021-01-05)
+-------------------
+* Added expiration data to inventory items
+* Inventory is now based on `classes.Inventory`
+* Requirement update to make them more flexible regarding versions required
+* Restructured inventory
+
 0.23.3 (2020-12-17)
 -------------------
 * Fixed carpet bombing
@@ -29,7 +36,7 @@ History
 
 0.23.0 (2020-11-26)
 -------------------
-* ***0.23 - last supported version for Python 3.7.***
+* ***0.23 - last officially supported version for Python 3.7.***
 * Added `Config.maverick` switch, to allow/deny automated fighting in non native divisions if the player has MaverickPack
 * Added `CitizenMedia.get_article(article_id:int)` method to get article data
 * Added `CitizenMedia.delete_article(article_id:int)` method to delete article

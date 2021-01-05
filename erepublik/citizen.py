@@ -2,7 +2,7 @@ import re
 import sys
 import warnings
 import weakref
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from decimal import Decimal
 from itertools import product
 from threading import Event
@@ -11,7 +11,7 @@ from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from requests import HTTPError, RequestException, Response
 
-from . import access_points, classes, constants, utils
+from . import access_points, classes, constants, utils, types
 from .classes import OfferItem
 
 
@@ -20,9 +20,7 @@ class BaseCitizen(access_points.CitizenAPI):
     _last_inventory_update: datetime = constants.min_datetime
 
     promos: Dict[str, datetime] = None
-    inventory: Dict[str, Dict[str, Dict[int, Dict[str, Union[str, int, float]]]]]
-    inventory_status: Dict[str, int]
-    boosters: Dict[int, Dict[int, int]] = {50: {}, 100: {}}
+    inventory: classes.Inventory
     ot_points: int = 0
 
     food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
@@ -65,8 +63,7 @@ class BaseCitizen(access_points.CitizenAPI):
 
         self.config.email = email
         self.config.password = password
-        self.inventory = {}
-        self.inventory_status = dict(used=0, total=0)
+        self.inventory = classes.Inventory()
         self.wheel_of_fortune = False
 
     def get_csrf_token(self):
@@ -248,7 +245,7 @@ class BaseCitizen(access_points.CitizenAPI):
         """
         self._update_inventory_data(self._get_economy_inventory_items().json())
 
-    def get_inventory(self, force: bool = False):
+    def get_inventory(self, force: bool = False) -> classes.Inventory:
         if utils.good_timedelta(self._last_inventory_update, timedelta(minutes=2)) < self.now or force:
             self.update_inventory()
         return self.inventory
@@ -257,17 +254,25 @@ class BaseCitizen(access_points.CitizenAPI):
         if not isinstance(inv_data, dict):
             raise TypeError("Parameter `inv_data` must be dict not '{type(data)}'!")
 
+        def _expire_value_to_python(_expire_value: str) -> Dict[str, Union[int, datetime]]:
+            _data = re.search(
+                r'((?P<amount>\d+) item\(s\) )?[eE]xpires? on Day (?P<eday>\d,\d{3}), (?P<time>\d\d:\d\d)',
+                _expire_value).groupdict()
+            eday = utils.date_from_eday(int(_data['eday'].replace(',', '')))
+            dt = constants.erep_tz.localize(datetime.combine(eday, time(*[int(_) for _ in _data['time'].split(':')])))
+            return {'amount': _data.get('amount'), 'expiration': dt}
+
         status = inv_data.get("inventoryStatus", {})
         if status:
-            self.inventory_status.clear()
-            self.inventory_status.update(used=status.get("usedStorage"), total=status.get("totalStorage"))
+            self.inventory.used = status.get("usedStorage")
+            self.inventory.total = status.get("totalStorage")
         data = inv_data.get('inventoryItems', {})
         if not data:
             return
         self._last_inventory_update = self.now
         self.food.update({"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0})
         self.eb_small = self.eb_double = self.eb_normal = 0
-        active_items: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
+        active_items: types.InvFinal = {}
         if data.get("activeEnhancements", {}).get("items", {}):
             for item_data in data.get("activeEnhancements", {}).get("items", {}).values():
                 if item_data.get('token'):
@@ -278,29 +283,34 @@ class BaseCitizen(access_points.CitizenAPI):
                     kind = constants.INDUSTRIES[constants.INDUSTRIES[kind]]
                 if kind not in active_items:
                     active_items[kind] = {}
+                expiration_info = []
+                if item_data.get('attributes').get('expirationInfo'):
+                    expire_info = item_data.get('attributes').get('expirationInfo')
+                    expiration_info = [_expire_value_to_python(v) for v in expire_info['value']]
                 icon = item_data['icon'] if item_data[
                     'icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
-                item_data = dict(name=item_data.get("name"), time_left=item_data['active']['time_left'], icon=icon,
-                                 kind=kind,
-                                 quality=item_data.get("quality", 0))
+                inv_item: types.InvFinalItem = dict(
+                    name=item_data.get("name"), time_left=item_data['active']['time_left'], icon=icon,
+                    kind=kind, expiration=expiration_info, quality=item_data.get("quality", 0)
+                )
 
                 if item_data.get('isPackBooster'):
-                    active_items[kind].update({0: item_data})
+                    active_items[kind].update({0: inv_item})
                 else:
-                    active_items[kind].update({item_data.get("quality"): item_data})
+                    active_items[kind].update({inv_item.get("quality"): inv_item})
 
-        final_items: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
+        final_items: types.InvFinal = {}
+        boosters: types.InvBooster = {}
         if data.get("finalProducts", {}).get("items", {}):
             for item_data in data.get("finalProducts", {}).get("items", {}).values():
+                is_booster: bool = False
                 name = item_data['name']
 
                 if item_data.get('type'):
-                    if item_data.get('type') in ['damageBoosters', "aircraftDamageBoosters"]:
-                        kind = f"{item_data['type']}{item_data['quality']}"
-                        if item_data['quality'] == 5:
-                            self.boosters[50].update({item_data['duration']: item_data['amount']})
-                        elif item_data['quality'] == 10:
-                            self.boosters[100].update({item_data['duration']: item_data['amount']})
+                    #  in ['damageBoosters', "aircraftDamageBoosters", 'prestigePointsBoosters']
+                    if item_data.get('type').endswith('Boosters'):
+                        is_booster = True
+                        kind = item_data['type']
 
                         delta = item_data['duration']
                         if delta // 3600:
@@ -337,8 +347,14 @@ class BaseCitizen(access_points.CitizenAPI):
                 if constants.INDUSTRIES[kind]:
                     kind = constants.INDUSTRIES[constants.INDUSTRIES[kind]]
 
-                if kind not in final_items:
-                    final_items[kind] = {}
+                if is_booster:
+                    if kind not in boosters:
+                        boosters[kind] = {}
+                    if item_data.get('quality', 0) not in boosters[kind]:
+                        boosters[kind][item_data['quality']] = {}
+                else:
+                    if kind not in final_items:
+                        final_items[kind] = {}
 
                 if item_data['icon']:
                     icon = item_data['icon']
@@ -355,10 +371,23 @@ class BaseCitizen(access_points.CitizenAPI):
                         icon = "/images/modules/pvp/ghost_boosters/icon_booster_30_60.png"
                     else:
                         icon = "//www.erepublik.net/images/modules/manager/tab_storage.png"
-                _item_data = dict(kind=kind, quality=item_data.get('quality', 0), amount=item_data.get('amount', 0),
-                                  durability=item_data.get('duration', 0), icon=icon, name=name)
-                if item_data.get('type') in ('damageBoosters', "aircraftDamageBoosters"):
-                    _item_data = {_item_data['durability']: _item_data}
+
+                expiration_info = []
+                if item_data.get('attributes'):
+                    if item_data.get('attributes').get('expirationInfo'):
+                        expire_info = item_data.get('attributes').get('expirationInfo')
+                        expiration_info = [_expire_value_to_python(v) for v in expire_info['value']]
+                    elif item_data.get('attributes').get('expiration'):
+                        _exp = item_data.get('attributes').get('expiration')
+                        exp_dt = (utils.date_from_eday(int(_exp['value'].replace(',', ''))))
+                        expiration_info = [{'amount': item_data.get('amount'), 'expiration': exp_dt}]
+                _inv_item: Dict[int, types.InvFinalItem]
+                inv_item: types.InvFinalItem = dict(
+                    kind=kind, quality=item_data.get('quality', 0), icon=icon, expiration=expiration_info,
+                    amount=item_data.get('amount'), durability=item_data.get('duration', 0), name=name
+                )
+                if is_booster:
+                    _inv_item = {inv_item['durability']: inv_item}
                 else:
                     if item_data.get('type') == 'bomb':
                         firepower = 0
@@ -367,11 +396,14 @@ class BaseCitizen(access_points.CitizenAPI):
                         except AttributeError:
                             pass
                         finally:
-                            _item_data.update(fire_power=firepower)
-                    _item_data = {_item_data['quality']: _item_data}
-                final_items[kind].update(_item_data)
+                            inv_item.update(fire_power=firepower)
+                    _inv_item = {inv_item['quality']: inv_item}
+                if is_booster:
+                    boosters[kind][inv_item['quality']].update(_inv_item)
+                else:
+                    final_items[kind].update(_inv_item)
 
-        raw_materials: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
+        raw_materials: types.InvRaw = {}
         if data.get("rawMaterials", {}).get("items", {}):
             for item_data in data.get("rawMaterials", {}).get("items", {}).values():
                 if item_data['isPartial']:
@@ -401,8 +433,11 @@ class BaseCitizen(access_points.CitizenAPI):
                 offers[kind] = {}
 
             offers[kind].update(offer_data)
-        self.inventory.clear()
-        self.inventory.update(active=active_items, final=final_items, raw=raw_materials, offers=offers)
+        self.inventory.active = active_items
+        self.inventory.final = final_items
+        self.inventory.boosters = boosters
+        self.inventory.raw = raw_materials
+        self.inventory.offers = offers
         self.food["total"] = sum([self.food[q] * constants.FOOD_ENERGY[q] for q in constants.FOOD_ENERGY])
 
     def write_log(self, *args, **kwargs):
@@ -946,13 +981,13 @@ class CitizenCompanies(BaseCitizen):
         raw_factories = wam_holding.get_wam_companies(raw_factory=True)
         fin_factories = wam_holding.get_wam_companies(raw_factory=False)
 
-        free_inventory = self.inventory_status["total"] - self.inventory_status["used"]
+        free_inventory = self.inventory.total - self.inventory.used
         wam_list = raw_factories + fin_factories
         wam_list = wam_list[:self.energy.food_fights]
 
         if int(free_inventory * 0.75) < self.my_companies.get_needed_inventory_usage(wam_list):
             self.update_inventory()
-            free_inventory = self.inventory_status["total"] - self.inventory_status["used"]
+            free_inventory = self.inventory.total - self.inventory.used
 
         while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
             wam_list.pop(-1)
@@ -1021,7 +1056,7 @@ class CitizenEconomy(CitizenTravel):
     def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
         inv = self.get_inventory()
-        for house_quality, active_house in inv['active'].get('House', {}).items():
+        for house_quality, active_house in inv.active.get('House', {}).items():
             till = utils.good_timedelta(self.now, timedelta(seconds=active_house['time_left']))
             ret.update({house_quality: till})
         return ret
@@ -1030,7 +1065,7 @@ class CitizenEconomy(CitizenTravel):
         original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
         inv = self.get_inventory()
-        if not inv['final'].get('House', {}).get(q, {}):
+        if not inv.final.get('House', {}).get(q, {}):
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
                 countries.append(self.details.current_country)
@@ -1084,7 +1119,8 @@ class CitizenEconomy(CitizenTravel):
         r: Dict[str, Any] = self._post_economy_activate_house(quality).json()
         self._update_inventory_data(r)
         if r.get("status") and not r.get("error"):
-            house: Dict[str, Union[int, str]] = self.get_inventory()['active']['House'][quality]
+            inventory = self.get_inventory()
+            house = inventory.active.get('House', {}).get(quality)
             time_left = timedelta(seconds=house["time_left"])
             active_until = utils.good_timedelta(self.now, time_left)
             self._report_action(
@@ -1164,12 +1200,14 @@ class CitizenEconomy(CitizenTravel):
             self.write_log(f"Trying to sell unsupported industry {industry}")
 
         _inv_qlt = quality if industry in [1, 2, 3, 4, 23] else 0
-        _kind = 'final' if industry in [1, 2, 4, 23] else 'raw'
+        final_kind = industry in [1, 2, 4, 23]
         inventory = self.get_inventory()
-        items = inventory[_kind].get(constants.INDUSTRIES[industry], {_inv_qlt: {'amount': 0}})
+        items = (inventory.final if final_kind else inventory.raw).get(constants.INDUSTRIES[industry],
+                                                                       {_inv_qlt: {'amount': 0}})
         if items[_inv_qlt]['amount'] < amount:
             inventory = self.get_inventory(True)
-            items = inventory[_kind].get(constants.INDUSTRIES[industry], {_inv_qlt: {'amount': 0}})
+            items = (inventory.final if final_kind else inventory.raw).get(constants.INDUSTRIES[industry],
+                                                                           {_inv_qlt: {'amount': 0}})
             if items[_inv_qlt]['amount'] < amount:
                 self._report_action("ECONOMY_SELL_PRODUCTS", "Unable to sell! Not enough items in storage!",
                                     kwargs=dict(inventory=items[_inv_qlt], amount=amount))
@@ -1788,7 +1826,7 @@ class CitizenMilitary(CitizenTravel):
             self._report_action("IP_BLACKLISTED", "Fighting is not allowed from restricted IP!")
             return 1
         if not division.is_air and self.config.boosters:
-            self.activate_dmg_booster()
+            self.activate_damage_booster(not division.is_air)
         if side is None:
             side = battle.defender if self.details.citizenship in battle.defender.allies + [
                 battle.defender.country] else battle.invader
@@ -1873,7 +1911,7 @@ class CitizenMilitary(CitizenTravel):
             else:
                 hits = r_json['hits']
                 if r_json['user']['epicBattle']:
-                    hits /= 1+r_json['user']['epicBattle']
+                    hits /= 1 + r_json['user']['epicBattle']
 
             self.energy.recovered = r_json["details"]["wellness"]
             self.details.xp = int(r_json["details"]["points"])
@@ -1884,7 +1922,8 @@ class CitizenMilitary(CitizenTravel):
         return hits, err, damage
 
     @utils.wait_for_lock
-    def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool, count: int = 1) -> Optional[int]:
+    def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool,
+                    count: int = 1) -> Optional[int]:
         """Deploy bombs in a battle for given side.
 
         :param battle: Battle
@@ -1979,34 +2018,43 @@ class CitizenMilitary(CitizenTravel):
 
         return utils.calculate_hit(0, rang, True, elite, ne, 0, 20 if weapon else 0)
 
-    def activate_dmg_booster(self):
-        if self.config.boosters:
-            if not self.get_active_ground_damage_booster():
-                duration = 0
-                for length, amount in self.boosters[50].items():
-                    if amount > 2:
-                        duration = length
+    def activate_damage_booster(self, ground: bool = True):
+        kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
+        if self.config.boosters and not self.get_active_damage_booster(ground):
+            booster: Optional[types.InvFinalItem] = None
+            for quality, data in sorted(self.inventory.boosters.get(kind, {}).items(), key=lambda x: x[0]):
+                for _duration, _booster in sorted(data.items(), key=lambda y: y[0]):
+                    if _booster.get('amount') > 2:
+                        booster = _booster
                         break
-                if duration:
-                    self._report_action("MILITARY_BOOSTER", f"Activated 50% {duration / 60}h damage booster")
-                    self._post_economy_activate_booster(5, duration, "damage")
+                break
+            if booster:
+                self._report_action("MILITARY_BOOSTER", f"Activated {booster['name']}")
+                self._post_economy_activate_booster(5, booster['durability'], 'damage')
+
+    def get_active_damage_booster(self, ground: bool = True) -> int:
+        kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
+        inventory = self.get_inventory()
+        boosters = inventory.active.get(kind, {})
+        quality = 0
+        for q, boost in boosters.items():
+            if boost['quality'] * 10 > quality:
+                quality = boost['quality'] * 10
+        return quality
 
     def get_active_ground_damage_booster(self) -> int:
-        inventory = self.get_inventory()
-        quality = 0
-        if inventory['active'].get('damageBoosters', {}).get(10):
-            quality = 100
-        elif inventory['active'].get('damageBoosters', {}).get(5):
-            quality = 50
-        return quality
+        return self.get_active_damage_booster(True)
+
+    def get_active_air_damage_booster(self) -> int:
+        return self.get_active_damage_booster(False)
 
     def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
         self._report_action('MILITARY_BOOSTER', f'Activated {kind} booster')
         return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
 
-    def activate_pp_booster(self, battle_id: int) -> Response:
+    def activate_pp_booster(self) -> Response:
         self._report_action('MILITARY_BOOSTER', 'Activated PrestigePoint booster')
-        return self._post_military_fight_activate_booster(battle_id, 1, 180, "prestige_points")
+        return self._post_economy_activate_booster(1, 180, "prestige_points")
 
     def _rw_choose_side(self, battle: classes.Battle, side: classes.BattleSide) -> Response:
         return self._post_main_battlefield_travel(side.id, battle.id)
@@ -2181,7 +2229,8 @@ class CitizenPolitics(BaseCitizen):
             self._report_action('POLITIC_PARTY_PRESIDENT', 'Applied for party president elections')
             return self._get_candidate_party(self.politics.party_slug)
         else:
-            self._report_action('POLITIC_CONGRESS', 'Unable to apply for party president elections - not a party member')
+            self._report_action('POLITIC_CONGRESS',
+                                'Unable to apply for party president elections - not a party member')
             return None
 
     def candidate_for_congress(self, presentation: str = "") -> Optional[Response]:
@@ -2630,13 +2679,13 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
 
     def send_state_update(self):
         data = dict(xp=self.details.xp, cc=self.details.cc, gold=self.details.gold, pp=self.details.pp,
-                    inv_total=self.inventory_status['total'], inv=self.inventory_status['used'],
+                    inv_total=self.inventory.total, inv=self.inventory.used,
                     hp_limit=self.energy.limit,
                     hp_interval=self.energy.interval, hp_available=self.energy.available, food=self.food['total'], )
         self.reporter.send_state_update(**data)
 
     def send_inventory_update(self):
-        self.reporter.report_action("INVENTORY", json_val=self.get_inventory(True))
+        self.reporter.report_action("INVENTORY", json_val=self.get_inventory(True).as_dict)
 
     def send_my_companies_update(self):
         self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
@@ -2774,7 +2823,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
 
             for holding in regions.values():
                 raw_usage = holding.get_wam_raw_usage()
-                free_storage = self.inventory_status['total'] - self.inventory_status['used']
+                free_storage = self.inventory.total - self.inventory.used
                 if (raw_usage['frm'] + raw_usage['wrm']) * 100 > free_storage:
                     self._report_action('WAM_UNAVAILABLE', 'Not enough storage!')
                     continue

@@ -7,11 +7,12 @@ from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, T
 
 from requests import Response, Session, post
 
-from . import constants, utils
+from . import constants, utils, types
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
            'ErepublikNetworkException', 'EnergyToFight',
-           'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramReporter']
+           'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramReporter',
+           'Inventory']
 
 
 class ErepublikException(Exception):
@@ -396,11 +397,11 @@ class Config:
         self.spin_wheel_of_fortune = False
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[bool, int, str, List[str]]]:
         return dict(email=self.email, work=self.work, train=self.train, wam=self.wam, ot=self.ot,
                     auto_sell=self.auto_sell, auto_sell_all=self.auto_sell_all, employees=self.employees,
                     fight=self.fight, air=self.air, ground=self.ground, all_in=self.all_in,
-                    next_energy=self.next_energy, boosters=self.boosters, travel_to_fight=self.travel_to_fight,
+                    next_energy=self.next_energy, travel_to_fight=self.travel_to_fight,
                     always_travel=self.always_travel, epic_hunt=self.epic_hunt, epic_hunt_ebs=self.epic_hunt_ebs,
                     rw_def_side=self.rw_def_side, interactive=self.interactive, maverick=self.maverick,
                     continuous_fighting=self.continuous_fighting, auto_buy_raw=self.auto_buy_raw,
@@ -454,7 +455,7 @@ class Energy:
         return self.recovered + self.recoverable
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[int, datetime.datetime, bool]]:
         return dict(limit=self.limit, interval=self.interval, recoverable=self.recoverable, recovered=self.recovered,
                     reference_time=self.reference_time, food_fights=self.food_fights,
                     is_recoverable_full=self.is_recoverable_full, is_recovered_full=self.is_recovered_full,
@@ -509,7 +510,7 @@ class Details:
         return next_level_up - self.xp
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[int, float, str, constants.Country, bool]]:
         return dict(xp=self.xp, cc=self.cc, pp=self.pp, pin=self.pin, gold=self.gold, next_pp=self.next_pp,
                     citizen_id=self.citizen_id, citizenship=self.citizenship, current_region=self.current_region,
                     current_country=self.current_country, residence_region=self.residence_region,
@@ -528,7 +529,7 @@ class Politics:
     is_country_president: bool = False
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[bool, int, str]]:
         return dict(is_party_member=self.is_party_member, party_id=self.party_id, party_slug=self.party_slug,
                     is_party_president=self.is_party_president, is_congressman=self.is_congressman,
                     is_country_president=self.is_country_president)
@@ -566,7 +567,7 @@ class Reporter:
         return self.citizen.details.citizen_id
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[bool, int, str, List[Dict[Any, Any]]]]:
         return dict(name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.allowed,
                     queue=self.__to_update)
 
@@ -730,7 +731,7 @@ class BattleSide:
         return self.country.iso
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Union[int, constants.Country, bool, List[constants.Country]]]:
         return dict(points=self.points, country=self.country, is_defender=self.is_defender, allies=self.allies,
                     deployed=self.deployed)
 
@@ -1024,3 +1025,27 @@ class OfferItem(NamedTuple):
     amount: int = 0
     offer_id: int = 0
     citizen_id: int = 0
+
+
+class Inventory:
+    final: types.InvFinal
+    active: types.InvFinal
+    boosters: types.InvFinal
+    raw: types.InvRaw
+    market: types.InvRaw
+    used: int
+    total: int
+
+    def __init__(self):
+        self.active = {}
+        self.final = {}
+        self.boosters = {}
+        self.raw = {}
+        self.offers = {}
+        self.used = 0
+        self.total = 0
+
+    @property
+    def as_dict(self) -> Dict[str, Union[types.InvFinal, types.InvRaw, int]]:
+        return dict(active=self.active, final=self.final, boosters=self.boosters, raw=self.raw, offers=self.offers,
+                    total=self.total, used=self.used)

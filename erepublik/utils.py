@@ -10,7 +10,7 @@ import unicodedata
 import warnings
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import requests
 
@@ -64,7 +64,9 @@ def good_timedelta(dt: datetime.datetime, td: datetime.timedelta) -> datetime.da
     return constants.erep_tz.normalize(dt + td)
 
 
-def eday_from_date(date: Union[datetime.date, datetime.datetime] = now()) -> int:
+def eday_from_date(date: Union[datetime.date, datetime.datetime] = None) -> int:
+    if date is None:
+        date = now()
     if isinstance(date, datetime.date):
         date = datetime.datetime.combine(date, datetime.time(0, 0, 0))
     return (date - datetime.datetime(2007, 11, 20, 0, 0, 0)).days
@@ -253,7 +255,7 @@ def caught_error(e: Exception):
 
 
 def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None,
-                  interactive: Optional[bool] = None):
+                  interactive: bool = None):
     """
     Process error logging and email sending to developer
     :param interactive: Should print interactively
@@ -377,6 +379,7 @@ def get_final_hit_dmg(base_dmg: Union[Decimal, float, str], rang: int,
         dmg = dmg * 11 / 10
     return Decimal(dmg)
 
+
 # def _clear_up_battle_memory(battle):
 #     del battle.invader._battle, battle.defender._battle
 #     for div_id, division in battle.div.items():
@@ -404,4 +407,5 @@ def wait_for_lock(function):
                 raise e
             instance.concurrency_available.set()
             return ret
+
     return wrapper
