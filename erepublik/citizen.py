@@ -20,7 +20,7 @@ class BaseCitizen(access_points.CitizenAPI):
     _last_inventory_update: datetime = constants.min_datetime
 
     promos: Dict[str, datetime] = None
-    inventory: classes.Inventory
+    _inventory: classes.Inventory
     ot_points: int = 0
 
     food: Dict[str, int] = {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "q6": 0, "q7": 0, "total": 0}
@@ -63,7 +63,7 @@ class BaseCitizen(access_points.CitizenAPI):
 
         self.config.email = email
         self.config.password = password
-        self.inventory = classes.Inventory()
+        self._inventory = classes.Inventory()
         self.wheel_of_fortune = False
 
     def get_csrf_token(self):
@@ -245,10 +245,14 @@ class BaseCitizen(access_points.CitizenAPI):
         """
         self._update_inventory_data(self._get_economy_inventory_items().json())
 
+    @property
+    def inventory(self) -> classes.Inventory:
+        return self.get_inventory()
+
     def get_inventory(self, force: bool = False) -> classes.Inventory:
         if utils.good_timedelta(self._last_inventory_update, timedelta(minutes=2)) < self.now or force:
             self.update_inventory()
-        return self.inventory
+        return self._inventory
 
     def _update_inventory_data(self, inv_data: Dict[str, Any]):
         if not isinstance(inv_data, dict):
@@ -264,8 +268,8 @@ class BaseCitizen(access_points.CitizenAPI):
 
         status = inv_data.get("inventoryStatus", {})
         if status:
-            self.inventory.used = status.get("usedStorage")
-            self.inventory.total = status.get("totalStorage")
+            self._inventory.used = status.get("usedStorage")
+            self._inventory.total = status.get("totalStorage")
         data = inv_data.get('inventoryItems', {})
         if not data:
             return
@@ -433,11 +437,11 @@ class BaseCitizen(access_points.CitizenAPI):
                 offers[kind] = {}
 
             offers[kind].update(offer_data)
-        self.inventory.active = active_items
-        self.inventory.final = final_items
-        self.inventory.boosters = boosters
-        self.inventory.raw = raw_materials
-        self.inventory.offers = offers
+        self._inventory.active = active_items
+        self._inventory.final = final_items
+        self._inventory.boosters = boosters
+        self._inventory.raw = raw_materials
+        self._inventory.offers = offers
         self.food["total"] = sum([self.food[q] * constants.FOOD_ENERGY[q] for q in constants.FOOD_ENERGY])
 
     def write_log(self, *args, **kwargs):
@@ -1055,7 +1059,7 @@ class CitizenEconomy(CitizenTravel):
 
     def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
-        inv = self.get_inventory()
+        inv = self.inventory
         for house_quality, active_house in inv.active.get('House', {}).items():
             till = utils.good_timedelta(self.now, timedelta(seconds=active_house['time_left']))
             ret.update({house_quality: till})
@@ -1064,7 +1068,7 @@ class CitizenEconomy(CitizenTravel):
     def buy_and_activate_house(self, q: int) -> Optional[Dict[int, datetime]]:
         original_region = self.details.current_country, self.details.current_region
         ok_to_activate = False
-        inv = self.get_inventory()
+        inv = self.inventory
         if not inv.final.get('House', {}).get(q, {}):
             countries = [self.details.citizenship, ]
             if self.details.current_country != self.details.citizenship:
@@ -1119,8 +1123,7 @@ class CitizenEconomy(CitizenTravel):
         r: Dict[str, Any] = self._post_economy_activate_house(quality).json()
         self._update_inventory_data(r)
         if r.get("status") and not r.get("error"):
-            inventory = self.get_inventory()
-            house = inventory.active.get('House', {}).get(quality)
+            house = self.inventory.active.get('House', {}).get(quality)
             time_left = timedelta(seconds=house["time_left"])
             active_until = utils.good_timedelta(self.now, time_left)
             self._report_action(
@@ -1201,13 +1204,12 @@ class CitizenEconomy(CitizenTravel):
 
         _inv_qlt = quality if industry in [1, 2, 3, 4, 23] else 0
         final_kind = industry in [1, 2, 4, 23]
-        inventory = self.get_inventory()
-        items = (inventory.final if final_kind else inventory.raw).get(constants.INDUSTRIES[industry],
-                                                                       {_inv_qlt: {'amount': 0}})
+        items = (self.inventory.final if final_kind else self.inventory.raw).get(constants.INDUSTRIES[industry],
+                                                                                 {_inv_qlt: {'amount': 0}})
         if items[_inv_qlt]['amount'] < amount:
-            inventory = self.get_inventory(True)
-            items = (inventory.final if final_kind else inventory.raw).get(constants.INDUSTRIES[industry],
-                                                                           {_inv_qlt: {'amount': 0}})
+            self.get_inventory(True)
+            items = (self.inventory.final if final_kind else self.inventory.raw).get(constants.INDUSTRIES[industry],
+                                                                                     {_inv_qlt: {'amount': 0}})
             if items[_inv_qlt]['amount'] < amount:
                 self._report_action("ECONOMY_SELL_PRODUCTS", "Unable to sell! Not enough items in storage!",
                                     kwargs=dict(inventory=items[_inv_qlt], amount=amount))
@@ -2036,8 +2038,7 @@ class CitizenMilitary(CitizenTravel):
 
     def get_active_damage_booster(self, ground: bool = True) -> int:
         kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
-        inventory = self.get_inventory()
-        boosters = inventory.active.get(kind, {})
+        boosters = self.inventory.active.get(kind, {})
         quality = 0
         for q, boost in boosters.items():
             if boost['quality'] * 10 > quality:
@@ -2687,7 +2688,7 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
         self.reporter.send_state_update(**data)
 
     def send_inventory_update(self):
-        self.reporter.report_action("INVENTORY", json_val=self.get_inventory(True).as_dict)
+        self.reporter.report_action("INVENTORY", json_val=self.inventory.as_dict)
 
     def send_my_companies_update(self):
         self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
