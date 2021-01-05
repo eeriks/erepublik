@@ -393,7 +393,7 @@
         }
 
         config.air = air.checked;
-        config.ground = ground.cehcked;
+        config.ground = ground.checked;
         config.boosters = boosters.checked;
         config.continuous_fighting = continuous_fighting.checked;
         config.next_energy = next_energy.checked;
@@ -402,10 +402,9 @@
         config.travel_to_fight = travel_to_fight.checked;
         config.epic_hunt = epic_hunt.checked;
         config.epic_hunt_ebs = config.epic_hunt ? epic_hunt_ebs.checked : config.epic_hunt;
+        config.maverick = false;
 
         // Advanced
-
-
         let telegram = document.getElementById('telegram'); // Generated
         config.telegram = telegram.checked;
         let telegram_chat_id = document.getElementById('telegram_chat_id'); // Generated
