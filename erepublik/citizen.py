@@ -2024,13 +2024,15 @@ class CitizenMilitary(CitizenTravel):
             booster: Optional[types.InvFinalItem] = None
             for quality, data in sorted(self.inventory.boosters.get(kind, {}).items(), key=lambda x: x[0]):
                 for _duration, _booster in sorted(data.items(), key=lambda y: y[0]):
-                    if _booster.get('amount') > 2:
+                    critical_amount = 2 if quality < 10 and ground else 10
+                    if _booster.get('amount') > critical_amount:
                         booster = _booster
                         break
                 break
             if booster:
                 self._report_action("MILITARY_BOOSTER", f"Activated {booster['name']}")
-                self._post_economy_activate_booster(5, booster['durability'], 'damage')
+                self._post_economy_activate_booster(booster['quality'], booster['durability'],
+                                                    'damage' if ground else 'air_damage')
 
     def get_active_damage_booster(self, ground: bool = True) -> int:
         kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
@@ -2052,9 +2054,9 @@ class CitizenMilitary(CitizenTravel):
         self._report_action('MILITARY_BOOSTER', f'Activated {kind} booster')
         return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
 
-    def activate_pp_booster(self) -> Response:
-        self._report_action('MILITARY_BOOSTER', 'Activated PrestigePoint booster')
-        return self._post_economy_activate_booster(1, 180, "prestige_points")
+    def activate_pp_booster(self, pp_item: types.InvFinalItem) -> Response:
+        self._report_action('MILITARY_BOOSTER', f'Activated {pp_item["name"]}')
+        return self._post_economy_activate_booster(pp_item['quality'], pp_item['durability'], 'prestige_points')
 
     def _rw_choose_side(self, battle: classes.Battle, side: classes.BattleSide) -> Response:
         return self._post_main_battlefield_travel(side.id, battle.id)
