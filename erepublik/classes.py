@@ -1030,7 +1030,7 @@ class OfferItem(NamedTuple):
 class Inventory:
     final: types.InvFinal
     active: types.InvFinal
-    boosters: types.InvFinal
+    boosters: types.InvBooster
     raw: types.InvRaw
     market: types.InvRaw
     used: int
