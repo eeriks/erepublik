@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Union, List
+from typing import Dict, List, Union
 
 InvFinalItem = Dict[str, Union[str, int, List[Dict[str, Union[int, datetime]]]]]
 InvBooster = Dict[str, Dict[int, Dict[int, InvFinalItem]]]

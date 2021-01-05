@@ -2,7 +2,7 @@ import re
 import sys
 import warnings
 import weakref
-from datetime import datetime, timedelta, time
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from itertools import product
 from threading import Event
@@ -11,7 +11,7 @@ from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from requests import HTTPError, RequestException, Response
 
-from . import access_points, classes, constants, utils, types
+from . import access_points, classes, constants, types, utils
 from .classes import OfferItem
 
 
@@ -2617,17 +2617,21 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
         data = self._get_main_weekly_challenge_data().json()
         self.details.pp = data.get("player", {}).get("prestigePoints", 0)
         self.details.next_pp.clear()
+        max_collectable_id = data.get('maxRewardId')
+        should_collect = False
         for reward in data.get("rewards", {}).get("normal", {}):
             status = reward.get("status", "")
             if status == "rewarded":
                 continue
             elif status == "completed":
-                self._post_main_weekly_challenge_reward(reward.get("id", 0))
+                should_collect = True
             elif reward.get("icon", "") == "energy_booster":
                 pps = re.search(r"Reach (\d+) Prestige Points to unlock the following reward: \+1 Energy",
                                 reward.get("tooltip", ""))
                 if pps:
                     self.details.next_pp.append(int(pps.group(1)))
+        if should_collect:
+            self._post_main_weekly_challenge_collect_all(max_collectable_id)
 
     def should_fight(self, silent: bool = True) -> Tuple[int, str, bool]:
         count, log_msg, force_fight = super().should_fight()
