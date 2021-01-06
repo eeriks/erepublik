@@ -312,7 +312,7 @@ class BaseCitizen(access_points.CitizenAPI):
 
                 if item_data.get('type'):
                     #  in ['damageBoosters', "aircraftDamageBoosters", 'prestigePointsBoosters']
-                    if item_data.get('type').endswith('Boosters'):
+                    if item_data.get('isBooster'):
                         is_booster = True
                         kind = item_data['type']
 
