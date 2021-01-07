@@ -305,11 +305,11 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
         return self.post(f"{self.url}/main/buyGoldItems", data=data)
 
     def _post_economy_activate_booster(self, quality: int, duration: int, kind: str) -> Response:
-        data = dict(type=kind, quality=quality, duration=duration, fromInventory=True)
+        data = dict(type=kind, quality=quality, duration=duration, fromInventory=True, _token=self.token)
         return self.post(f"{self.url}/economy/activateBooster", data=data)
 
     def _post_economy_activate_house(self, quality: int) -> Response:
-        data = {"action": "activate", "quality": quality, "type": "house", "_token": self.token}
+        data = dict(action="activate", quality=quality, type="house", _token=self.token)
         return self.post(f"{self.url}/economy/activateHouse", data=data)
 
     def _post_economy_donate_items_action(self, citizen_id: int, amount: int, industry: int,
