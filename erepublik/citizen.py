@@ -288,8 +288,9 @@ class BaseCitizen(access_points.CitizenAPI):
                 if item_data.get('attributes').get('expirationInfo'):
                     expire_info = item_data.get('attributes').get('expirationInfo')
                     expiration_info = [_expire_value_to_python(v) for v in expire_info['value']]
-                icon = item_data['icon'] if item_data[
-                    'icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
+                if not item_data.get('icon') and item_data.get('isPackBooster'):
+                    item_data['icon'] = f"//www.erepublik.com/images/icons/boosters/52px/{item_data.get('type')}.png"
+                icon = item_data['icon'] if item_data['icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
                 inv_item: types.InvFinalItem = dict(
                     name=item_data.get("name"), time_left=item_data['active']['time_left'], icon=icon,
                     kind=kind, expiration=expiration_info, quality=item_data.get("quality", 0)
