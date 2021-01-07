@@ -2678,8 +2678,11 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                 start_time = utils.good_timedelta(start_time.replace(minute=0), timedelta(hours=1))
             while not self.stop_threads.is_set():
                 start_time = utils.good_timedelta(start_time, timedelta(minutes=30))
+                self.update_citizen_info()
+                self.update_weekly_challenge()
                 self.send_state_update()
                 self.send_inventory_update()
+                self.update_companies()
                 self.send_my_companies_update()
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
@@ -2687,7 +2690,6 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             self.report_error("State updater crashed")
 
     def send_state_update(self):
-        self.update_all(True)
         data = dict(xp=self.details.xp, cc=self.details.cc, gold=self.details.gold, pp=self.details.pp,
                     inv_total=self.inventory.total, inv=self.inventory.used,
                     hp_limit=self.energy.limit,
