@@ -2021,7 +2021,7 @@ class CitizenMilitary(CitizenTravel):
 
         return utils.calculate_hit(0, rang, True, elite, ne, 0, 20 if weapon else 0)
 
-    def activate_damage_booster(self, ground: bool = True):
+    def activate_damage_booster(self, ground: bool = True) -> int:
         kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
         if self.config.boosters and not self.get_active_damage_booster(ground):
             booster: Optional[types.InvFinalItem] = None
@@ -2033,9 +2033,11 @@ class CitizenMilitary(CitizenTravel):
                         break
                 break
             if booster:
+                kind = 'damage' if ground else 'air_damage'
                 self._report_action("MILITARY_BOOSTER", f"Activated {booster['name']}")
-                self._post_economy_activate_booster(booster['quality'], booster['durability'],
-                                                    'damage' if ground else 'air_damage')
+                resp = self._post_economy_activate_booster(booster['quality'], booster['durability'], kind).json()
+                self._update_inventory_data(resp)
+        return self.get_active_damage_booster(ground)
 
     def get_active_damage_booster(self, ground: bool = True) -> int:
         kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
@@ -2052,13 +2054,16 @@ class CitizenMilitary(CitizenTravel):
     def get_active_air_damage_booster(self) -> int:
         return self.get_active_damage_booster(False)
 
-    def activate_battle_effect(self, battle_id: int, kind: str) -> Response:
+    def activate_battle_effect(self, battle_id: int, kind: str) -> bool:
         self._report_action('MILITARY_BOOSTER', f'Activated {kind} booster')
-        return self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id)
+        resp = self._post_main_activate_battle_effect(battle_id, kind, self.details.citizen_id).json()
+        return not resp.get('error')
 
-    def activate_pp_booster(self, pp_item: types.InvFinalItem) -> Response:
+    def activate_pp_booster(self, pp_item: types.InvFinalItem) -> bool:
         self._report_action('MILITARY_BOOSTER', f'Activated {pp_item["name"]}')
-        return self._post_economy_activate_booster(pp_item['quality'], pp_item['durability'], 'prestige_points')
+        resp = self._post_economy_activate_booster(pp_item['quality'], pp_item['durability'], 'prestige_points').json()
+        self._update_inventory_data(resp)
+        return pp_item.get('kind') in self.inventory.active
 
     def _rw_choose_side(self, battle: classes.Battle, side: classes.BattleSide) -> Response:
         return self._post_main_battlefield_travel(side.id, battle.id)
