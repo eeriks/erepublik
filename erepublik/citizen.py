@@ -1775,7 +1775,8 @@ class CitizenMilitary(CitizenTravel):
             yield battle, battle_zone, side
 
     def find_battle_and_fight(self):
-        if self.should_fight()[0]:
+        count = self.should_fight()[0]
+        if count:
             self.write_log("Checking for battles to fight in...")
             for battle, division, side in self.find_battle_to_fight():
 
@@ -1802,7 +1803,7 @@ class CitizenMilitary(CitizenTravel):
 
                 if self.change_division(battle, division):
                     self.set_default_weapon(battle, division)
-                    self.fight(battle, division, side)
+                    self.fight(battle, division, side, count)
                     self.travel_to_residence()
                     break
 
