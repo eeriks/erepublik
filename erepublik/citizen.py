@@ -1853,7 +1853,7 @@ class CitizenMilitary(CitizenTravel):
                     self.write_log(f"Hits: {total_hits:>4} | Damage: {total_damage}")
                     ok_to_fight = False
                     if total_damage:
-                        self.reporter.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
+                        self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
                         # self.reporter.report_action('FIGHT', dict(battle_id=battle.id, side=side, dmg=total_damage,
                         #                                           air=battle.has_air, hits=total_hits,
                         #                                           round=battle.zone_id,
@@ -2221,6 +2221,11 @@ class CitizenMilitary(CitizenTravel):
             for division in battle.div.values():
                 if division.wall['dom'] == 50 or division.wall['dom'] > 98:
                     yield division, division.wall['for'] == battle.invader.country.id
+
+    def report_fighting(self, battle: classes.Battle, invader: bool, division: classes.BattleDivision, damage: float, hits: int):
+        self.reporter.report_fighting(battle, invader, division, damage, hits)
+        if self.config.telegram:
+            self.telegram.report_fight(battle, invader, division, damage, hits)
 
 
 class CitizenPolitics(BaseCitizen):
