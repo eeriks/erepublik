@@ -974,7 +974,7 @@ class TelegramReporter:
         self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
         self._last_full_energy_report = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-30))
         if self.__queue:
-            self.send_message("\n\n––––––––––––––––––––––\n\n".join(self.__queue))
+            self.send_message("Telegram initialized")
 
     def send_message(self, message: str) -> bool:
         self.__queue.append(message)
@@ -1002,13 +1002,19 @@ class TelegramReporter:
         new_line = '\n' if multiple else ''
         self.send_message(f"New award: {new_line}*{msg}*")
 
+    def report_fight(self, battle: "Battle", invader: bool, division: "BattleDivision", damage: float, hits: int):
+        side_txt = (battle.invader if invader else battle.defender).country.iso
+        self.send_message(f"*Fight report*:\n{int(damage):,d} dmg ({hits} hits) in"
+                          f" [battle {battle.id} for {battle.region_name[:16]}]({battle.link}) in d{division.div} on "
+                          f"{side_txt} side")
+
     def __send_messages(self):
         while self._next_time > utils.now():
             if self.__thread_stopper.is_set():
                 break
             self.__thread_stopper.wait(utils.get_sleep_seconds(self._next_time))
 
-        message = "\n\n––––––––––––––––––––––\n\n".join(self.__queue)
+        message = "\n––––––––––––––––––––––\n\n".join(self.__queue)
         if self.player_name:
             message = f"Player *{self.player_name}*\n" + message
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
