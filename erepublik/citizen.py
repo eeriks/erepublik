@@ -341,6 +341,9 @@ class BaseCitizen(access_points.CitizenAPI):
                             elif q == 15:
                                 self.eb_small += amount
                                 item_data.update(token='energy_bar')
+                            elif q == 16:
+                                self.eb_small += amount
+                                item_data.update(token='energy_bar')
                     kind = re.sub(r'_q\d\d*', "", item_data.get('token'))
 
                 if item_data.get('token', "") == "house_q100":
@@ -689,6 +692,10 @@ class BaseCitizen(access_points.CitizenAPI):
             elif q == "11":
                 self.eb_double -= amount
             elif q == "12":
+                self.eb_small -= amount
+            elif q == "15":
+                self.eb_small -= amount
+            elif q == "16":
                 self.eb_small -= amount
         next_recovery = r_json.get("food_remaining_reset").split(":")
         self.energy.set_reference_time(
@@ -1364,7 +1371,7 @@ class CitizenEconomy(CitizenTravel):
         self.update_money()
         cur = "g" if currency == 62 else "cc"
         if success:
-            self._report_action("DONATE_MONEY", f"Successfully donated {amount}{cur} to citizen with id {citizen_id}!")
+            self.report_money_donation(citizen_id, amount, currency == 1)
         else:
             self._report_action("DONATE_MONEY", f"Unable to donate {amount}{cur}!")
         return success
@@ -1447,6 +1454,16 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("CONTRIBUTE_GOLD", f"Unable to contribute {amount}g to {country}'s"
                                                    f" treasury", kwargs=r.json())
             return False
+
+    def report_money_donation(self, citizen_id: int, amount: float, is_currency: bool = True):
+        self.reporter.report_money_donation(citizen_id, amount, is_currency)
+        if self.config.telegram:
+            self.telegram.report_money_donation(citizen_id, amount, is_currency)
+
+    def report_item_donation(self, citizen_id: int, amount: float, quality: int, industry: str):
+        self.reporter.report_item_donation(citizen_id, amount, quality, industry)
+        if self.config.telegram:
+            self.telegram.report_item_donation(citizen_id, amount, f"{industry} q{quality}")
 
 
 class CitizenLeaderBoard(BaseCitizen):
@@ -1807,19 +1824,21 @@ class CitizenMilitary(CitizenTravel):
 
     @utils.wait_for_lock
     def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None,
-              count: int = None) -> Optional[int]:
+              count: int = None, use_ebs: bool = False) -> Optional[int]:
         """Fight in a battle.
 
         Will auto activate booster and travel if allowed to do it.
         :param battle: Battle battle to fight in
         :type battle: Battle
+        :param division: Division number to fight in available choices
+        :type division: BattleDivision
         :param side: BattleSide or None. Battle side to fight in, If side not == invader id or not in invader deployed
         allies list, then defender's side is chosen
         :type side: BattleSide
         :param count: How many hits to do, if not specified self.should_fight() is called.
         :type count: int
-        :param division: Division number to fight in available choices
-        :type division: BattleDivision
+        :param use_ebs: Should use energy bars if count > 0 and not enough food_fights
+        :type use_ebs: bool
         :return: None if no errors while fighting, otherwise error count.
         :rtype: int
         """
@@ -1849,15 +1868,13 @@ class CitizenMilitary(CitizenTravel):
                 error_count += error
             else:
                 self._eat('blue')
+                if count > 0 and self.energy.recovered < 50 and use_ebs:
+                    self._eat('orange')
                 if self.energy.recovered < 50 or error_count >= 10 or count <= 0:
                     self.write_log(f"Hits: {total_hits:>4} | Damage: {total_damage}")
                     ok_to_fight = False
                     if total_damage:
                         self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
-                        # self.reporter.report_action('FIGHT', dict(battle_id=battle.id, side=side, dmg=total_damage,
-                        #                                           air=battle.has_air, hits=total_hits,
-                        #                                           round=battle.zone_id,
-                        #                                           extra=dict(battle=battle, side=side)))
         return error_count
 
     def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):

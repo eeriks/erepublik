@@ -650,6 +650,16 @@ class Reporter:
                                          air=battle.has_air, hits=hits,
                                          round=battle.zone_id, extra=dict(battle=battle, side=side, division=division)))
 
+    def report_money_donation(self, citizen_id: int, amount: float, is_currency: bool = True):
+        cur = 'cc' if is_currency else 'gold'
+        self.report_action('DONATE_MONEY', dict(citizen_id=citizen_id, amount=amount, currency=cur),
+                           f"Successfully donated {amount}{cur} to citizen with id {citizen_id}!")
+
+    def report_item_donation(self, citizen_id: int, amount: float, quality: int, industry: str):
+        self.report_action('DONATE_ITEMS',
+                           dict(citizen_id=citizen_id, amount=amount, quality=quality, industry=industry),
+                           f"Successfully donated {amount} x {industry} q{quality} to citizen with id {citizen_id}!")
+
     def report_promo(self, kind: str, time_until: datetime.datetime):
         self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
@@ -1008,15 +1018,23 @@ class TelegramReporter:
                           f" [battle {battle.id} for {battle.region_name[:16]}]({battle.link}) in d{division.div} on "
                           f"{side_txt} side")
 
+    def report_item_donation(self, citizen_id: int, amount: float, product: str):
+        self.send_message(f"*Donation*: {amount} x {product} to citizen "
+                          f"[{citizen_id}](https://www.erepublik.com/en/citizen/profile/{citizen_id})")
+
+    def report_money_donation(self, citizen_id: int, amount: float, is_currency: bool = True):
+        self.send_message(f"*Donation*: {amount}{'cc' if is_currency else 'gold'} to citizen "
+                          f"[{citizen_id}](https://www.erepublik.com/en/citizen/profile/{citizen_id})")
+
     def __send_messages(self):
         while self._next_time > utils.now():
             if self.__thread_stopper.is_set():
                 break
             self.__thread_stopper.wait(utils.get_sleep_seconds(self._next_time))
 
-        message = "\n––––––––––––––––––––––\n\n".join(self.__queue)
+        message = "\n\n".join(self.__queue)
         if self.player_name:
-            message = f"Player *{self.player_name}*\n" + message
+            message = f"Player *{self.player_name}*\n\n" + message
         response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
         self._last_time = utils.now()
         if response.json().get('ok'):
