@@ -13,7 +13,7 @@ pytest==6.2.1
 pytz>=2020.5
 requests>=2.25.1
 responses==0.12.1
-setuptools==51.1.1
-Sphinx==3.4.2
+setuptools==51.1.2
+Sphinx==3.4.3
 twine==3.3.0
 wheel==0.36.2
