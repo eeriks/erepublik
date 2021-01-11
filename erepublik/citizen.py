@@ -2025,7 +2025,7 @@ class CitizenMilitary(CitizenTravel):
         return utils.calculate_hit(0, rang, True, elite, ne, 0, 20 if weapon else 0)
 
     def activate_damage_booster(self, ground: bool = True) -> int:
-        kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
+        kind = 'damage' if ground else 'aircraftDamage'
         if self.config.boosters and not self.get_active_damage_booster(ground):
             booster: Optional[types.InvFinalItem] = None
             for quality, data in sorted(self.inventory.boosters.get(kind, {}).items(), key=lambda x: x[0]):
@@ -2043,7 +2043,7 @@ class CitizenMilitary(CitizenTravel):
         return self.get_active_damage_booster(ground)
 
     def get_active_damage_booster(self, ground: bool = True) -> int:
-        kind = 'damageBoosters' if ground else 'aircraftDamageBoosters'
+        kind = 'damage' if ground else 'aircraftDamage'
         boosters = self.inventory.active.get(kind, {})
         quality = 0
         for q, boost in boosters.items():
