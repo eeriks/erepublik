@@ -1545,7 +1545,6 @@ class CitizenMedia(BaseCitizen):
 
 class CitizenMilitary(CitizenTravel):
     all_battles: Dict[int, classes.Battle] = None
-    countries: Dict[int, Dict[str, Union[str, List[int]]]] = None
     __last_war_update_data = None
 
     active_fs: bool = False
@@ -1560,17 +1559,6 @@ class CitizenMilitary(CitizenTravel):
         if r_json.get("countries"):
             if self.all_battles is None:
                 self.all_battles = {}
-            if self.countries is None:
-                self.countries = {}
-            countries = {}
-            for c_id, c_data in r_json.get("countries").items():
-                if int(c_id) not in countries:
-                    countries.update({
-                        int(c_id): {"name": c_data.get("name"), "allies": c_data.get("allies")}
-                    })
-                else:
-                    countries[int(c_id)].update(allies=c_data.get("allies"))
-            self.countries = countries
             self.__last_war_update_data = r_json
             if r_json.get("battles"):
                 all_battles = {}
