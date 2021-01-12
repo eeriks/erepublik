@@ -1082,7 +1082,7 @@ class CitizenEconomy(CitizenTravel):
             local_cheapest = sorted(offers, key=lambda o: o.price)[0]
 
             global_cheapest = self.get_market_offers("House", q)[f"q{q}"]
-            if global_cheapest.price + 200 < local_cheapest.price:
+            if global_cheapest.price + 2000 < local_cheapest.price:
                 if global_cheapest.price + 2000 < self.details.cc:
                     if self.travel_to_country(global_cheapest.country):
                         buy = self.buy_market_offer(global_cheapest, 1)
