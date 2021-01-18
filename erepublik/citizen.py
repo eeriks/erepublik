@@ -543,6 +543,9 @@ class BaseCitizen(access_points.CitizenAPI):
         )
         return ret
 
+    def set_locks(self):
+        self.stop_threads.set()
+
     @property
     def health_info(self):
         ret = f"{self.energy.recovered}/{self.energy.limit} + {self.energy.recoverable}, " \
@@ -3058,3 +3061,8 @@ class Citizen(_Citizen):
         d.update(locks=dict(concurrency_lock=self._concurrency_lock.is_set(), update_lock=self._update_lock.is_set(),
                             concurrency_timeout=self._concurrency_timeout, update_timeout=self._update_timeout))
         return d
+
+    def set_locks(self):
+        super().set_locks()
+        self._concurrency_lock.set()
+        self._update_lock.set()
