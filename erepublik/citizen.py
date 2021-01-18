@@ -1542,7 +1542,13 @@ class CitizenMilitary(CitizenTravel):
     __last_war_update_data = None
 
     active_fs: bool = False
-    boosters: Dict[int, Dict[int, int]] = {100: {}, 50: {}}
+
+    @property
+    def as_dict(self):
+        d = super().as_dict
+        d.pop('__last_war_update_data', None)
+        d.update(active_fs=self.active_fs)
+        return d
 
     def update_war_info(self):
         if self.__last_war_update_data and self.__last_war_update_data.get('last_updated',
@@ -2377,6 +2383,12 @@ class CitizenTasks(CitizenEconomy):
     ot_points: int = 0
     next_ot_time: datetime = None
 
+    @property
+    def as_dict(self):
+        d = super().as_dict
+        d.update(tg_contract=self.tg_contract, ot_points=self.ot_points, next_ot_time=self.next_ot_time)
+        return d
+
     def eat(self):
         """ Eat food """
         self._eat("blue")
@@ -3031,3 +3043,10 @@ class Citizen(_Citizen):
             return super().buy_market_offer(offer, amount)
         finally:
             self._concurrency_lock.set()
+
+    @property
+    def as_dict(self):
+        d = super().as_dict
+        d.update(_concurrency_lock=self._concurrency_lock.is_set(), _update_lock=self._update_lock.is_set(),
+                 _concurrency_timeout=self._concurrency_timeout, _update_timeout=self._update_timeout)
+        return d
