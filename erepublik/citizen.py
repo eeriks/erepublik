@@ -40,7 +40,6 @@ class BaseCitizen(access_points.CitizenAPI):
     politics: classes.Politics = None
     reporter: classes.Reporter = None
     stop_threads: Event = None
-    concurrency_available: Event = None
     telegram: classes.TelegramReporter = None
 
     r: Response = None
@@ -57,8 +56,6 @@ class BaseCitizen(access_points.CitizenAPI):
         self.my_companies = classes.MyCompanies(self)
         self.reporter = classes.Reporter(self)
         self.stop_threads = Event()
-        self.concurrency_available = Event()
-        self.concurrency_available.set()
         self.telegram = classes.TelegramReporter(stop_event=self.stop_threads)
 
         self.config.email = email
@@ -980,7 +977,6 @@ class CitizenCompanies(BaseCitizen):
     def work_as_manager_in_holding(self, holding: classes.Holding) -> Optional[Dict[str, Any]]:
         return self._work_as_manager(holding)
 
-    @utils.wait_for_lock
     def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
         if self.restricted_ip:
             return None
@@ -1050,7 +1046,7 @@ class CitizenCompanies(BaseCitizen):
 
 
 class CitizenEconomy(CitizenTravel):
-    def update_money(self, page: int = 0, currency: int = 62) -> Dict[str, Any]:
+    def update_money(self, page: int = 0, currency: int = 62):
         """
         Gets monetary market offers to get exact amount of CC and Gold available
         """
@@ -1060,7 +1056,6 @@ class CitizenEconomy(CitizenTravel):
         resp_data = resp.json()
         self.details.cc = float(resp_data.get("ecash").get("value"))
         self.details.gold = float(resp_data.get("gold").get("value"))
-        return resp_data
 
     def check_house_durability(self) -> Dict[int, datetime]:
         ret = {}
@@ -1244,7 +1239,6 @@ class CitizenEconomy(CitizenTravel):
             self._report_action("BOUGHT_PRODUCTS", json_ret.get('message'), kwargs=json_ret)
         return json_ret
 
-    @utils.wait_for_lock
     def buy_market_offer(self, offer: OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
         if amount is None or amount > offer.amount:
             amount = offer.amount
@@ -1810,7 +1804,6 @@ class CitizenMilitary(CitizenTravel):
                     self.travel_to_residence()
                     break
 
-    @utils.wait_for_lock
     def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None,
               count: int = None, use_ebs: bool = False) -> Optional[int]:
         """Fight in a battle.
@@ -1927,7 +1920,6 @@ class CitizenMilitary(CitizenTravel):
 
         return hits, err, damage
 
-    @utils.wait_for_lock
     def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool,
                     count: int = 1) -> Optional[int]:
         """Deploy bombs in a battle for given side.
@@ -2512,8 +2504,8 @@ class CitizenTasks(CitizenEconomy):
             self.ot_points = ot.get("points", 0)
 
 
-class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
-              CitizenMedia, CitizenPolitics, CitizenSocial, CitizenMilitary, CitizenTasks):
+class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
+               CitizenMedia, CitizenPolitics, CitizenSocial, CitizenMilitary, CitizenTasks):
     def __init__(self, email: str = "", password: str = "", auto_login: bool = False):
         super().__init__(email, password)
         self._last_full_update = constants.min_datetime
@@ -2524,9 +2516,17 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
     @classmethod
     def load_from_dump(cls, dump_name: str = ""):
         filename = dump_name if dump_name else f"{cls.__name__}__dump.json"
-        player: Citizen = super().load_from_dump(filename)  # noqa
+        player: _Citizen = super().load_from_dump(filename)  # noqa
         player.login()
         return player
+
+    def _eat(self, colour: str = "blue") -> Response:
+        resp = super()._eat(colour)
+        if not any([resp.json().get("units_consumed").values()]):
+            if colour == 'orange' and resp.json().get('food_remaining'):
+                self.eat()
+            return self._eat(colour)
+        return resp
 
     def config_setup(self, **kwargs):
         self.config.reset()
@@ -2885,3 +2885,149 @@ class Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                 self.stop_threads.wait(90)
             except:  # noqa
                 self.report_error('Command central is broken')
+
+
+class Citizen(_Citizen):
+    _concurrency_lock: Event
+    _update_lock: Event
+    _update_timeout: int = 10
+    _concurrency_timeout: int = 600
+
+    def __init__(self, *args, **kwargs):
+        self._concurrency_lock = Event()
+        self._concurrency_lock.set()
+        self._update_lock = Event()
+        self._update_lock.set()
+        super().__init__(*args, **kwargs)
+
+    def update_weekly_challenge(self):
+        if not self._update_lock.wait(self._update_timeout):
+            e = f'Update concurrency not freed in {self._update_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._update_lock.clear()
+            super().update_weekly_challenge()
+        finally:
+            self._update_lock.set()
+
+    def update_companies(self):
+        if not self._update_lock.wait(self._update_timeout):
+            e = f'Update concurrency not freed in {self._update_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._update_lock.clear()
+            super().update_companies()
+        finally:
+            self._update_lock.set()
+
+    def update_war_info(self):
+        if not self._update_lock.wait(self._update_timeout):
+            e = f'Update concurrency not freed in {self._update_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._update_lock.clear()
+            super().update_war_info()
+        finally:
+            self._update_lock.set()
+
+    def update_job_info(self):
+        if not self._update_lock.wait(self._update_timeout):
+            e = f'Update concurrency not freed in {self._update_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._update_lock.clear()
+            super().update_job_info()
+        finally:
+            self._update_lock.set()
+
+    def update_money(self, page: int = 0, currency: int = 62):
+        if not self._update_lock.wait(self._update_timeout):
+            e = f'Update concurrency not freed in {self._update_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._update_lock.clear()
+            super().update_money(page, currency)
+        finally:
+            self._update_lock.set()
+
+    def update_inventory(self):
+        if not self._update_lock.wait(self._update_timeout):
+            e = f'Update concurrency not freed in {self._update_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._update_lock.clear()
+            super().update_inventory()
+        finally:
+            self._update_lock.set()
+
+    def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
+        if not self._concurrency_lock.wait(self._concurrency_timeout):
+            e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._concurrency_lock.clear()
+            return super()._work_as_manager(wam_holding)
+        finally:
+            self._concurrency_lock.set()
+
+    def fight(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None,
+              count: int = None, use_ebs: bool = False) -> Optional[int]:
+        if not self._concurrency_lock.wait(self._concurrency_timeout):
+            e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._concurrency_lock.clear()
+            return super().fight(battle, division, side, count, use_ebs)
+        finally:
+            self._concurrency_lock.set()
+
+    def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool,
+                    count: int = 1) -> Optional[int]:
+        if not self._concurrency_lock.wait(self._concurrency_timeout):
+            e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._concurrency_lock.clear()
+            return super().deploy_bomb(battle, division, bomb_id, inv_side, count)
+        finally:
+            self._concurrency_lock.set()
+
+    def buy_market_offer(self, offer: OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
+        if not self._concurrency_lock.wait(self._concurrency_timeout):
+            e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
+            self.write_log(e)
+            if self.debug:
+                self.report_error(e)
+            return None
+        try:
+            self._concurrency_lock.clear()
+            return super().buy_market_offer(offer, amount)
+        finally:
+            self._concurrency_lock.set()
