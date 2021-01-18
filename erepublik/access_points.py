@@ -120,6 +120,10 @@ class CitizenBaseAPI:
         self._req = SlowRequests()
         self.token = ""
 
+    @property
+    def as_dict(self):
+        return dict(url=self.url, request=self._req.as_dict, token=self.token)
+
     def post(self, url: str, data=None, json=None, **kwargs) -> Response:
         return self._req.post(url, data, json, **kwargs)
 

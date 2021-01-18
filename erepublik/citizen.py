@@ -468,7 +468,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self._req.debug = bool(debug)
 
     def to_json(self, indent: bool = False) -> str:
-        return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None)
+        return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
 
     def get_countries_with_regions(self) -> Set[constants.Country]:
         r_json = self._post_main_travel_data().json()
@@ -523,20 +523,23 @@ class BaseCitizen(access_points.CitizenAPI):
 
     @property
     def as_dict(self):
-        ret = dict(
-            promos=self.promos, inventory=self._inventory, ot_points=self.ot_points, food=self.food, name=self.name,
-            ebs=dict(normal=self.eb_normal, double=self.eb_double, small=self.eb_small), __str__=self.__str__(),
+        ret = super().as_dict
+        ret.update(
+            name=self.name, __str__=self.__str__(),
+            ebs=dict(normal=self.eb_normal, double=self.eb_double, small=self.eb_small),
+            promos=self.promos, inventory=self._inventory.as_dict, ot_points=self.ot_points, food=self.food,
             division=self.division, maveric=self.maverick, eday=self.eday, wheel_of_fortune=self.wheel_of_fortune,
-            debug=self.debug, config=self.config.as_dict, energy=self.energy.as_dict, details=self.details.as_dict,
-            politics=self.politics.as_dict, my_companies=self.my_companies.as_dict, reporter=self.reporter.as_dict,
-            telegram=self.telegram.as_dict, stop_threads=self.stop_threads.is_set(), response=self.r,
+            debug=self.debug,
             logged_in=self.logged_in, restricted_ip=self.restricted_ip, _properties=dict(
                 now=self.now, should_do_levelup=self.should_do_levelup, is_levelup_reachable=self.is_levelup_reachable,
                 max_time_till_full_ff=self.max_time_till_full_ff, is_levelup_close=self.is_levelup_close,
                 time_till_full_ff=self.time_till_full_ff, time_till_week_change=self.time_till_week_change,
                 next_wc_start=self.next_wc_start, next_reachable_energy=self.next_reachable_energy,
                 health_info=self.health_info),
-            _last_full_update=self._last_full_update, _last_inventory_update=self._last_inventory_update
+            _last_full_update=self._last_full_update, _last_inventory_update=self._last_inventory_update,
+            config=self.config.as_dict, energy=self.energy.as_dict, details=self.details.as_dict,
+            politics=self.politics.as_dict, my_companies=self.my_companies.as_dict, reporter=self.reporter.as_dict,
+            telegram=self.telegram.as_dict, stop_threads=self.stop_threads.is_set(), response=self.r,
         )
         return ret
 
@@ -3052,6 +3055,6 @@ class Citizen(_Citizen):
     @property
     def as_dict(self):
         d = super().as_dict
-        d.update(_concurrency_lock=self._concurrency_lock.is_set(), _update_lock=self._update_lock.is_set(),
-                 _concurrency_timeout=self._concurrency_timeout, _update_timeout=self._update_timeout)
+        d.update(locks=dict(concurrency_lock=self._concurrency_lock.is_set(), update_lock=self._update_lock.is_set(),
+                            concurrency_timeout=self._concurrency_timeout, update_timeout=self._update_timeout))
         return d
