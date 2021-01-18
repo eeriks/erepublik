@@ -38,6 +38,7 @@ class BaseCitizen(access_points.CitizenAPI):
     energy: classes.Energy = None
     details: classes.Details = None
     politics: classes.Politics = None
+    my_companies: classes.MyCompanies = None
     reporter: classes.Reporter = None
     stop_threads: Event = None
     telegram: classes.TelegramReporter = None
@@ -522,16 +523,21 @@ class BaseCitizen(access_points.CitizenAPI):
 
     @property
     def as_dict(self):
-        ret = self.__dict__.copy()
-        ret.pop('stop_threads', None)
-        ret.pop('_CitizenMilitary__last_war_update_data', None)
-        ret.update(_properties=dict(
-            now=self.now, should_do_levelup=self.should_do_levelup, is_levelup_reachable=self.is_levelup_reachable,
-            max_time_till_full_ff=self.max_time_till_full_ff, is_levelup_close=self.is_levelup_close,
-            time_till_full_ff=self.time_till_full_ff, time_till_week_change=self.time_till_week_change,
-            next_wc_start=self.next_wc_start, next_reachable_energy=self.next_reachable_energy,
-            health_info=self.health_info))
-
+        ret = dict(
+            promos=self.promos, inventory=self._inventory, ot_points=self.ot_points, food=self.food, name=self.name,
+            ebs=dict(normal=self.eb_normal, double=self.eb_double, small=self.eb_small), __str__=self.__str__(),
+            division=self.division, maveric=self.maverick, eday=self.eday, wheel_of_fortune=self.wheel_of_fortune,
+            debug=self.debug, config=self.config.as_dict, energy=self.energy.as_dict, details=self.details.as_dict,
+            politics=self.politics.as_dict, my_companies=self.my_companies.as_dict, reporter=self.reporter.as_dict,
+            telegram=self.telegram.as_dict, stop_threads=self.stop_threads.is_set(), response=self.r,
+            logged_in=self.logged_in, restricted_ip=self.restricted_ip, _properties=dict(
+                now=self.now, should_do_levelup=self.should_do_levelup, is_levelup_reachable=self.is_levelup_reachable,
+                max_time_till_full_ff=self.max_time_till_full_ff, is_levelup_close=self.is_levelup_close,
+                time_till_full_ff=self.time_till_full_ff, time_till_week_change=self.time_till_week_change,
+                next_wc_start=self.next_wc_start, next_reachable_energy=self.next_reachable_energy,
+                health_info=self.health_info),
+            _last_full_update=self._last_full_update, _last_inventory_update=self._last_inventory_update
+        )
         return ret
 
     @property
@@ -1546,8 +1552,7 @@ class CitizenMilitary(CitizenTravel):
     @property
     def as_dict(self):
         d = super().as_dict
-        d.pop('__last_war_update_data', None)
-        d.update(active_fs=self.active_fs)
+        d.update(active_fs=self.active_fs, all_battles=self.all_battles)
         return d
 
     def update_war_info(self):
