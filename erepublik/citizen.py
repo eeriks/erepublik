@@ -468,7 +468,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self._req.debug = bool(debug)
 
     def to_json(self, indent: bool = False) -> str:
-        return utils.json.dumps(self, cls=classes.MyJSONEncoder, indent=4 if indent else None, sort_keys=True)
+        return utils.json.dumps(self, cls=classes.ErepublikJSONEncoder, indent=4 if indent else None, sort_keys=True)
 
     def get_countries_with_regions(self) -> Set[constants.Country]:
         r_json = self._post_main_travel_data().json()
@@ -482,13 +482,13 @@ class BaseCitizen(access_points.CitizenAPI):
         filename = f"{self.__class__.__name__}__dump.json"
         with open(filename, 'w') as f:
             utils.json.dump(dict(config=self.config, cookies=self._req.cookies.get_dict(),
-                                 user_agent=self._req.headers.get("User-Agent")), f, cls=classes.MyJSONEncoder)
+                                 user_agent=self._req.headers.get("User-Agent")), f, cls=classes.ErepublikJSONEncoder)
         self.write_log(f"Session saved to: '{filename}'")
 
     @classmethod
     def load_from_dump(cls, dump_name: str):
         with open(dump_name) as f:
-            data = utils.json.load(f)
+            data = utils.json.load(f, object_hook=utils.json_decode_object_hook)
         player = cls(data['config']['email'], "")
         player._req.cookies.update(data['cookies'])
         player._req.headers.update({"User-Agent": data['user_agent']})
@@ -778,7 +778,7 @@ class BaseCitizen(access_points.CitizenAPI):
         :param msg: Message about the action
         :param kwargs: Extra information regarding action
         """
-        kwargs = utils.json.loads(utils.json.dumps(kwargs or {}, cls=classes.MyJSONEncoder))
+        kwargs = utils.json.loads(utils.json.dumps(kwargs or {}, cls=classes.ErepublikJSONEncoder))
         action = action[:32]
         self.write_log(msg)
         if self.reporter.allowed:

@@ -10,9 +10,8 @@ from requests import Response, Session, post
 from . import constants, types, utils
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
-           'ErepublikNetworkException', 'EnergyToFight',
-           'Holding', 'MyCompanies', 'MyJSONEncoder', 'OfferItem', 'Politics', 'Reporter', 'TelegramReporter',
-           'Inventory']
+           'ErepublikJSONEncoder', 'ErepublikNetworkException', 'EnergyToFight', 'Holding', 'Inventory', 'MyCompanies',
+           'OfferItem', 'Politics', 'Reporter', 'TelegramReporter', ]
 
 
 class ErepublikException(Exception):
@@ -599,10 +598,10 @@ class Reporter:
         if self.__to_update:
             for unreported_data in self.__to_update:
                 unreported_data.update(player_id=self.citizen_id, key=self.key)
-                unreported_data = utils.json.loads(utils.json.dumps(unreported_data, cls=MyJSONEncoder))
+                unreported_data = utils.json.loads(utils.json.dumps(unreported_data, cls=ErepublikJSONEncoder))
                 self._req.post(f"{self.url}/bot/update", json=unreported_data)
             self.__to_update.clear()
-        data = utils.json.loads(utils.json.dumps(data, cls=MyJSONEncoder))
+        data = utils.json.loads(utils.json.dumps(data, cls=ErepublikJSONEncoder))
         r = self._req.post(f"{self.url}/bot/update", json=data)
         return r
 
@@ -680,7 +679,7 @@ class Reporter:
             return []
 
 
-class MyJSONEncoder(utils.json.JSONEncoder):
+class ErepublikJSONEncoder(utils.json.JSONEncoder):
     def default(self, o):
         from erepublik.citizen import Citizen
         if isinstance(o, Decimal):
@@ -694,7 +693,7 @@ class MyJSONEncoder(utils.json.JSONEncoder):
             return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
                         microseconds=o.microseconds, total_seconds=o.total_seconds())
         elif isinstance(o, Response):
-            return dict(headers=o.headers.__dict__, url=o.url, text=o.text)
+            return dict(headers=dict(o.__dict__['headers']), url=o.url, text=o.text, status_code=o.status_code)
         elif hasattr(o, 'as_dict'):
             return o.as_dict
         elif isinstance(o, set):

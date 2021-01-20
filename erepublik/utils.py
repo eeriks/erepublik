@@ -12,6 +12,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
+import pytz
 import requests
 
 from . import __version__, constants
@@ -25,11 +26,8 @@ __all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_f
            'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta',
            'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now',
            'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file', 'write_request',
-           'write_interactive_log', 'write_silent_log', 'get_final_hit_dmg', 'wait_for_lock']
-
-if not sys.version_info >= (3, 6):
-    raise AssertionError('This script requires Python version 3.6 and higher\n'
-                         'But Your version is v{}.{}.{}'.format(*sys.version_info))
+           'write_interactive_log', 'write_silent_log', 'get_final_hit_dmg', 'wait_for_lock',
+           'json_decode_object_hook', 'json_load', 'json_loads']
 
 VERSION: str = __version__
 
@@ -234,8 +232,8 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
         if isinstance(local_vars.get('citizen'), Citizen):
             local_vars['citizen'] = repr(local_vars['citizen'])
 
-        from erepublik.classes import MyJSONEncoder
-        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=MyJSONEncoder),
+        from erepublik.classes import ErepublikJSONEncoder
+        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=ErepublikJSONEncoder),
                                "application/json")))
     if isinstance(player, Citizen):
         files.append(('file', ("instance.json", player.to_json(indent=True), "application/json")))
@@ -380,12 +378,6 @@ def get_final_hit_dmg(base_dmg: Union[Decimal, float, str], rang: int,
     return Decimal(dmg)
 
 
-# def _clear_up_battle_memory(battle):
-#     del battle.invader._battle, battle.defender._battle
-#     for div_id, division in battle.div.items():
-#         del division._battle
-
-
 def deprecation(message):
     warnings.warn(message, DeprecationWarning, stacklevel=2)
 
@@ -409,3 +401,36 @@ def wait_for_lock(function):
             return ret
 
     return wrapper
+
+
+def json_decode_object_hook(
+    o: Union[Dict[str, Any], List[Any], int, float, str]
+) -> Union[Dict[str, Any], List[Any], int, float, str, datetime.date, datetime.datetime, datetime.timedelta]:
+    """ Convert classes.ErepublikJSONEncoder datetime, date and timedelta to their python objects
+
+    :param o:
+    :return: Union[Dict[str, Any], List[Any], int, float, str, datetime.date, datetime.datetime, datetime.timedelta]
+    """
+    if o.get('__type__'):
+        _type = o.get('__type__')
+        if _type == 'datetime':
+            dt = datetime.datetime.strptime(f"{o['date']} {o['time']}", "%Y-%m-%d %H:%M:%S")
+            if o.get('tzinfo'):
+                dt = pytz.timezone(o['tzinfo']).localize(dt)
+            return dt
+        elif _type == 'date':
+            dt = datetime.datetime.strptime(f"{o['date']}", "%Y-%m-%d")
+            return dt.date()
+        elif _type == 'timedelta':
+            return datetime.timedelta(seconds=o['total_seconds'])
+    return o
+
+
+def json_load(f, **kwargs):
+    kwargs.update(object_hook=json_decode_object_hook)
+    return json.load(f, **kwargs)
+
+
+def json_loads(s: str, **kwargs):
+    kwargs.update(object_hook=json_decode_object_hook)
+    return json.loads(s, **kwargs)
