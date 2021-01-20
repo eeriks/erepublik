@@ -13,43 +13,43 @@ __all__ = ['SlowRequests', 'CitizenAPI']
 class SlowRequests(Session):
     last_time: datetime.datetime
     timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)
-    uas: List[str] = [
+    _uas: List[str] = [
         # Chrome
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36',
 
         # FireFox
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:81.0) Gecko/20100101 Firefox/81.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0',
+        'Mozilla/5.0 (X11; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0',
         'Mozilla/5.0 (X11; Linux x86_64; rv:83.0) Gecko/20100101 Firefox/83.0',
         'Mozilla/5.0 (X11; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0',
         'Mozilla/5.0 (X11; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0',
-        'Mozilla/5.0 (X11; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0',
     ]
     debug: bool = False
 
-    def __init__(self, proxies: Dict[str, str] = None):
+    def __init__(self, proxies: Dict[str, str] = None, user_agent: str = None):
         super().__init__()
         if proxies:
             self.proxies = proxies
+        if user_agent is None:
+            user_agent = random.choice(self._uas)
         self.request_log_name = utils.get_file(utils.now().strftime("debug/requests_%Y-%m-%d.log"))
         self.last_time = utils.now()
-        self.headers.update({
-            'User-Agent': random.choice(self.uas)
-        })
+        self.headers.update({'User-Agent': user_agent})
 
     @property
     def as_dict(self):
-        return dict(last_time=self.last_time, timeout=self.timeout, user_agent=self.headers['User-Agent'],
-                    request_log_name=self.request_log_name, debug=self.debug)
+        return dict(last_time=self.last_time, timeout=self.timeout, cookies=self.cookies.get_dict(), debug=self.debug,
+                    user_agent=self.headers['User-Agent'], request_log_name=self.request_log_name, proxies=self.proxies)
 
     def request(self, method, url, *args, **kwargs):
         self._slow_down_requests()
