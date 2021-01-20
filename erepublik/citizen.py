@@ -12,6 +12,7 @@ from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 from requests import HTTPError, RequestException, Response
 
 from . import access_points, classes, constants, types, utils
+from .access_points import SlowRequests
 from .classes import OfferItem
 
 
@@ -747,6 +748,9 @@ class BaseCitizen(access_points.CitizenAPI):
         if response.status_code >= 400:
             self.r = response
             if response.status_code >= 500:
+                if self.restricted_ip:
+                    self._req.cookies.clear()
+                    return True
                 self.write_log("eRepublik servers are having internal troubles. Sleeping for 5 minutes")
                 self.sleep(5 * 60)
             else:
