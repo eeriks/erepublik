@@ -3,7 +3,7 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Union
 
 from requests import Response, Session, post
 
@@ -670,11 +670,14 @@ class Reporter:
         except:  # noqa
             return []
 
-    def fetch_tasks(self) -> List[Union[str, Tuple[Any]]]:
+    def fetch_tasks(self) -> List[Dict[str, Any]]:
         try:
-            task_response = self._req.get(f'{self.url}/api/v1/command',
-                                          params=dict(citizen=self.citizen_id, key=self.key))
-            return task_response.json().get('task_collection')
+            task_response = self._req.post(
+                f'{self.url}/api/v1/command', data=dict(citizen=self.citizen_id, key=self.key)).json()
+            if task_response.get('status'):
+                return task_response.get('data')
+            else:
+                return []
         except:  # noqa
             return []
 

@@ -509,7 +509,7 @@ class BaseCitizen(access_points.CitizenAPI):
             self.write_log(f"Resumed as: {self.name}")
             if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', resp.text):
                 self.restricted_ip = True
-                self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
+                # self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
 
             self.logged_in = True
             self.get_csrf_token()
@@ -733,7 +733,7 @@ class BaseCitizen(access_points.CitizenAPI):
             self.get_csrf_token()
             if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', self.r.text):
                 self.restricted_ip = True
-                self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
+                # self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
 
             self.logged_in = True
 
@@ -2709,13 +2709,14 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
 
     def state_update_repeater(self):
         try:
-            start_time = self.now.replace(second=0, microsecond=0)
-            if start_time.minute <= 30:
-                start_time = start_time.replace(minute=30)
-            else:
-                start_time = utils.good_timedelta(start_time.replace(minute=0), timedelta(hours=1))
+            start_time = self.now.replace(minute=(self.now.minute // 10) * 10, second=0, microsecond=0)
+            if not self.restricted_ip:
+                if start_time.minute <= 30:
+                    start_time = start_time.replace(minute=30)
+                else:
+                    start_time = utils.good_timedelta(start_time.replace(minute=0), timedelta(hours=1))
             while not self.stop_threads.is_set():
-                start_time = utils.good_timedelta(start_time, timedelta(minutes=30))
+                start_time = utils.good_timedelta(start_time, timedelta(minutes=10 if self.restricted_ip else 30))
                 self.update_citizen_info()
                 self.update_weekly_challenge()
                 self.send_state_update()
