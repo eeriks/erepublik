@@ -44,7 +44,7 @@ class BaseCitizen(access_points.CitizenAPI):
     telegram: classes.TelegramReporter = None
 
     r: Response = None
-    name: str = "Not logged in!"
+    name: str = 'Not logged in!'
     logged_in: bool = False
     restricted_ip: bool = False
 
@@ -104,7 +104,7 @@ class BaseCitizen(access_points.CitizenAPI):
             try:
                 response = super().get(url, **kwargs)
             except RequestException as e:
-                self.write_log("Network error while issuing GET request", e)
+                self.write_log('Network error while issuing GET request', e)
                 self.sleep(60)
                 return self.get(url, **kwargs)
 
@@ -137,7 +137,7 @@ class BaseCitizen(access_points.CitizenAPI):
         try:
             response = super().post(url, data=data, json=json, **kwargs)
         except RequestException as e:
-            self.write_log("Network error while issuing POST request", e)
+            self.write_log('Network error while issuing POST request', e)
             self.sleep(60)
             return self.post(url, data=data, json=json, **kwargs)
 
@@ -642,7 +642,7 @@ class BaseCitizen(access_points.CitizenAPI):
                         self._post_main_wall_post_automatic(message=title, achievement_id=award_id)
                     except ValueError:
                         pass
-                reward, currency = info.group(3).strip().split(" ")
+                reward, currency = info.group(3).strip().split(' ')
                 while not isinstance(reward, float):
                     try:
                         reward = float(reward)
@@ -729,7 +729,7 @@ class BaseCitizen(access_points.CitizenAPI):
             self.get_csrf_token()
             if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', self.r.text):
                 self.restricted_ip = True
-                # self.report_error("eRepublik has blacklisted IP. Limited functionality!", True)
+                # self.report_error('eRepublik has blacklisted IP. Limited functionality!', True)
 
             self.logged_in = True
 
@@ -737,7 +737,7 @@ class BaseCitizen(access_points.CitizenAPI):
         try:
             j = response.json()
             if j['error'] and j['message'] == 'Too many requests':
-                self.write_log("Made too many requests! Sleeping for 30 seconds.")
+                self.write_log('Made too many requests! Sleeping for 30 seconds.')
                 self.sleep(30)
         except (utils.json.JSONDecodeError, KeyError, TypeError):
             pass
@@ -747,7 +747,7 @@ class BaseCitizen(access_points.CitizenAPI):
                 if self.restricted_ip:
                     self._req.cookies.clear()
                     return True
-                self.write_log("eRepublik servers are having internal troubles. Sleeping for 5 minutes")
+                self.write_log('eRepublik servers are having internal troubles. Sleeping for 5 minutes')
                 self.sleep(5 * 60)
             else:
                 raise classes.ErepublikException(f"HTTP {response.status_code} error!")
@@ -755,12 +755,12 @@ class BaseCitizen(access_points.CitizenAPI):
         if re.search(r'Occasionally there are a couple of things which we need to check or to implement in order make '
                      r'your experience in eRepublik more pleasant. <strong>Don\'t worry about ongoing battles, timer '
                      r'will be stopped during maintenance.</strong>', response.text):
-            self.write_log("eRepublik is having maintenance. Sleeping for 5 minutes")
+            self.write_log('eRepublik is having maintenance. Sleeping for 5 minutes')
             self.sleep(5 * 60)
             return True
 
         if re.search('We are experiencing some tehnical dificulties', response.text):
-            self.write_log("eRepublik is having technical difficulties. Sleeping for 5 minutes")
+            self.write_log('eRepublik is having technical difficulties. Sleeping for 5 minutes')
             self.sleep(5 * 60)
             return True
 
@@ -850,7 +850,7 @@ class CitizenTravel(BaseCitizen):
             self._update_citizen_location(country, region_id)
             return True
         else:
-            if "Travelling too fast." in r_json.get('message'):
+            if 'Travelling too fast.' in r_json.get('message'):
                 self.sleep(1)
                 return self._travel(country, region_id)
         return False
@@ -872,10 +872,10 @@ class CitizenTravel(BaseCitizen):
         res_r = self.details.residence_region
         if self.details.residence_country and res_r and not res_r == self.details.current_region:
             if self._travel(self.details.residence_country, self.details.residence_region):
-                self._report_action('TRAVEL', "Traveled to residence")
+                self._report_action('TRAVEL', 'Traveled to residence')
                 return True
             else:
-                self._report_action('TRAVEL', "Unable to travel to residence!")
+                self._report_action('TRAVEL', 'Unable to travel to residence!')
                 return False
         return True
 
@@ -894,10 +894,10 @@ class CitizenTravel(BaseCitizen):
                 raise classes.ErepublikException('Region not found!')
 
             if self._travel(country, region_id):
-                self._report_action('TRAVEL', "Traveled to region")
+                self._report_action('TRAVEL', 'Traveled to region')
                 return True
             else:
-                self._report_action('TRAVEL', "Unable to travel to region!")
+                self._report_action('TRAVEL', 'Unable to travel to region!')
 
         return False
 
@@ -1223,7 +1223,7 @@ class CitizenEconomy(CitizenTravel):
             items = (self.inventory.final if final_kind else self.inventory.raw).get(constants.INDUSTRIES[industry],
                                                                                      {_inv_qlt: {'amount': 0}})
             if items[_inv_qlt]['amount'] < amount:
-                self._report_action('ECONOMY_SELL_PRODUCTS', "Unable to sell! Not enough items in storage!",
+                self._report_action('ECONOMY_SELL_PRODUCTS', 'Unable to sell! Not enough items in storage!',
                                     kwargs=dict(inventory=items[_inv_qlt], amount=amount))
                 return False
 
@@ -1356,7 +1356,7 @@ class CitizenEconomy(CitizenTravel):
         self.details.cc = float(response.json().get('ecash').get('value'))
         self.details.gold = float(response.json().get('gold').get('value'))
         if response.json().get('error'):
-            self._report_action('BUY_GOLD', "Unable to buy gold!", kwargs=response.json())
+            self._report_action('BUY_GOLD', 'Unable to buy gold!', kwargs=response.json())
             return False
         else:
             self._report_action('BUY_GOLD', f'New amount {self.details.cc}cc, {self.details.gold}g',
@@ -1419,7 +1419,7 @@ class CitizenEconomy(CitizenTravel):
             return True
         else:
             self._report_action('CONTRIBUTE_CC', f"Unable to contribute {amount}cc to {country}'s"
-                                                 f" treasury", kwargs=r.json())
+                                                 f' treasury', kwargs=r.json())
             return False
 
     def contribute_food_to_country(self, amount, quality, country: constants.Country) -> bool:
@@ -1451,8 +1451,8 @@ class CitizenEconomy(CitizenTravel):
             self._report_action('CONTRIBUTE_GOLD', f"Contributed {amount}g to {country}'s treasury", kwargs=data)
             return True
         else:
-            self._report_action('CONTRIBUTE_GOLD', f"Unable to contribute {amount}g to {country}'s"
-                                                   f" treasury", kwargs=r.json())
+            self._report_action('CONTRIBUTE_GOLD', f"Unable to contribute {amount}g to {country}'s treasury",
+                                kwargs=r.json())
             return False
 
     def report_money_donation(self, citizen_id: int, amount: float, is_currency: bool = True):
@@ -1513,9 +1513,9 @@ class CitizenMedia(BaseCitizen):
         return self._post_main_article_comments_create(message, article_id, parent_id)
 
     def publish_article(self, title: str, content: str, kind: int) -> int:
-        kinds = {1: "First steps in eRepublik", 2: "Battle orders", 3: "Warfare analysis",
-                 4: "Political debates and analysis", 5: "Financial business",
-                 6: "Social interactions and entertainment"}
+        kinds = {1: 'First steps in eRepublik', 2: 'Battle orders', 3: 'Warfare analysis',
+                 4: 'Political debates and analysis', 5: 'Financial business',
+                 6: 'Social interactions and entertainment'}
         if kind in kinds:
             data = {'title': title, 'content': content, 'country': self.details.citizenship.id, 'kind': kind}
             resp = self._post_main_write_article(title, content, self.details.citizenship.id, kind)
@@ -1785,7 +1785,7 @@ class CitizenMilitary(CitizenTravel):
     def find_battle_and_fight(self):
         count = self.should_fight()[0]
         if count:
-            self.write_log("Checking for battles to fight in...")
+            self.write_log('Checking for battles to fight in...')
             for battle, division, side in self.find_battle_to_fight():
 
                 allies = battle.invader.deployed + battle.defender.deployed + [battle.invader.country,
@@ -1835,7 +1835,7 @@ class CitizenMilitary(CitizenTravel):
         :rtype: int
         """
         if self.restricted_ip:
-            self._report_action('IP_BLACKLISTED', "Fighting is not allowed from restricted IP!")
+            self._report_action('IP_BLACKLISTED', 'Fighting is not allowed from restricted IP!')
             return 1
         if not division.is_air and self.config.boosters:
             self.activate_damage_booster(not division.is_air)
@@ -1875,7 +1875,7 @@ class CitizenMilitary(CitizenTravel):
         else:
             response = self._post_military_fight_ground(battle.id, side.id, division.id)
 
-        if "Zone is not meant for " in response.text:
+        if 'Zone is not meant for ' in response.text:
             self.sleep(5)
             return 0, 1, 0
         try:
@@ -1891,10 +1891,10 @@ class CitizenMilitary(CitizenTravel):
             elif r_json.get('message') == 'NOT_ENOUGH_WEAPONS':
                 self.set_default_weapon(battle, division)
             elif r_json.get('message') == "Cannot activate a zone with a non-native division":
-                self.write_log("Wrong division!!")
+                self.write_log('Wrong division!!')
                 return 0, 10, 0
             elif r_json.get('message') == 'ZONE_INACTIVE':
-                self.write_log("Wrong division!!")
+                self.write_log('Wrong division!!')
                 return 0, 10, 0
             elif r_json.get('message') == 'NON_BELLIGERENT':
                 self.write_log("Dictatorship/Liberation wars are not supported!")
@@ -2094,18 +2094,18 @@ class CitizenMilitary(CitizenTravel):
         """
         count = 0
         force_fight = False
-        msg = "Fighting not allowed!"
+        msg = 'Fighting not allowed!'
         if not self.config.fight:
             return count, msg, force_fight
 
         # Do levelup
         if self.is_levelup_reachable:
-            msg = "Level up"
+            msg = 'Level up'
             if self.should_do_levelup:
                 count = (self.energy.limit * 3) // 10
                 force_fight = True
             else:
-                self.write_log("Waiting for fully recovered energy before leveling up.", False)
+                self.write_log('Waiting for fully recovered energy before leveling up.', False)
 
         # Levelup reachable
         elif self.is_levelup_close:
@@ -2115,12 +2115,12 @@ class CitizenMilitary(CitizenTravel):
 
         elif self.details.pp < 75:
             count = 75 - self.details.pp
-            msg = "Obligatory fighting for at least 75pp"
+            msg = 'Obligatory fighting for at least 75pp'
             force_fight = True
 
         elif self.config.continuous_fighting and self.has_battle_contribution:
             count = self.energy.food_fights
-            msg = "Continuing to fight in previous battle"
+            msg = 'Continuing to fight in previous battle'
 
         # All-in (type = all-in and full ff)
         elif self.config.all_in and self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
@@ -2306,7 +2306,7 @@ class CitizenSocial(BaseCitizen):
     def add_every_player_as_friend(self):
         cities = []
         cities_dict = {}
-        self.write_log("WARNING! This will take a lot of time.")
+        self.write_log('WARNING! This will take a lot of time.')
         rj = self._post_main_travel_data(regionId=662, check='getCountryRegions').json()
         for region_data in rj.get('regions', {}).values():
             cities.append(region_data['cityId'])
@@ -2366,7 +2366,7 @@ class CitizenSocial(BaseCitizen):
                 elif kind == 'system':
                     self.delete_system_notification(*[n['id'] for n in notifications])
                 else:
-                    self.report_error(f"Unsupported notification kind: \"{kind}\"!")
+                    self.report_error(f'Unsupported notification kind: "{kind}"!')
 
     def get_citizen_profile(self, player_id: int = None):
         if player_id is None:
@@ -2582,7 +2582,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                 if self.details.gold >= 54:
                     self.buy_tg_contract()
                 else:
-                    self.write_log(f"Training ground contract active but "
+                    self.write_log(f'Training ground contract active but '
                                    f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
         if self.energy.is_energy_full and self.config.telegram:
             self.telegram.report_full_energy(self.energy.available, self.energy.limit, self.energy.interval)
@@ -2679,7 +2679,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
 
         if self.max_time_till_full_ff > self.time_till_week_change:
             max_count = (int(self.time_till_week_change.total_seconds()) // 360 * self.energy.interval) // 10
-            log_msg = ("End for Weekly challenge is near "
+            log_msg = ('End for Weekly challenge is near '
                        f"(Recoverable until WC end {max_count}hp | want to do {count}hits)")
             count = count if max_count > count else max_count
 
@@ -2716,7 +2716,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
         except:  # noqa
-            self.report_error("State updater crashed")
+            self.report_error('State updater crashed')
 
     def send_state_update(self):
         data = dict(xp=self.details.xp, cc=self.details.cc, gold=self.details.gold, pp=self.details.pp,
@@ -2747,10 +2747,10 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             if self.food['total'] > self.energy.interval:
                 super().eat()
             else:
-                self.write_log("I failed to buy food")
+                self.write_log('I failed to buy food')
 
     def eat_eb(self):
-        self.write_log("Eating energy bar")
+        self.write_log('Eating energy bar')
         if self.energy.recoverable:
             self._eat('blue')
         self._eat('orange')
