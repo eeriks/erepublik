@@ -106,22 +106,21 @@ silent_sleep = time.sleep
 def _write_log(msg, timestamp: bool = True, should_print: bool = False):
     erep_time_now = now()
     txt = f"[{erep_time_now.strftime('%F %T')}] {msg}" if timestamp else msg
-    txt = "\n".join(["\n".join(textwrap.wrap(line, 120)) for line in txt.splitlines()])
     if not os.path.isdir('log'):
         os.mkdir('log')
-    with open("log/%s.log" % erep_time_now.strftime('%F'), 'a', encoding="utf-8") as f:
-        f.write("%s\n" % txt)
+    with open(f'log/{erep_time_now.strftime("%F")}.log', 'a', encoding='utf-8') as f:
+        f.write(f'{txt}\n')
     if should_print:
         print(txt)
 
 
 def write_interactive_log(*args, **kwargs):
-    kwargs.pop("should_print", None)
+    kwargs.pop('should_print', None)
     _write_log(should_print=True, *args, **kwargs)
 
 
 def write_silent_log(*args, **kwargs):
-    kwargs.pop("should_print", None)
+    kwargs.pop('should_print', None)
     _write_log(should_print=False, *args, **kwargs)
 
 
@@ -129,7 +128,7 @@ def get_file(filepath: str) -> str:
     file = Path(filepath)
     if file.exists():
         if file.is_dir():
-            return str(file / "new_file.txt")
+            return str(file / 'new_file.txt')
         else:
             version = 1
             try:
@@ -168,17 +167,16 @@ def write_request(response: requests.Response, is_error: bool = False):
 
     try:
         json.loads(html)
-        ext = "json"
+        ext = 'json'
     except json.decoder.JSONDecodeError:
-        ext = "html"
+        ext = 'html'
 
     if not is_error:
         filename = f"debug/requests/{now().strftime('%F_%H-%M-%S')}_{name}.{ext}"
         write_file(filename, html)
     else:
-        return {"name": f"{now().strftime('%F_%H-%M-%S')}_{name}.{ext}",
-                "content": html.encode('utf-8'),
-                "mimetype": "application/json" if ext == "json" else "text/html"}
+        return dict(name=f"{now().strftime('%F_%H-%M-%S')}_{name}.{ext}", content=html.encode('utf-8'),
+                    mimetype="application/json" if ext == 'json' else "text/html")
 
 
 def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str, Any] = None,
@@ -187,21 +185,21 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
         local_vars = {}
     from erepublik import Citizen
 
-    file_content_template = "<html><head><title>{title}</title></head><body>{body}</body></html>"
+    file_content_template = '<html><head><title>{title}</title></head><body>{body}</body></html>'
     if isinstance(player, Citizen) and player.r:
         resp = write_request(player.r, is_error=True)
     else:
-        resp = {"name": "None.html", "mimetype": "text/html",
-                "content": file_content_template.format(body="<br/>".join(content), title="Error"), }
+        resp = dict(name='None.html', mimetype='text/html',
+                    content=file_content_template.format(body='<br/>'.join(content), title='Error'))
 
     if promo:
-        resp = {"name": "%s.html" % name, "mimetype": "text/html",
-                "content": file_content_template.format(title="Promo", body="<br/>".join(content))}
+        resp = dict(name=f"{name}.html", mimetype='text/html',
+                    content=file_content_template.format(title='Promo', body='<br/>'.join(content)))
         subject = f"[eBot][{now().strftime('%F %T')}] Promos: {name}"
 
     elif captcha:
-        resp = {"name": "%s.html" % name, "mimetype": "text/html",
-                "content": file_content_template.format(title="ReCaptcha", body="<br/>".join(content))}
+        resp = dict(name=f'{name}.html', mimetype='text/html',
+                    content=file_content_template.format(title='ReCaptcha', body='<br/>'.join(content)))
         subject = f"[eBot][{now().strftime('%F %T')}] RECAPTCHA: {name}"
     else:
         subject = f"[eBot][{now().strftime('%F %T')}] Bug trace: {name}"
@@ -211,18 +209,18 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
            "\n".join(content)
     data = dict(send_mail=True, subject=subject, bugtrace=body)
     if promo:
-        data.update({'promo': True})
+        data.update(promo=True)
     elif captcha:
-        data.update({'captcha': True})
+        data.update(captcha=True)
     else:
-        data.update({"bug": True})
+        data.update(bug=True)
 
-    files = [('file', (resp.get("name"), resp.get("content"), resp.get("mimetype"))), ]
-    filename = "log/%s.log" % now().strftime('%F')
+    files = [('file', (resp.get('name'), resp.get('content'), resp.get('mimetype'))), ]
+    filename = f'log/{now().strftime("%F")}.log'
     if os.path.isfile(filename):
-        files.append(('file', (filename[4:], open(filename, 'rb'), "text/plain")))
+        files.append(('file', (filename[4:], open(filename, 'rb'), 'text/plain')))
     if local_vars:
-        if "state_thread" in local_vars:
+        if 'state_thread' in local_vars:
             local_vars.pop('state_thread', None)
 
         if isinstance(local_vars.get('self'), Citizen):
@@ -233,15 +231,15 @@ def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str,
             local_vars['citizen'] = repr(local_vars['citizen'])
 
         from erepublik.classes import ErepublikJSONEncoder
-        files.append(('file', ("local_vars.json", json.dumps(local_vars, cls=ErepublikJSONEncoder),
+        files.append(('file', ('local_vars.json', json.dumps(local_vars, cls=ErepublikJSONEncoder),
                                "application/json")))
     if isinstance(player, Citizen):
-        files.append(('file', ("instance.json", player.to_json(indent=True), "application/json")))
+        files.append(('file', ('instance.json', player.to_json(indent=True), "application/json")))
     requests.post('https://pasts.72.lv', data=data, files=files)
 
 
 def normalize_html_json(js: str) -> str:
-    js = re.sub(r' \'(.*?)\'', lambda a: '"%s"' % a.group(1), js)
+    js = re.sub(r' \'(.*?)\'', lambda a: f'"{a.group(1)}"', js)
     js = re.sub(r'(\d\d):(\d\d):(\d\d)', r'\1\2\3', js)
     js = re.sub(r'([{\s,])(\w+)(:)(?!"})', r'\1"\2"\3', js)
     js = re.sub(r',\s*}', '}', js)
@@ -249,7 +247,7 @@ def normalize_html_json(js: str) -> str:
 
 
 def caught_error(e: Exception):
-    process_error(str(e), "Unclassified", sys.exc_info(), interactive=False)
+    process_error(str(e), 'Unclassified', sys.exc_info(), interactive=False)
 
 
 def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None,
@@ -284,10 +282,8 @@ def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commi
     if trace:
         local_vars = trace[-1][0].f_locals
         if local_vars.get('__name__') == '__main__':
-            local_vars.update({'commit_id': local_vars.get('COMMIT_ID'),
-                               'interactive': local_vars.get('INTERACTIVE'),
-                               'version': local_vars.get('__version__'),
-                               'config': local_vars.get('CONFIG')})
+            local_vars.update(commit_id=local_vars.get('COMMIT_ID'), interactive=local_vars.get('INTERACTIVE'),
+                              version=local_vars.get('__version__'), config=local_vars.get('CONFIG'))
     else:
         local_vars = dict()
     send_email(name, content, citizen, local_vars=local_vars)
@@ -305,7 +301,7 @@ def process_warning(log_info: str, name: str, exc_info: tuple, citizen=None, com
     type_, value_, traceback_ = exc_info
     content = [log_info]
     if commit_id:
-        content += ["Commit id: %s" % commit_id]
+        content += [f'Commit id: {commit_id}']
     content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
 
     trace = inspect.trace()
@@ -346,7 +342,7 @@ def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, b
 
 def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
                              booster: int = 0, weapon_power: int = 200) -> Decimal:
-    r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
+    r = requests.get(f'https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}').json()
     rang = r['military']['militaryData']['ground']['rankNumber']
     strength = r['military']['militaryData']['ground']['strength']
     elite = r['citizenAttributes']['level'] > 100
@@ -358,7 +354,7 @@ def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_
 
 def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0,
                           weapon_power: int = 0) -> Decimal:
-    r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
+    r = requests.get(f'https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}').json()
     rang = r['military']['militaryData']['aircraft']['rankNumber']
     elite = r['citizenAttributes']['level'] > 100
     return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
@@ -414,12 +410,12 @@ def json_decode_object_hook(
     if o.get('__type__'):
         _type = o.get('__type__')
         if _type == 'datetime':
-            dt = datetime.datetime.strptime(f"{o['date']} {o['time']}", "%Y-%m-%d %H:%M:%S")
+            dt = datetime.datetime.strptime(f"{o['date']} {o['time']}", '%Y-%m-%d %H:%M:%S')
             if o.get('tzinfo'):
                 dt = pytz.timezone(o['tzinfo']).localize(dt)
             return dt
         elif _type == 'date':
-            dt = datetime.datetime.strptime(f"{o['date']}", "%Y-%m-%d")
+            dt = datetime.datetime.strptime(f"{o['date']}", '%Y-%m-%d')
             return dt.date()
         elif _type == 'timedelta':
             return datetime.timedelta(seconds=o['total_seconds'])

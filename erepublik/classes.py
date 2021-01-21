@@ -28,7 +28,7 @@ class ErepublikNetworkException(ErepublikException):
 class Holding:
     id: int
     region: int
-    companies: List["Company"]
+    companies: List['Company']
     name: str
     _citizen = weakref.ReferenceType
 
@@ -36,16 +36,16 @@ class Holding:
         self._citizen = weakref.ref(citizen)
         self.id: int = _id
         self.region: int = region
-        self.companies: List["Company"] = list()
+        self.companies: List['Company'] = list()
         if name:
             self.name = name
         else:
             comp_sum = len(self.companies)
             name = f"Holding (#{self.id}) with {comp_sum} "
             if comp_sum == 1:
-                name += "company"
+                name += 'company'
             else:
-                name += "companies"
+                name += 'companies'
             self.name = name
 
     @property
@@ -53,20 +53,20 @@ class Holding:
         return len([1 for company in self.companies if company.wam_enabled and not company.already_worked])
 
     @property
-    def wam_companies(self) -> Iterable["Company"]:
+    def wam_companies(self) -> Iterable['Company']:
         return [company for company in self.companies if company.wam_enabled]
 
     @property
-    def employable_companies(self) -> Iterable["Company"]:
+    def employable_companies(self) -> Iterable['Company']:
         return [company for company in self.companies if company.preset_works]
 
-    def add_company(self, company: "Company") -> NoReturn:
+    def add_company(self, company: 'Company') -> NoReturn:
         self.companies.append(company)
         self.companies.sort()
 
     def get_wam_raw_usage(self) -> Dict[str, Decimal]:
-        frm = Decimal("0.00")
-        wrm = Decimal("0.00")
+        frm = Decimal('0.00')
+        wrm = Decimal('0.00')
         for company in self.wam_companies:
             if company.industry in [1, 7, 8, 9, 10, 11]:
                 frm += company.raw_usage
@@ -74,11 +74,11 @@ class Holding:
                 wrm += company.raw_usage
         return dict(frm=frm, wrm=wrm)
 
-    def get_wam_companies(self, raw_factory: bool = None) -> List["Company"]:
+    def get_wam_companies(self, raw_factory: bool = None) -> List['Company']:
         raw = []
         factory = []
         for company in self.wam_companies:
-            if not company.already_worked and not company.cannot_wam_reason == "war":
+            if not company.already_worked and not company.cannot_wam_reason == 'war':
                 if company.is_raw:
                     raw.append(company)
                 else:
@@ -92,9 +92,9 @@ class Holding:
         comp = len(self.companies)
         name = f"Holding (#{self.id}) with {comp} "
         if comp == 1:
-            name += "company"
+            name += 'company'
         else:
-            name += "companies"
+            name += 'companies'
         return name
 
     def __repr__(self):
@@ -146,10 +146,10 @@ class Company:
             self.raw_usage = - self.products_made * raw_usage
 
     def _get_real_quality(self, quality) -> int:
-        #  7: "FRM q1",  8: "FRM q2",  9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
-        # 12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
-        # 18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
-        # 24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5",
+        #  7: 'FRM q1',  8: 'FRM q2',  9: 'FRM q3', 10: 'FRM q4', 11: 'FRM q5',
+        # 12: 'WRM q1', 13: 'WRM q2', 14: 'WRM q3', 15: 'WRM q4', 16: 'WRM q5',
+        # 18: 'HRM q1', 19: 'HRM q2', 20: 'HRM q3', 21: 'HRM q4', 22: 'HRM q5',
+        # 24: 'ARM q1', 25: 'ARM q2', 26: 'ARM q3', 27: 'ARM q4', 28: 'ARM q5',
         if 7 <= self.industry <= 11:
             return self.industry % 6
         elif 12 <= self.industry <= 16:
@@ -163,10 +163,10 @@ class Company:
 
     @property
     def _internal_industry(self) -> int:
-        #  7: "FRM q1",  8: "FRM q2",  9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
-        # 12: "WRM q1", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
-        # 18: "HRM q1", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
-        # 24: "ARM q1", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5",
+        #  7: 'FRM q1',  8: 'FRM q2',  9: 'FRM q3', 10: 'FRM q4', 11: 'FRM q5',
+        # 12: 'WRM q1', 13: 'WRM q2', 14: 'WRM q3', 15: 'WRM q4', 16: 'WRM q5',
+        # 18: 'HRM q1', 19: 'HRM q2', 20: 'HRM q3', 21: 'HRM q4', 22: 'HRM q5',
+        # 24: 'ARM q1', 25: 'ARM q2', 26: 'ARM q3', 27: 'ARM q4', 28: 'ARM q5',
         if 7 <= self.industry <= 11:
             return 7
         elif 12 <= self.industry <= 16:
@@ -185,22 +185,22 @@ class Company:
     def __hash__(self):
         return hash(self._sort_keys)
 
-    def __lt__(self, other: "Company"):
+    def __lt__(self, other: 'Company'):
         return self._sort_keys < other._sort_keys
 
-    def __le__(self, other: "Company"):
+    def __le__(self, other: 'Company'):
         return self._sort_keys <= other._sort_keys
 
-    def __gt__(self, other: "Company"):
+    def __gt__(self, other: 'Company'):
         return self._sort_keys > other._sort_keys
 
-    def __ge__(self, other: "Company"):
+    def __ge__(self, other: 'Company'):
         return self._sort_keys >= other._sort_keys
 
-    def __eq__(self, other: "Company"):
+    def __eq__(self, other: 'Company'):
         return self._sort_keys == other._sort_keys
 
-    def __ne__(self, other: "Company"):
+    def __ne__(self, other: 'Company'):
         return self._sort_keys != other._sort_keys
 
     def __str__(self):
@@ -467,6 +467,7 @@ class Details:
     pp: int = 0
     pin: str = None
     gold: float = 0
+    level: int = 0
     next_pp: List[int] = None
     citizen_id: int = 0
     citizenship: constants.Country
@@ -511,11 +512,15 @@ class Details:
     @property
     def as_dict(self) -> Dict[str, Union[int, float, str, constants.Country, bool]]:
         return dict(xp=self.xp, cc=self.cc, pp=self.pp, pin=self.pin, gold=self.gold, next_pp=self.next_pp,
-                    citizen_id=self.citizen_id, citizenship=self.citizenship, current_region=self.current_region,
-                    current_country=self.current_country, residence_region=self.residence_region,
-                    residence_country=self.residence_country, daily_task_done=self.daily_task_done,
-                    daily_task_reward=self.daily_task_reward, mayhem_skills=self.mayhem_skills,
-                    xp_till_level_up=self.xp_till_level_up)
+                    level=self.level, citizen_id=self.citizen_id, citizenship=self.citizenship,
+                    current_region=self.current_region, current_country=self.current_country,
+                    residence_region=self.residence_region, residence_country=self.residence_country,
+                    daily_task_done=self.daily_task_done, daily_task_reward=self.daily_task_reward,
+                    mayhem_skills=self.mayhem_skills, xp_till_level_up=self.xp_till_level_up)
+
+    @property
+    def is_elite(self):
+        return self.level > 100
 
 
 class Politics:
@@ -574,7 +579,7 @@ class Reporter:
         self._citizen = weakref.ref(citizen)
         self._req = Session()
         self.url = "https://api.erep.lv"
-        self._req.headers.update({"user-agent": "eRepublik Script Reporter v3",
+        self._req.headers.update({"user-agent": 'eRepublik Script Reporter v3',
                                   'erep-version': utils.__version__,
                                   'erep-user-id': str(self.citizen_id),
                                   'erep-user-name': self.citizen.name})
@@ -609,13 +614,13 @@ class Reporter:
         if not self.__registered:
             try:
                 r = self.__bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
-                if not r.json().get("status"):
+                if not r.json().get('status'):
                     self._req.post(f"{self.url}/bot/register", json=dict(name=self.name, email=self.email,
                                                                          player_id=self.citizen_id))
             finally:
                 self.__registered = True
                 self.allowed = True
-                self.report_action("STARTED", value=utils.now().strftime("%F %T"))
+                self.report_action('STARTED', value=utils.now().strftime("%F %T"))
 
     def send_state_update(self, xp: int, cc: float, gold: float, inv_total: int, inv: int,
                           hp_limit: int, hp_interval: int, hp_available: int, food: int, pp: int):
@@ -643,7 +648,7 @@ class Reporter:
         else:
             self.__to_update.append(json_data)
 
-    def report_fighting(self, battle: "Battle", invader: bool, division: "BattleDivision", damage: float, hits: int):
+    def report_fighting(self, battle: 'Battle', invader: bool, division: 'BattleDivision', damage: float, hits: int):
         side = battle.invader if invader else battle.defender
         self.report_action('FIGHT', dict(battle_id=battle.id, side=side, dmg=damage,
                                          air=battle.has_air, hits=hits,
@@ -662,7 +667,7 @@ class Reporter:
     def report_promo(self, kind: str, time_until: datetime.datetime):
         self._req.post(f"{self.url}/promos/add/", data=dict(kind=kind, time_untill=time_until))
 
-    def fetch_battle_priorities(self, country: constants.Country) -> List["Battle"]:
+    def fetch_battle_priorities(self, country: constants.Country) -> List['Battle']:
         try:
             battle_response = self._req.get(f'{self.url}/api/v1/battles/{country.id}')
             return [self.citizen.all_battles[bid] for bid in battle_response.json().get('battle_ids', []) if
@@ -713,12 +718,12 @@ class BattleSide:
     points: int
     deployed: List[constants.Country]
     allies: List[constants.Country]
-    battle: "Battle"
+    battle: 'Battle'
     _battle: weakref.ReferenceType
     country: constants.Country
     is_defender: bool
 
-    def __init__(self, battle: "Battle", country: constants.Country, points: int, allies: List[constants.Country],
+    def __init__(self, battle: 'Battle', country: constants.Country, points: int, allies: List[constants.Country],
                  deployed: List[constants.Country], defender: bool):
         self._battle = weakref.ref(battle)
         self.country = country
@@ -732,11 +737,11 @@ class BattleSide:
         return self.country.id
 
     def __repr__(self):
-        side_text = "Defender" if self.is_defender else "Invader "
+        side_text = 'Defender' if self.is_defender else 'Invader '
         return f"<BattleSide: {side_text} {self.country.name}|{self.points:>2d}p>"
 
     def __str__(self):
-        side_text = "Defender" if self.is_defender else "Invader "
+        side_text = 'Defender' if self.is_defender else 'Invader '
         return f"{side_text} {self.country.name} - {self.points:>2d} points"
 
     def __format__(self, format_spec):
@@ -762,7 +767,7 @@ class BattleDivision:
     inv_medal: Dict[str, int]
     terrain: int
     div: int
-    battle: "Battle"
+    battle: 'Battle'
     _battle: weakref.ReferenceType
 
     @property
@@ -778,7 +783,7 @@ class BattleDivision:
     def div_end(self) -> bool:
         return utils.now() >= self.end
 
-    def __init__(self, battle: "Battle", div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int,
+    def __init__(self, battle: 'Battle', div_id: int, end: datetime.datetime, epic: bool, div: int, wall_for: int,
                  wall_dom: float, terrain_id: int = 0):
         """Battle division helper class
 
@@ -794,7 +799,7 @@ class BattleDivision:
         self.id = div_id
         self.end = end
         self.epic = epic
-        self.wall = dict({"for": wall_for, "dom": wall_dom})
+        self.wall = {'for': wall_for, 'dom': wall_dom}
         self.terrain = terrain_id
         self.div = div
 
@@ -807,7 +812,7 @@ class BattleDivision:
         if self.terrain:
             base_name += f" ({self.terrain_display})"
         if self.div_end:
-            base_name += " Ended"
+            base_name += ' Ended'
         return base_name
 
     def __repr__(self):
@@ -899,8 +904,8 @@ class Battle:
 
             battle_div = BattleDivision(self, div_id=data.get('id'), div=data.get('div'), end=end,
                                         epic=data.get('epic_type') in [1, 5],
-                                        wall_for=data.get('wall').get("for"),
-                                        wall_dom=data.get('wall').get("dom"),
+                                        wall_for=data.get('wall').get('for'),
+                                        wall_dom=data.get('wall').get('dom'),
                                         terrain_id=data.get('terrain', 0))
 
             self.div.update({div: battle_div})
@@ -986,7 +991,7 @@ class TelegramReporter:
         self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
         self._last_full_energy_report = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-30))
         if self.__queue:
-            self.send_message("Telegram initialized")
+            self.send_message('Telegram initialized')
 
     def send_message(self, message: str) -> bool:
         self.__queue.append(message)
@@ -1014,7 +1019,7 @@ class TelegramReporter:
         new_line = '\n' if multiple else ''
         self.send_message(f"New award: {new_line}*{msg}*")
 
-    def report_fight(self, battle: "Battle", invader: bool, division: "BattleDivision", damage: float, hits: int):
+    def report_fight(self, battle: 'Battle', invader: bool, division: 'BattleDivision', damage: float, hits: int):
         side_txt = (battle.invader if invader else battle.defender).country.iso
         self.send_message(f"*Fight report*:\n{int(damage):,d} dmg ({hits} hits) in"
                           f" [battle {battle.id} for {battle.region_name[:16]}]({battle.link}) in d{division.div} on "
@@ -1037,7 +1042,7 @@ class TelegramReporter:
         message = "\n\n".join(self.__queue)
         if self.player_name:
             message = f"Player *{self.player_name}*\n\n" + message
-        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode='Markdown'))
         self._last_time = utils.now()
         if response.json().get('ok'):
             self.__queue.clear()

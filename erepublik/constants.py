@@ -3,8 +3,8 @@ from typing import Dict, Optional, Union
 
 import pytz
 
-__all__ = ["erep_tz", 'min_datetime', "max_datetime", "Country", "AIR_RANKS", "COUNTRIES", "FOOD_ENERGY",
-           "GROUND_RANKS", "GROUND_RANK_POINTS", "INDUSTRIES", "TERRAINS"]
+__all__ = ['erep_tz', 'min_datetime', 'max_datetime', 'Country', 'AIR_RANKS', 'COUNTRIES', 'FOOD_ENERGY',
+           'GROUND_RANKS', 'GROUND_RANK_POINTS', 'INDUSTRIES', 'TERRAINS']
 
 erep_tz = pytz.timezone('US/Pacific')
 min_datetime = erep_tz.localize(datetime.datetime(2007, 11, 20))
@@ -60,11 +60,11 @@ class Industries:
                  'wrm q1': 12, 'wrm q2': 13, 'wrm q3': 14, 'wrm q4': 15, 'wrm q5': 16,
                  'hrm q1': 18, 'hrm q2': 19, 'hrm q3': 20, 'hrm q4': 21, 'hrm q5': 22,
                  'arm q1': 24, 'arm q2': 25, 'arm q3': 26, 'arm q4': 27, 'arm q5': 28}
-    __by_id = {1: "Food", 2: "Weapon", 3: "Ticket", 4: "House", 23: "Aircraft",
-               7: "foodRaw", 8: "FRM q2", 9: "FRM q3", 10: "FRM q4", 11: "FRM q5",
-               12: "weaponRaw", 13: "WRM q2", 14: "WRM q3", 15: "WRM q4", 16: "WRM q5",
-               17: "houseRaw", 18: "houseRaw", 19: "HRM q2", 20: "HRM q3", 21: "HRM q4", 22: "HRM q5",
-               24: "aircraftRaw", 25: "ARM q2", 26: "ARM q3", 27: "ARM q4", 28: "ARM q5"}
+    __by_id = {1: 'Food', 2: 'Weapon', 3: 'Ticket', 4: 'House', 23: 'Aircraft',
+               7: 'foodRaw', 8: 'FRM q2', 9: 'FRM q3', 10: 'FRM q4', 11: 'FRM q5',
+               12: 'weaponRaw', 13: 'WRM q2', 14: 'WRM q3', 15: 'WRM q4', 16: 'WRM q5',
+               17: 'houseRaw', 18: 'houseRaw', 19: 'HRM q2', 20: 'HRM q3', 21: 'HRM q4', 22: 'HRM q5',
+               24: 'aircraftRaw', 25: 'ARM q2', 26: 'ARM q3', 27: 'ARM q4', 28: 'ARM q5'}
 
     def __getitem__(self, item) -> Optional[Union[int, str]]:
         if isinstance(item, int):
@@ -82,21 +82,21 @@ class Industries:
 
 
 AIR_RANKS: Dict[int, str] = {
-    1: "Airman", 2: "Airman 1st Class", 3: "Airman 1st Class*", 4: "Airman 1st Class**", 5: "Airman 1st Class***",
-    6: "Airman 1st Class****", 7: "Airman 1st Class*****", 8: "Senior Airman", 9: "Senior Airman*",
-    10: "Senior Airman**", 11: "Senior Airman***", 12: "Senior Airman****", 13: "Senior Airman*****",
-    14: "Staff Sergeant", 15: "Staff Sergeant*", 16: "Staff Sergeant**", 17: "Staff Sergeant***",
-    18: "Staff Sergeant****", 19: "Staff Sergeant*****", 20: "Aviator", 21: "Aviator*", 22: "Aviator**",
-    23: "Aviator***", 24: "Aviator****", 25: "Aviator*****", 26: "Flight Lieutenant", 27: "Flight Lieutenant*",
-    28: "Flight Lieutenant**", 29: "Flight Lieutenant***", 30: "Flight Lieutenant****", 31: "Flight Lieutenant*****",
-    32: "Squadron Leader", 33: "Squadron Leader*", 34: "Squadron Leader**", 35: "Squadron Leader***",
-    36: "Squadron Leader****", 37: "Squadron Leader*****", 38: "Chief Master Sergeant", 39: "Chief Master Sergeant*",
-    40: "Chief Master Sergeant**", 41: "Chief Master Sergeant***", 42: "Chief Master Sergeant****",
-    43: "Chief Master Sergeant*****", 44: "Wing Commander", 45: "Wing Commander*", 46: "Wing Commander**",
-    47: "Wing Commander***", 48: "Wing Commander****", 49: "Wing Commander*****", 50: "Group Captain",
-    51: "Group Captain*", 52: "Group Captain**", 53: "Group Captain***", 54: "Group Captain****",
-    55: "Group Captain*****", 56: "Air Commodore", 57: "Air Commodore*", 58: "Air Commodore**", 59: "Air Commodore***",
-    60: "Air Commodore****", 61: "Air Commodore*****",
+    1: 'Airman', 2: 'Airman 1st Class', 3: 'Airman 1st Class*', 4: 'Airman 1st Class**', 5: 'Airman 1st Class***',
+    6: 'Airman 1st Class****', 7: 'Airman 1st Class*****', 8: 'Senior Airman', 9: 'Senior Airman*',
+    10: 'Senior Airman**', 11: 'Senior Airman***', 12: 'Senior Airman****', 13: 'Senior Airman*****',
+    14: 'Staff Sergeant', 15: 'Staff Sergeant*', 16: 'Staff Sergeant**', 17: 'Staff Sergeant***',
+    18: 'Staff Sergeant****', 19: 'Staff Sergeant*****', 20: 'Aviator', 21: 'Aviator*', 22: 'Aviator**',
+    23: 'Aviator***', 24: 'Aviator****', 25: 'Aviator*****', 26: 'Flight Lieutenant', 27: 'Flight Lieutenant*',
+    28: 'Flight Lieutenant**', 29: 'Flight Lieutenant***', 30: 'Flight Lieutenant****', 31: 'Flight Lieutenant*****',
+    32: 'Squadron Leader', 33: 'Squadron Leader*', 34: 'Squadron Leader**', 35: 'Squadron Leader***',
+    36: 'Squadron Leader****', 37: 'Squadron Leader*****', 38: 'Chief Master Sergeant', 39: 'Chief Master Sergeant*',
+    40: 'Chief Master Sergeant**', 41: 'Chief Master Sergeant***', 42: 'Chief Master Sergeant****',
+    43: 'Chief Master Sergeant*****', 44: 'Wing Commander', 45: 'Wing Commander*', 46: 'Wing Commander**',
+    47: 'Wing Commander***', 48: 'Wing Commander****', 49: 'Wing Commander*****', 50: 'Group Captain',
+    51: 'Group Captain*', 52: 'Group Captain**', 53: 'Group Captain***', 54: 'Group Captain****',
+    55: 'Group Captain*****', 56: 'Air Commodore', 57: 'Air Commodore*', 58: 'Air Commodore**', 59: 'Air Commodore***',
+    60: 'Air Commodore****', 61: 'Air Commodore*****',
 }
 
 COUNTRIES: Dict[int, Country] = {
@@ -145,27 +145,27 @@ COUNTRIES: Dict[int, Country] = {
 FOOD_ENERGY: Dict[str, int] = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 
 GROUND_RANKS: Dict[int, str] = {
-    1: "Recruit", 2: "Private", 3: "Private*", 4: "Private**", 5: "Private***",
-    6: "Corporal", 7: "Corporal*", 8: "Corporal**", 9: "Corporal***",
-    10: "Sergeant", 11: "Sergeant*", 12: "Sergeant**", 13: "Sergeant***",
-    14: "Lieutenant", 15: "Lieutenant*", 16: "Lieutenant**", 17: "Lieutenant***",
-    18: "Captain", 19: "Captain*", 20: "Captain**", 21: "Captain***",
-    22: "Major", 23: "Major*", 24: "Major**", 25: "Major***",
-    26: "Commander", 27: "Commander*", 28: "Commander**", 29: "Commander***",
-    30: "Lt Colonel", 31: "Lt Colonel*", 32: "Lt Colonel**", 33: "Lt Colonel***",
-    34: "Colonel", 35: "Colonel*", 36: "Colonel**", 37: "Colonel***",
-    38: "General", 39: "General*", 40: "General**", 41: "General***",
-    42: "Field Marshal", 43: "Field Marshal*", 44: "Field Marshal**", 45: "Field Marshal***",
-    46: "Supreme Marshal", 47: "Supreme Marshal*", 48: "Supreme Marshal**", 49: "Supreme Marshal***",
-    50: "National Force", 51: "National Force*", 52: "National Force**", 53: "National Force***",
-    54: "World Class Force", 55: "World Class Force*", 56: "World Class Force**", 57: "World Class Force***",
-    58: "Legendary Force", 59: "Legendary Force*", 60: "Legendary Force**", 61: "Legendary Force***",
-    62: "God of War", 63: "God of War*", 64: "God of War**", 65: "God of War***",
-    66: "Titan", 67: "Titan*", 68: "Titan**", 69: "Titan***",
-    70: "Legends I", 71: "Legends II", 72: "Legends III", 73: "Legends IV", 74: "Legends V", 75: "Legends VI",
-    76: "Legends VII", 77: "Legends VIII", 78: "Legends IX", 79: "Legends X", 80: "Legends XI", 81: "Legends XII",
-    82: "Legends XIII", 83: "Legends XIV", 84: "Legends XV", 85: "Legends XVI", 86: "Legends XVII", 87: "Legends XVIII",
-    88: "Legends XIX", 89: "Legends XX",
+    1: 'Recruit', 2: 'Private', 3: 'Private*', 4: 'Private**', 5: 'Private***',
+    6: 'Corporal', 7: 'Corporal*', 8: 'Corporal**', 9: 'Corporal***',
+    10: 'Sergeant', 11: 'Sergeant*', 12: 'Sergeant**', 13: 'Sergeant***',
+    14: 'Lieutenant', 15: 'Lieutenant*', 16: 'Lieutenant**', 17: 'Lieutenant***',
+    18: 'Captain', 19: 'Captain*', 20: 'Captain**', 21: 'Captain***',
+    22: 'Major', 23: 'Major*', 24: 'Major**', 25: 'Major***',
+    26: 'Commander', 27: 'Commander*', 28: 'Commander**', 29: 'Commander***',
+    30: 'Lt Colonel', 31: 'Lt Colonel*', 32: 'Lt Colonel**', 33: 'Lt Colonel***',
+    34: 'Colonel', 35: 'Colonel*', 36: 'Colonel**', 37: 'Colonel***',
+    38: 'General', 39: 'General*', 40: 'General**', 41: 'General***',
+    42: 'Field Marshal', 43: 'Field Marshal*', 44: 'Field Marshal**', 45: 'Field Marshal***',
+    46: 'Supreme Marshal', 47: 'Supreme Marshal*', 48: 'Supreme Marshal**', 49: 'Supreme Marshal***',
+    50: 'National Force', 51: 'National Force*', 52: 'National Force**', 53: 'National Force***',
+    54: 'World Class Force', 55: 'World Class Force*', 56: 'World Class Force**', 57: 'World Class Force***',
+    58: 'Legendary Force', 59: 'Legendary Force*', 60: 'Legendary Force**', 61: 'Legendary Force***',
+    62: 'God of War', 63: 'God of War*', 64: 'God of War**', 65: 'God of War***',
+    66: 'Titan', 67: 'Titan*', 68: 'Titan**', 69: 'Titan***',
+    70: 'Legends I', 71: 'Legends II', 72: 'Legends III', 73: 'Legends IV', 74: 'Legends V', 75: 'Legends VI',
+    76: 'Legends VII', 77: 'Legends VIII', 78: 'Legends IX', 79: 'Legends X', 80: 'Legends XI', 81: 'Legends XII',
+    82: 'Legends XIII', 83: 'Legends XIV', 84: 'Legends XV', 85: 'Legends XVI', 86: 'Legends XVII', 87: 'Legends XVIII',
+    88: 'Legends XIX', 89: 'Legends XX',
 }
 
 GROUND_RANK_POINTS: Dict[int, int] = {
@@ -186,6 +186,6 @@ GROUND_RANK_POINTS: Dict[int, int] = {
 
 INDUSTRIES = Industries()
 
-TERRAINS: Dict[int, str] = {0: "Standard", 1: 'Industrial', 2: 'Urban', 3: 'Suburbs', 4: 'Airport', 5: 'Plains',
+TERRAINS: Dict[int, str] = {0: 'Standard', 1: 'Industrial', 2: 'Urban', 3: 'Suburbs', 4: 'Airport', 5: 'Plains',
                             6: 'Wasteland', 7: 'Mountains', 8: 'Beach', 9: 'Swamp', 10: 'Mud', 11: 'Hills',
                             12: 'Jungle', 13: 'Forest', 14: 'Desert'}
