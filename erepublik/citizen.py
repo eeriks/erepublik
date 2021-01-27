@@ -2291,7 +2291,7 @@ class CitizenMilitary(CitizenTravel):
         weapon_strength = 0
         if not division.is_air:
             for weapon in sorted(deploy_inv['weapons'], key=lambda w: w['damageperHit']):
-                if weapon['damageperHit'] > weapon_strength and weapon['amount'] > 50:
+                if (weapon['damageperHit'] or 0) > weapon_strength and (weapon['amount'] or 0) > 50:
                     weapon_q = weapon['quality']
         r = self._post_fight_deploy_start_deploy(
             division.battle.id, side.id, division.id, energy, weapon_q, **energy_sources
