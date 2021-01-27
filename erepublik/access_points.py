@@ -141,6 +141,25 @@ class CitizenBaseAPI:
         url = f'http://{username}:{password}@{host}:{port}' if username and password else f'socks5://{host}:{port}'
         self._req.proxies = dict(http=url)
 
+    def _get_main_session_captcha(self) -> Response:
+        return self.get(f'{self.url}/main/sessionCaptcha')
+
+    def _get_main_session_unlock_popup(self) -> Response:
+        return self.get(f'{self.url}/main/sessionUnlockPopup')
+
+    def _post_main_session_get_challenge(self, captcha_id: int) -> Response:
+        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
+        data = dict(_token=self.token, captchaId=captcha_id, env=utils.b64json(env))
+        return self.post(f'{self.url}/main/sessionGetChallenge', data=data)
+
+    def _post_main_session_unlock(
+        self, captcha: int, image: str, challenge: str, coords: List[Dict[str, int]], src: str
+    ) -> Response:
+        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
+        data = dict(_token=self.token, captchaId=captcha, imageId=image, challengeId=challenge,
+                    clickMatrix=coords, isMobile=0, env=utils.b64json(env), src=src)
+        return self.post(f'{self.url}/main/sessionUnlock', data=data)
+
 
 class ErepublikAnniversaryAPI(CitizenBaseAPI):
     def _post_main_collect_anniversary_reward(self) -> Response:
@@ -470,24 +489,6 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
                     weaponQuality=weapon, totalEnergy=energy, **kwargs)
         return self.post(f"{self.url}/military/fightDeploy-startDeploy", data=data)
 
-    def _get_main_session_captcha(self) -> Response:
-        return self.get(f'{self.url}/main/sessionCaptcha')
-
-    def _get_main_session_unlock_popup(self) -> Response:
-        return self.get(f'{self.url}/main/sessionUnlockPopup')
-
-    def _post_main_session_get_challenge(self, captcha_id: int) -> Response:
-        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
-        data = dict(_token=self.token, captchaId=captcha_id, env=utils.b64json(env))
-        return self.post(f'{self.url}/main/sessionGetChallenge', data=data)
-
-    def _post_main_session_unlock(
-        self, captcha: int, image: str, challenge: str, coords: List[Dict[str, int]], src: str
-    ) -> Response:
-        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
-        data = dict(_token=self.token, captchaId=captcha, imageId=image, challengeId=challenge,
-                    clickMatrix=utils.json.dumps(coords), isMobile=0, env=utils.b64json(env), src=src)
-        return self.post(f'{self.url}/main/sessionUnlock', data=data)
 
 
 class ErepublikPoliticsAPI(CitizenBaseAPI):

@@ -242,7 +242,7 @@ class BaseCitizen(access_points.CitizenAPI):
         """
         self._update_inventory_data(self._get_economy_inventory_items().json())
 
-    def do_captcha_challenge(self) -> bool:
+    def do_captcha_challenge(self, retry: int = 0) -> bool:
         r = self._get_main_session_captcha()
         data = re.search(r'\$j\.extend\(SERVER_DATA,([^)]+)\)', r.text)
         if data:
@@ -257,7 +257,8 @@ class BaseCitizen(access_points.CitizenAPI):
                 return True
             else:
                 self.report_error('Captcha failed!')
-                return self.do_captcha_challenge()
+                if retry < 6:
+                    return self.do_captcha_challenge(retry+1)
         return False
 
     def solve_captcha(self, src: str) -> List[Dict[str, int]]:
