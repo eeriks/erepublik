@@ -455,9 +455,39 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
         data = dict(sideId=side_id, battleId=battle_id, _token=self.token, battleZoneId=zone_id)
         return self.post(f"{self.url}/military/fight-shooot/{battle_id}", data=data)
 
-    def _post_fight_deploy_deploy_report_data(self, deployment_id: int):
+    def _post_fight_deploy_deploy_report_data(self, deployment_id: int) -> Response:
         data = dict(_token=self.token, deploymentId=deployment_id)
-        return self.post(f"{self.url}/military/fightDeploy-deployReportData", json=data)
+        return self.post(f"{self.url}/military/fightDeploy-deployReportData", data=data)
+
+    def _post_fight_deploy_get_inventory(self, battle_id: int, side_id: int, battle_zone_id: int) -> Response:
+        data = dict(_token=self.token, battleId=battle_id, sideCountryId=side_id, battleZoneId=battle_zone_id)
+        return self.post(f"{self.url}/military/fightDeploy-getInventory", data=data)
+
+    def _post_fight_deploy_start_deploy(
+        self, battle_id: int, side_id: int, battle_zone_id: int, energy: int, weapon: int, **kwargs
+    ) -> Response:
+        data = dict(_token=self.token, battleId=battle_id, battleZoneId=battle_zone_id, sideCountryId=side_id,
+                    weaponQuality=weapon, totalEnergy=energy, **kwargs)
+        return self.post(f"{self.url}/military/fightDeploy-startDeploy", data=data)
+
+    def _get_main_session_captcha(self) -> Response:
+        return self.get(f'{self.url}/main/sessionCaptcha')
+
+    def _get_main_session_unlock_popup(self) -> Response:
+        return self.get(f'{self.url}/main/sessionUnlockPopup')
+
+    def _post_main_session_get_challenge(self, captcha_id: int) -> Response:
+        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
+        data = dict(_token=self.token, captchaId=captcha_id, env=utils.b64json(env))
+        return self.post(f'{self.url}/main/sessionGetChallenge', data=data)
+
+    def _post_main_session_unlock(
+        self, captcha: int, image: str, challenge: str, coords: List[Dict[str, int]], src: str
+    ) -> Response:
+        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
+        data = dict(_token=self.token, captchaId=captcha, imageId=image, challengeId=challenge,
+                    clickMatrix=utils.json.dumps(coords), isMobile=0, env=utils.b64json(env), src=src)
+        return self.post(f'{self.url}/main/sessionUnlock', data=data)
 
 
 class ErepublikPoliticsAPI(CitizenBaseAPI):

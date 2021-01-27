@@ -7,6 +7,7 @@ import time
 import traceback
 import unicodedata
 import warnings
+from base64 import b64encode
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Union
@@ -429,3 +430,17 @@ def json_load(f, **kwargs):
 def json_loads(s: str, **kwargs):
     kwargs.update(object_hook=json_decode_object_hook)
     return json.loads(s, **kwargs)
+
+
+def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
+    if isinstance(obj, list):
+        return b64encode(json.dumps(obj).encode('utf-8')).decode('utf-8')
+    elif isinstance(obj, (int, str)):
+        return obj
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            obj[k] = b64json(v)
+    else:
+        from .classes import ErepublikException
+        raise ErepublikException(f'Unhandled object type! obj is {type(obj)}')
+    return b64encode(json.dumps(obj).encode('utf-8')).decode('utf-8')

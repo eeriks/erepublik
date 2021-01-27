@@ -27,6 +27,7 @@ class BaseCitizen(access_points.CitizenAPI):
     eb_normal: int = 0
     eb_double: int = 0
     eb_small: int = 0
+    eb_triple: int = 0
     division: int = 0
     maverick: bool = False
 
@@ -271,7 +272,7 @@ class BaseCitizen(access_points.CitizenAPI):
             return
         self._last_inventory_update = self.now
         self.food.update(q1=0, q2=0, q3=0, q4=0, q5=0, q6=0, q7=0)
-        self.eb_small = self.eb_double = self.eb_normal = 0
+        self.eb_triple = self.eb_small = self.eb_double = self.eb_normal = 0
         active_items: types.InvFinal = {}
         if data.get('activeEnhancements', {}).get('items', {}):
             for item_data in data.get('activeEnhancements', {}).get('items', {}).values():
@@ -289,7 +290,8 @@ class BaseCitizen(access_points.CitizenAPI):
                     expiration_info = [_expire_value_to_python(v) for v in expire_info['value']]
                 if not item_data.get('icon') and item_data.get('isPackBooster'):
                     item_data['icon'] = f"//www.erepublik.com/images/icons/boosters/52px/{item_data.get('type')}.png"
-                icon = item_data['icon'] if item_data['icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
+                icon = item_data['icon'] if item_data[
+                    'icon'] else "//www.erepublik.net/images/modules/manager/tab_storage.png"
                 inv_item: types.InvFinalItem = dict(
                     name=item_data.get('name'), time_left=item_data['active']['time_left'], icon=icon,
                     kind=kind, expiration=expiration_info, quality=item_data.get('quality', 0)
@@ -333,15 +335,12 @@ class BaseCitizen(access_points.CitizenAPI):
                                 self.eb_normal = amount
                             elif q == 11:
                                 self.eb_double = amount
-                            elif q == 13:
-                                self.eb_small += amount
-                            elif q == 14:
-                                self.eb_small += amount
-                            elif q == 15:
+                                item_data.update(token='energy_bar')
+                            elif 11 < q < 17:
                                 self.eb_small += amount
                                 item_data.update(token='energy_bar')
-                            elif q == 16:
-                                self.eb_small += amount
+                            elif q == 17:
+                                self.eb_triple = amount
                                 item_data.update(token='energy_bar')
                     kind = re.sub(r'_q\d\d*', "", item_data.get('token'))
 
@@ -527,7 +526,7 @@ class BaseCitizen(access_points.CitizenAPI):
         ret = super().as_dict
         ret.update(
             name=self.name, __str__=self.__str__(),
-            ebs=dict(normal=self.eb_normal, double=self.eb_double, small=self.eb_small),
+            ebs=dict(normal=self.eb_normal, double=self.eb_double, small=self.eb_small, triple=self.eb_triple),
             promos=self.promos, inventory=self._inventory.as_dict, ot_points=self.ot_points, food=self.food,
             division=self.division, maveric=self.maverick, eday=self.eday, wheel_of_fortune=self.wheel_of_fortune,
             debug=self.debug,
@@ -697,12 +696,10 @@ class BaseCitizen(access_points.CitizenAPI):
                 self.eb_normal -= amount
             elif q == '11':
                 self.eb_double -= amount
-            elif q == '12':
+            elif 11 < int(q) < 17:
                 self.eb_small -= amount
-            elif q == '15':
-                self.eb_small -= amount
-            elif q == '16':
-                self.eb_small -= amount
+            elif q == '17':
+                self.eb_triple -= amount
         next_recovery = r_json.get('food_remaining_reset').split(":")
         self.energy.set_reference_time(
             utils.good_timedelta(self.now, timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
@@ -2230,10 +2227,79 @@ class CitizenMilitary(CitizenTravel):
                 if division.wall['dom'] == 50 or division.wall['dom'] > 98:
                     yield division, division.wall['for'] == battle.invader.country.id
 
-    def report_fighting(self, battle: classes.Battle, invader: bool, division: classes.BattleDivision, damage: float, hits: int):
+    def report_fighting(self, battle: classes.Battle, invader: bool, division: classes.BattleDivision, damage: float,
+                        hits: int):
         self.reporter.report_fighting(battle, invader, division, damage, hits)
         if self.config.telegram:
             self.telegram.report_fight(battle, invader, division, damage, hits)
+
+    def do_captcha_challenge(self) -> bool:
+        r = self._get_main_session_captcha()
+        data = re.search(r'\$j\.extend\(SERVER_DATA,([^)]+)\)', r.text)
+        if data:
+            data = utils.json_loads(utils.normalize_html_json(data.group(1)))
+            captcha_id = data.get('sessionValidation', {}).get("captchaId")
+            captcha_data = self._post_main_session_get_challenge(captcha_id).json()
+            coordinates = self.solve_captcha(captcha_data.get('src'))
+            r = self._post_main_session_unlock(
+                captcha_id, captcha_data['imageId'], captcha_data['challengeId'], coordinates, captcha_data['src']
+            ).json()
+            if not r.get('error') and r.get('verified'):
+                return True
+            else:
+                self.report_error('Captcha failed!')
+                return self.do_captcha_challenge()
+        return False
+
+    def solve_captcha(self, src: str) -> List[Dict[str, int]]:
+        raise NotImplemented
+
+    def get_deploy_inventory(self, division: classes.BattleDivision, side: classes.BattleSide):
+        ret = self._post_fight_deploy_get_inventory(division.battle.id, side.id, division.id).json()
+        # if ret.get('recoverableEnergyBuyFood'):
+        #     self.buy_food()
+        #     return self.get_deploy_inventory(division, side)
+        if ret.get('captcha'):
+            while not self.do_captcha_challenge():
+                self.sleep(5)
+        return ret
+
+    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int):
+        _energy = int(energy)
+        deploy_inv = self.get_deploy_inventory(division, side)
+        if not deploy_inv['minEnergy'] <= energy <= deploy_inv['maxEnergy']:
+            return 0
+        energy_sources = {}
+        source_idx = 0
+        recoverable = deploy_inv['recoverableEnergy']
+        for source in reversed(sorted(deploy_inv['energySources'], key=lambda s: (s['type'], s.get('quality', 0)))):
+            if source['type'] == 'pool':
+                _energy -= source['energy']
+            elif source['type'] in ['food', 'energy_bar']:
+                recovers = source['energy'] / source['amount']
+                amount = recoverable // recovers
+                amount = amount if amount < source['amount'] else source['amount']
+                if amount > 0:
+                    energy_sources.update({f'energySources[{source_idx}][quality]': source['quality']})
+                    energy_sources.update({f'energySources[{source_idx}][amount]': amount})
+                    source_idx += 1
+                    used_energy = amount * recovers
+                    recoverable -= used_energy
+                    _energy -= used_energy
+        energy -= _energy
+        weapon_q = -1
+        weapon_strength = 0
+        if not division.is_air:
+            for weapon in sorted(deploy_inv['weapons'], key=lambda w: w['damageperHit']):
+                if weapon['damageperHit'] > weapon_strength and weapon['amount'] > 50:
+                    weapon_q = weapon['quality']
+        r = self._post_fight_deploy_start_deploy(
+            division.battle.id, side.id, division.id, energy, weapon_q, **energy_sources
+        ).json()
+        self.write_log(r.get('message'))
+        if r.get('error'):
+            self.report_error('Deploy failed!')
+        return energy
 
 
 class CitizenPolitics(BaseCitizen):
