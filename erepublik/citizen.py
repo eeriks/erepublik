@@ -242,6 +242,27 @@ class BaseCitizen(access_points.CitizenAPI):
         """
         self._update_inventory_data(self._get_economy_inventory_items().json())
 
+    def do_captcha_challenge(self) -> bool:
+        r = self._get_main_session_captcha()
+        data = re.search(r'\$j\.extend\(SERVER_DATA,([^)]+)\)', r.text)
+        if data:
+            data = utils.json_loads(utils.normalize_html_json(data.group(1)))
+            captcha_id = data.get('sessionValidation', {}).get("captchaId")
+            captcha_data = self._post_main_session_get_challenge(captcha_id).json()
+            coordinates = self.solve_captcha(captcha_data.get('src'))
+            r = self._post_main_session_unlock(
+                captcha_id, captcha_data['imageId'], captcha_data['challengeId'], coordinates, captcha_data['src']
+            ).json()
+            if not r.get('error') and r.get('verified'):
+                return True
+            else:
+                self.report_error('Captcha failed!')
+                return self.do_captcha_challenge()
+        return False
+
+    def solve_captcha(self, src: str) -> List[Dict[str, int]]:
+        raise NotImplemented
+
     @property
     def inventory(self) -> classes.Inventory:
         return self.get_inventory()
@@ -740,6 +761,9 @@ class BaseCitizen(access_points.CitizenAPI):
             pass
         if response.status_code >= 400:
             self.r = response
+            if response.text == 'Please verify your account.':
+                self.do_captcha_challenge()
+                return True
             if response.status_code >= 500:
                 if self.restricted_ip:
                     self._req.cookies.clear()
@@ -2232,27 +2256,6 @@ class CitizenMilitary(CitizenTravel):
         self.reporter.report_fighting(battle, invader, division, damage, hits)
         if self.config.telegram:
             self.telegram.report_fight(battle, invader, division, damage, hits)
-
-    def do_captcha_challenge(self) -> bool:
-        r = self._get_main_session_captcha()
-        data = re.search(r'\$j\.extend\(SERVER_DATA,([^)]+)\)', r.text)
-        if data:
-            data = utils.json_loads(utils.normalize_html_json(data.group(1)))
-            captcha_id = data.get('sessionValidation', {}).get("captchaId")
-            captcha_data = self._post_main_session_get_challenge(captcha_id).json()
-            coordinates = self.solve_captcha(captcha_data.get('src'))
-            r = self._post_main_session_unlock(
-                captcha_id, captcha_data['imageId'], captcha_data['challengeId'], coordinates, captcha_data['src']
-            ).json()
-            if not r.get('error') and r.get('verified'):
-                return True
-            else:
-                self.report_error('Captcha failed!')
-                return self.do_captcha_challenge()
-        return False
-
-    def solve_captcha(self, src: str) -> List[Dict[str, int]]:
-        raise NotImplemented
 
     def get_deploy_inventory(self, division: classes.BattleDivision, side: classes.BattleSide):
         ret = self._post_fight_deploy_get_inventory(division.battle.id, side.id, division.id).json()
