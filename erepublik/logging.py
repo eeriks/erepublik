@@ -74,10 +74,10 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
     def __init__(self, reporter: Reporter):
         logging.Handler.__init__(self, level=logging.ERROR)
         self._reporter = weakref.ref(reporter)
-        self.host = 'localhost:5000'
+        self.host = 'erep.lv'
         self.url = '/ebot/error/'
         self.method = 'POST'
-        self.secure = False
+        self.secure = True
         self.credentials = (str(reporter.citizen_id), reporter.key)
         self.context = None
 
