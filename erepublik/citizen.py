@@ -1,5 +1,5 @@
+import logging
 import re
-import sys
 import warnings
 import weakref
 from datetime import datetime, time, timedelta
@@ -13,6 +13,7 @@ from requests import HTTPError, RequestException, Response
 
 from . import access_points, classes, constants, types, utils
 from .classes import OfferItem
+from .logging import ErepublikLogConsoleHandler, ErepublikFormatter, ErepublikFileHandler, ErepublikErrorHTTTPHandler
 
 
 class BaseCitizen(access_points.CitizenAPI):
@@ -44,6 +45,8 @@ class BaseCitizen(access_points.CitizenAPI):
     stop_threads: Event = None
     telegram: classes.TelegramReporter = None
 
+    logger: logging.Logger
+
     r: Response = None
     name: str = 'Not logged in!'
     logged_in: bool = False
@@ -58,6 +61,9 @@ class BaseCitizen(access_points.CitizenAPI):
         self.my_companies = classes.MyCompanies(self)
         self.reporter = classes.Reporter(self)
         self.stop_threads = Event()
+        logger_class = logging.getLoggerClass()
+        self.logger = logger_class('Citizen')
+
         self.telegram = classes.TelegramReporter(stop_event=self.stop_threads)
 
         self.config.email = email
@@ -465,17 +471,14 @@ class BaseCitizen(access_points.CitizenAPI):
         self._inventory.offers = offers
         self.food['total'] = sum([self.food[q] * constants.FOOD_ENERGY[q] for q in constants.FOOD_ENERGY])
 
-    def write_log(self, *args, **kwargs):
-        if self.config.interactive:
-            utils.write_interactive_log(*args, **kwargs)
-        else:
-            utils.write_silent_log(*args, **kwargs)
+    def write_log(self, msg: str):
+        self.logger.info(msg)
 
     def report_error(self, msg: str = "", is_warning: bool = False):
         if is_warning:
-            utils.process_warning(msg, self.name, sys.exc_info(), self)
+            self.logger.warning(msg)
         else:
-            utils.process_error(msg, self.name, sys.exc_info(), self, None, None)
+            self.logger.error(msg)
 
     def sleep(self, seconds: Union[int, float, Decimal]):
         if seconds < 0:
@@ -485,9 +488,40 @@ class BaseCitizen(access_points.CitizenAPI):
         else:
             sleep(seconds)
 
-    def set_debug(self, debug: bool):
-        self.debug = bool(debug)
-        self._req.debug = bool(debug)
+    def init_logger(self):
+        for handler in list(self.logger.handlers):
+            self.logger.removeHandler(handler)
+        formatter = ErepublikFormatter()
+        if self.config.interactive:
+            console_handler = ErepublikLogConsoleHandler()
+            console_handler.setFormatter(formatter)
+            self.logger.addHandler(console_handler)
+        file_handler = ErepublikFileHandler()
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+        error_handler = ErepublikErrorHTTTPHandler(self.reporter)
+        error_handler.setFormatter(formatter)
+        self.logger.addHandler(error_handler)
+        self.logger.setLevel(logging.INFO)
+
+    def set_debug(self, enable: bool):
+        self.debug = bool(enable)
+        self._req.debug = bool(enable)
+        self.logger.setLevel(logging.DEBUG if enable else logging.INFO)
+
+        for handler in self.logger.handlers:
+            if isinstance(handler, (ErepublikLogConsoleHandler, ErepublikFileHandler)):
+                handler.setLevel(logging.DEBUG if enable else logging.INFO)
+        self.logger.debug(f"Debug messages {'enabled' if enable else 'disabled'}!")
+
+    def set_interactive(self, enable: bool):
+        for handler in self.logger.handlers:
+            if isinstance(handler, (ErepublikLogConsoleHandler,)):
+                self.logger.removeHandler(handler)
+        if enable:
+            handler = ErepublikLogConsoleHandler()
+            handler.setLevel(logging.DEBUG if self.debug else logging.INFO)
+            self.logger.addHandler(handler)
 
     def to_json(self, indent: bool = False) -> str:
         return utils.json.dumps(self, cls=classes.ErepublikJSONEncoder, indent=4 if indent else None, sort_keys=True)
@@ -517,6 +551,7 @@ class BaseCitizen(access_points.CitizenAPI):
         for k, v in data.get('config', {}).items():
             if hasattr(player.config, k):
                 setattr(player.config, k, v)
+        player.init_logger()
         player._resume_session()
         return player
 
@@ -736,8 +771,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.r = r
 
         if r.url == f"{self.url}/login":
-            self.write_log("Citizen email and/or password is incorrect!")
-            raise KeyboardInterrupt
+            self.logger.error("Citizen email and/or password is incorrect!")
         else:
             re_name_id = re.search(r'<a data-fblog="profile_avatar" href="/en/citizen/profile/(\d+)" '
                                    r'class="user_avatar" title="(.*?)">', r.text)
@@ -2635,6 +2669,11 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
 
         self.update_all(True)
+        for handler in self.logger.handlers:
+            if isinstance(handler, ErepublikErrorHTTTPHandler):
+                self.logger.removeHandler(handler)
+                break
+        self.logger.addHandler(ErepublikErrorHTTTPHandler(self.reporter))
 
     def update_citizen_info(self, html: str = None):
         """

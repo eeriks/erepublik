@@ -1,10 +1,8 @@
 import datetime
-import inspect
 import os
 import re
 import sys
 import time
-import traceback
 import unicodedata
 import warnings
 from base64 import b64encode
@@ -14,6 +12,7 @@ from typing import Any, Dict, List, Union
 
 import pytz
 import requests
+from requests import Response
 
 from . import __version__, constants
 
@@ -22,12 +21,12 @@ try:
 except ImportError:
     import json
 
-__all__ = ['VERSION', 'calculate_hit', 'caught_error', 'date_from_eday', 'eday_from_date', 'deprecation',
-           'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta',
-           'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now',
-           'process_error', 'process_warning', 'send_email', 'silent_sleep', 'slugify', 'write_file', 'write_request',
-           'write_interactive_log', 'write_silent_log', 'get_final_hit_dmg', 'wait_for_lock',
-           'json_decode_object_hook', 'json_load', 'json_loads']
+__all__ = [
+    'VERSION', 'calculate_hit', 'date_from_eday', 'eday_from_date', 'deprecation', 'get_final_hit_dmg', 'write_file',
+    'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta', 'slugify',
+    'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now', 'silent_sleep',
+    'json_decode_object_hook', 'json_load', 'json_loads', 'json_dump', 'json_dumps', 'b64json', 'ErepublikJSONEncoder',
+]
 
 VERSION: str = __version__
 
@@ -103,25 +102,25 @@ def interactive_sleep(sleep_seconds: int):
 silent_sleep = time.sleep
 
 
-def _write_log(msg, timestamp: bool = True, should_print: bool = False):
-    erep_time_now = now()
-    txt = f"[{erep_time_now.strftime('%F %T')}] {msg}" if timestamp else msg
-    if not os.path.isdir('log'):
-        os.mkdir('log')
-    with open(f'log/{erep_time_now.strftime("%F")}.log', 'a', encoding='utf-8') as f:
-        f.write(f'{txt}\n')
-    if should_print:
-        print(txt)
-
-
-def write_interactive_log(*args, **kwargs):
-    kwargs.pop('should_print', None)
-    _write_log(should_print=True, *args, **kwargs)
-
-
-def write_silent_log(*args, **kwargs):
-    kwargs.pop('should_print', None)
-    _write_log(should_print=False, *args, **kwargs)
+# def _write_log(msg, timestamp: bool = True, should_print: bool = False):
+#     erep_time_now = now()
+#     txt = f"[{erep_time_now.strftime('%F %T')}] {msg}" if timestamp else msg
+#     if not os.path.isdir('log'):
+#         os.mkdir('log')
+#     with open(f'log/{erep_time_now.strftime("%F")}.log', 'a', encoding='utf-8') as f:
+#         f.write(f'{txt}\n')
+#     if should_print:
+#         print(txt)
+#
+#
+# def write_interactive_log(*args, **kwargs):
+#     kwargs.pop('should_print', None)
+#     _write_log(should_print=True, *args, **kwargs)
+#
+#
+# def write_silent_log(*args, **kwargs):
+#     kwargs.pop('should_print', None)
+#     _write_log(should_print=False, *args, **kwargs)
 
 
 def get_file(filepath: str) -> str:
@@ -155,161 +154,12 @@ def write_file(filename: str, content: str) -> int:
     return ret
 
 
-def write_request(response: requests.Response, is_error: bool = False):
-    from erepublik import Citizen
-
-    # Remove GET args from url name
-    url = response.url
-    last_index = url.index("?") if "?" in url else len(response.url)
-
-    name = slugify(response.url[len(Citizen.url):last_index])
-    html = response.text
-
-    try:
-        json.loads(html)
-        ext = 'json'
-    except json.decoder.JSONDecodeError:
-        ext = 'html'
-
-    if not is_error:
-        filename = f"debug/requests/{now().strftime('%F_%H-%M-%S')}_{name}.{ext}"
-        write_file(filename, html)
-    else:
-        return dict(name=f"{now().strftime('%F_%H-%M-%S')}_{name}.{ext}", content=html.encode('utf-8'),
-                    mimetype="application/json" if ext == 'json' else "text/html")
-
-
-def send_email(name: str, content: List[Any], player=None, local_vars: Dict[str, Any] = None,
-               promo: bool = False, captcha: bool = False):
-    if local_vars is None:
-        local_vars = {}
-    from erepublik import Citizen
-
-    file_content_template = '<html><head><title>{title}</title></head><body>{body}</body></html>'
-    if isinstance(player, Citizen) and player.r:
-        resp = write_request(player.r, is_error=True)
-    else:
-        resp = dict(name='None.html', mimetype='text/html',
-                    content=file_content_template.format(body='<br/>'.join(content), title='Error'))
-
-    if promo:
-        resp = dict(name=f"{name}.html", mimetype='text/html',
-                    content=file_content_template.format(title='Promo', body='<br/>'.join(content)))
-        subject = f"[eBot][{now().strftime('%F %T')}] Promos: {name}"
-
-    elif captcha:
-        resp = dict(name=f'{name}.html', mimetype='text/html',
-                    content=file_content_template.format(title='ReCaptcha', body='<br/>'.join(content)))
-        subject = f"[eBot][{now().strftime('%F %T')}] RECAPTCHA: {name}"
-    else:
-        subject = f"[eBot][{now().strftime('%F %T')}] Bug trace: {name}"
-
-    body = "".join(traceback.format_stack()) + \
-           "\n\n" + \
-           "\n".join(content)
-    data = dict(send_mail=True, subject=subject, bugtrace=body)
-    if promo:
-        data.update(promo=True)
-    elif captcha:
-        data.update(captcha=True)
-    else:
-        data.update(bug=True)
-
-    files = [('file', (resp.get('name'), resp.get('content'), resp.get('mimetype'))), ]
-    filename = f'log/{now().strftime("%F")}.log'
-    if os.path.isfile(filename):
-        files.append(('file', (filename[4:], open(filename, 'rb'), 'text/plain')))
-    if local_vars:
-        if 'state_thread' in local_vars:
-            local_vars.pop('state_thread', None)
-
-        if isinstance(local_vars.get('self'), Citizen):
-            local_vars['self'] = repr(local_vars['self'])
-        if isinstance(local_vars.get('player'), Citizen):
-            local_vars['player'] = repr(local_vars['player'])
-        if isinstance(local_vars.get('citizen'), Citizen):
-            local_vars['citizen'] = repr(local_vars['citizen'])
-
-        from erepublik.classes import ErepublikJSONEncoder
-        files.append(('file', ('local_vars.json', json.dumps(local_vars, cls=ErepublikJSONEncoder),
-                               "application/json")))
-    if isinstance(player, Citizen):
-        files.append(('file', ('instance.json', player.to_json(indent=True), "application/json")))
-    requests.post('https://pasts.72.lv', data=data, files=files)
-
-
 def normalize_html_json(js: str) -> str:
     js = re.sub(r' \'(.*?)\'', lambda a: f'"{a.group(1)}"', js)
     js = re.sub(r'(\d\d):(\d\d):(\d\d)', r'\1\2\3', js)
     js = re.sub(r'([{\s,])(\w+)(:)(?!"})', r'\1"\2"\3', js)
     js = re.sub(r',\s*}', '}', js)
     return js
-
-
-def caught_error(e: Exception):
-    process_error(str(e), 'Unclassified', sys.exc_info(), interactive=False)
-
-
-def process_error(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None,
-                  interactive: bool = None):
-    """
-    Process error logging and email sending to developer
-    :param interactive: Should print interactively
-    :type interactive: bool
-    :param log_info: String to be written in output
-    :type log_info: str
-    :param name: String Instance name
-    :type name: str
-    :param exc_info: tuple output from sys.exc_info()
-    :type exc_info: tuple
-    :param citizen: Citizen instance
-    :type citizen: Citizen
-    :param commit_id: Caller's code version's commit id
-    :type commit_id: str
-    """
-    type_, value_, traceback_ = exc_info
-    content = [log_info]
-    content += [f"eRepublik version {VERSION}"]
-    if commit_id:
-        content += [f"Commit id {commit_id}"]
-    content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
-
-    if interactive:
-        write_interactive_log(log_info)
-    elif interactive is not None:
-        write_silent_log(log_info)
-    trace = inspect.trace()
-    if trace:
-        local_vars = trace[-1][0].f_locals
-        if local_vars.get('__name__') == '__main__':
-            local_vars.update(commit_id=local_vars.get('COMMIT_ID'), interactive=local_vars.get('INTERACTIVE'),
-                              version=local_vars.get('__version__'), config=local_vars.get('CONFIG'))
-    else:
-        local_vars = dict()
-    send_email(name, content, citizen, local_vars=local_vars)
-
-
-def process_warning(log_info: str, name: str, exc_info: tuple, citizen=None, commit_id: str = None):
-    """
-    Process error logging and email sending to developer
-    :param log_info: String to be written in output
-    :param name: String Instance name
-    :param exc_info: tuple output from sys.exc_info()
-    :param citizen: Citizen instance
-    :param commit_id: Code's version by commit id
-    """
-    type_, value_, traceback_ = exc_info
-    content = [log_info]
-    if commit_id:
-        content += [f'Commit id: {commit_id}']
-    content += [str(value_), str(type_), ''.join(traceback.format_tb(traceback_))]
-
-    trace = inspect.trace()
-    if trace:
-        local_vars = trace[-1][0].f_locals
-    else:
-        local_vars = dict()
-    send_email(name, content, citizen, local_vars=local_vars)
 
 
 def slugify(value, allow_unicode=False) -> str:
@@ -378,25 +228,25 @@ def deprecation(message):
     warnings.warn(message, DeprecationWarning, stacklevel=2)
 
 
-def wait_for_lock(function):
-    def wrapper(instance, *args, **kwargs):
-        if not instance.concurrency_available.wait(600):
-            e = 'Concurrency not freed in 10min!'
-            instance.write_log(e)
-            if instance.debug:
-                instance.report_error(e)
-            return None
-        else:
-            instance.concurrency_available.clear()
-            try:
-                ret = function(instance, *args, **kwargs)
-            except Exception as e:
-                instance.concurrency_available.set()
-                raise e
-            instance.concurrency_available.set()
-            return ret
-
-    return wrapper
+# def wait_for_lock(function):
+#     def wrapper(instance, *args, **kwargs):
+#         if not instance.concurrency_available.wait(600):
+#             e = 'Concurrency not freed in 10min!'
+#             instance.write_log(e)
+#             if instance.debug:
+#                 instance.report_error(e)
+#             return None
+#         else:
+#             instance.concurrency_available.clear()
+#             try:
+#                 ret = function(instance, *args, **kwargs)
+#             except Exception as e:
+#                 instance.concurrency_available.set()
+#                 raise e
+#             instance.concurrency_available.set()
+#             return ret
+#
+#     return wrapper
 
 
 def json_decode_object_hook(
@@ -432,6 +282,18 @@ def json_loads(s: str, **kwargs):
     return json.loads(s, **kwargs)
 
 
+def json_dump(obj, fp, *args, **kwargs):
+    if not kwargs.get('cls'):
+        kwargs.update(cls=ErepublikJSONEncoder)
+    return json.dump(obj, fp, *args, **kwargs)
+
+
+def json_dumps(obj, *args, **kwargs):
+    if not kwargs.get('cls'):
+        kwargs.update(cls=ErepublikJSONEncoder)
+    return json.dumps(obj, *args, **kwargs)
+
+
 def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
     if isinstance(obj, list):
         return b64encode(json.dumps(obj).encode('utf-8')).decode('utf-8')
@@ -444,3 +306,30 @@ def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
         from .classes import ErepublikException
         raise ErepublikException(f'Unhandled object type! obj is {type(obj)}')
     return b64encode(json.dumps(obj).encode('utf-8')).decode('utf-8')
+
+
+class ErepublikJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        from erepublik.citizen import Citizen
+        if isinstance(o, Decimal):
+            return float(f"{o:.02f}")
+        elif isinstance(o, datetime.datetime):
+            return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
+                        tzinfo=str(o.tzinfo) if o.tzinfo else None)
+        elif isinstance(o, datetime.date):
+            return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
+        elif isinstance(o, datetime.timedelta):
+            return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
+                        microseconds=o.microseconds, total_seconds=o.total_seconds())
+        elif isinstance(o, Response):
+            return dict(headers=dict(o.__dict__['headers']), url=o.url, text=o.text, status_code=o.status_code)
+        elif hasattr(o, 'as_dict'):
+            return o.as_dict
+        elif isinstance(o, set):
+            return list(o)
+        elif isinstance(o, Citizen):
+            return o.to_json()
+        try:
+            return super().default(o)
+        except Exception as e:  # noqa
+            return 'Object is not JSON serializable'

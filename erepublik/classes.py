@@ -10,8 +10,8 @@ from requests import Response, Session, post
 from . import constants, types, utils
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
-           'ErepublikJSONEncoder', 'ErepublikNetworkException', 'EnergyToFight', 'Holding', 'Inventory', 'MyCompanies',
-           'OfferItem', 'Politics', 'Reporter', 'TelegramReporter', ]
+           'ErepublikNetworkException', 'EnergyToFight', 'Holding', 'Inventory', 'MyCompanies', 'OfferItem', 'Politics',
+           'Reporter', 'TelegramReporter', ]
 
 
 class ErepublikException(Exception):
@@ -482,6 +482,8 @@ class Details:
     def __init__(self):
         self.next_pp = []
         self.mayhem_skills = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0}
+        _default_country = constants.Country(0, 'Unknown', 'Unknown', 'XX')
+        self.citizenship = self.current_country = self.residence_country = _default_country
 
     @property
     def xp_till_level_up(self):
@@ -603,10 +605,10 @@ class Reporter:
         if self.__to_update:
             for unreported_data in self.__to_update:
                 unreported_data.update(player_id=self.citizen_id, key=self.key)
-                unreported_data = utils.json.loads(utils.json.dumps(unreported_data, cls=ErepublikJSONEncoder))
+                unreported_data = utils.json_loads(utils.json_dumps(unreported_data))
                 self._req.post(f"{self.url}/bot/update", json=unreported_data)
             self.__to_update.clear()
-        data = utils.json.loads(utils.json.dumps(data, cls=ErepublikJSONEncoder))
+        data = utils.json.loads(utils.json_dumps(data))
         r = self._req.post(f"{self.url}/bot/update", json=data)
         return r
 
@@ -685,33 +687,6 @@ class Reporter:
                 return []
         except:  # noqa
             return []
-
-
-class ErepublikJSONEncoder(utils.json.JSONEncoder):
-    def default(self, o):
-        from erepublik.citizen import Citizen
-        if isinstance(o, Decimal):
-            return float(f"{o:.02f}")
-        elif isinstance(o, datetime.datetime):
-            return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
-                        tzinfo=str(o.tzinfo) if o.tzinfo else None)
-        elif isinstance(o, datetime.date):
-            return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
-        elif isinstance(o, datetime.timedelta):
-            return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
-                        microseconds=o.microseconds, total_seconds=o.total_seconds())
-        elif isinstance(o, Response):
-            return dict(headers=dict(o.__dict__['headers']), url=o.url, text=o.text, status_code=o.status_code)
-        elif hasattr(o, 'as_dict'):
-            return o.as_dict
-        elif isinstance(o, set):
-            return list(o)
-        elif isinstance(o, Citizen):
-            return o.to_json()
-        try:
-            return super().default(o)
-        except Exception as e:  # noqa
-            return 'Object is not JSON serializable'
 
 
 class BattleSide:
