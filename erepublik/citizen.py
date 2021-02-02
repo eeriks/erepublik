@@ -1895,7 +1895,6 @@ class CitizenMilitary(CitizenTravel):
             side = battle.defender if self.details.citizenship in battle.defender.allies + [
                 battle.defender.country] else battle.invader
         error_count = 0
-        ok_to_fight = True
         if count is None:
             count = self.should_fight()[0]
 
@@ -1903,22 +1902,8 @@ class CitizenMilitary(CitizenTravel):
 
         total_damage = 0
         total_hits = 0
-        while ok_to_fight and error_count < 10 and count > 0:
-            while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
-                hits, error, damage = self._shoot(battle, division, side)
-                count -= hits
-                total_hits += hits
-                total_damage += damage
-                error_count += error
-            else:
-                self._eat('blue')
-                if count > 0 and self.energy.recovered < 50 and use_ebs:
-                    self._eat('orange')
-                if self.energy.recovered < 50 or error_count >= 10 or count <= 0:
-                    self.write_log(f"Hits: {total_hits:>4} | Damage: {total_damage}")
-                    ok_to_fight = False
-                    if total_damage:
-                        self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
+        self.deploy(division, side, count * 10)
+        self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
         return error_count
 
     def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
@@ -2298,9 +2283,15 @@ class CitizenMilitary(CitizenTravel):
         if ret.get('captcha'):
             while not self.do_captcha_challenge():
                 self.sleep(5)
+        if ret.get('error'):
+            if ret.get('message') == 'Deployment disabled.':
+                self._post_main_profile_update('options', params='{"optionName":"enable_web_deploy","optionValue":"on"}')
+                return self.get_deploy_inventory(division, side)
+            else:
+                self.report_error(f"Unable to get deployment inventory because: {ret.get('message')}")
         return ret
 
-    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int):
+    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int, _retry = 0):
         _energy = int(energy)
         deploy_inv = self.get_deploy_inventory(division, side)
         if not deploy_inv['minEnergy'] <= energy <= deploy_inv['maxEnergy']:
@@ -2332,10 +2323,16 @@ class CitizenMilitary(CitizenTravel):
         r = self._post_fight_deploy_start_deploy(
             division.battle.id, side.id, division.id, energy, weapon_q, **energy_sources
         ).json()
-        self.write_log(r.get('message'))
         if r.get('error'):
             self.logger.error(f"Deploy failed: '{r.get('message')}'")
-        return energy
+            if r.json().get('message') == 'Deployment disabled.':
+                self._post_main_profile_update('options', params='{"optionName":"enable_web_deploy","optionValue":"on"}')
+                if _retry < 5:
+                    return self.deploy(division, side, energy, _retry+1)
+                else:
+                    self.report_error('Unable to deploy 5 times!')
+            return 0
+        return r.get('data', {}).get('energyTotal', energy-1)
 
 
 class CitizenPolitics(BaseCitizen):
