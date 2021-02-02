@@ -1902,7 +1902,8 @@ class CitizenMilitary(CitizenTravel):
 
         total_damage = 0
         total_hits = 0
-        self.deploy(division, side, count * 10)
+        energy_used = self.deploy(division, side, count * 10)
+        self.sleep(energy_used // 30)  # TODO: connect to eRepublik's WS and get from there when deploy ends
         self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
         return error_count
 
