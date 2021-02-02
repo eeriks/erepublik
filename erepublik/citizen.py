@@ -93,6 +93,7 @@ class BaseCitizen(access_points.CitizenAPI):
             self.token = re_login_token.group(1)
             self._login()
         else:
+            self.logger.error("Something went wrong! Can't find token in page!")
             raise classes.ErepublikException("Something went wrong! Can't find token in page! Exiting!")
         try:
             self.update_citizen_info(resp.text)
@@ -105,13 +106,13 @@ class BaseCitizen(access_points.CitizenAPI):
             if 'params' in kwargs:
                 if '_token' in kwargs['params']:
                     kwargs['params']['_token'] = self.token
-        if url == self.r.url and not url == self.url:  # Don't duplicate requests, except for homepage
+        if self.r and url == self.r.url and not url == self.url:  # Don't duplicate requests, except for homepage
             response = self.r
         else:
             try:
                 response = super().get(url, **kwargs)
             except RequestException as e:
-                self.write_log('Network error while issuing GET request', e)
+                self.logger.error('Network error while issuing GET request', exc_info=e)
                 self.sleep(60)
                 return self.get(url, **kwargs)
 
@@ -144,14 +145,14 @@ class BaseCitizen(access_points.CitizenAPI):
         try:
             response = super().post(url, data=data, json=json, **kwargs)
         except RequestException as e:
-            self.write_log('Network error while issuing POST request', e)
+            self.logger.error('Network error while issuing POST request', exc_info=e)
             self.sleep(60)
             return self.post(url, data=data, json=json, **kwargs)
 
         try:
             r_json = response.json()
             if (r_json.get('error') or not r_json.get('status')) and r_json.get('message', '') == 'captcha':
-                utils.send_email(self.name, [response.text, ], player=self, captcha=True)
+                self.logger.warning('Regular captcha must be filled!', extra=r_json)
         except (AttributeError, utils.json.JSONDecodeError, ValueError, KeyError):
             pass
 
@@ -193,7 +194,6 @@ class BaseCitizen(access_points.CitizenAPI):
             for kind, time_until in self.promos.items():
                 active_promos.append(f"{kind} active until {time_until}")
                 self.reporter.report_promo(kind, time_until)
-            utils.send_email(self.name, active_promos, player=self, promo=True)
 
         new_date = re.search(r"var new_date = '(\d*)';", html)
         if new_date:
@@ -264,8 +264,11 @@ class BaseCitizen(access_points.CitizenAPI):
             else:
                 self.report_error('Captcha failed!')
                 if retry < 6:
-                    return self.do_captcha_challenge(retry+1)
+                    return self.do_captcha_challenge(retry + 1)
         return False
+
+    def refresh_captcha_image(self, captcha_id: int, image_id: str):
+        return self._post_main_session_get_challenge(captcha_id, image_id).json()
 
     def solve_captcha(self, src: str) -> List[Dict[str, int]]:
         raise NotImplemented
@@ -524,7 +527,7 @@ class BaseCitizen(access_points.CitizenAPI):
             self.logger.addHandler(handler)
 
     def to_json(self, indent: bool = False) -> str:
-        return utils.json.dumps(self, cls=classes.ErepublikJSONEncoder, indent=4 if indent else None, sort_keys=True)
+        return utils.json_dumps(self, indent=4 if indent else None, sort_keys=True)
 
     def get_countries_with_regions(self) -> Set[constants.Country]:
         r_json = self._post_main_travel_data().json()
@@ -537,9 +540,9 @@ class BaseCitizen(access_points.CitizenAPI):
     def dump_instance(self):
         filename = f"{self.__class__.__name__}__dump.json"
         with open(filename, 'w') as f:
-            utils.json.dump(dict(config=self.config, cookies=self._req.cookies.get_dict(),
-                                 user_agent=self._req.headers.get("User-Agent")), f, cls=classes.ErepublikJSONEncoder)
-        self.write_log(f"Session saved to: '{filename}'")
+            utils.json_dump(dict(config=self.config, cookies=self._req.cookies.get_dict(),
+                                 user_agent=self._req.headers.get("User-Agent")), f,)
+        self.logger.debug(f"Session saved to: '{filename}'")
 
     @classmethod
     def load_from_dump(cls, dump_name: str):
@@ -790,20 +793,20 @@ class BaseCitizen(access_points.CitizenAPI):
         try:
             j = response.json()
             if j['error'] and j['message'] == 'Too many requests':
-                self.write_log('Made too many requests! Sleeping for 30 seconds.')
+                self.logger.warning('Made too many requests! Sleeping for 30 seconds.')
                 self.sleep(30)
         except (utils.json.JSONDecodeError, KeyError, TypeError):
             pass
         if response.status_code >= 400:
             self.r = response
-            if response.text == 'Please verify your account.':
+            if response.text == 'Please verify your account.' or response.text == 'Forbidden':
                 self.do_captcha_challenge()
                 return True
-            if response.status_code >= 500:
+            elif response.status_code >= 500:
                 if self.restricted_ip:
                     self._req.cookies.clear()
                     return True
-                self.write_log('eRepublik servers are having internal troubles. Sleeping for 5 minutes')
+                self.logger.warning('eRepublik servers are having internal troubles. Sleeping for 5 minutes')
                 self.sleep(5 * 60)
             else:
                 raise classes.ErepublikException(f"HTTP {response.status_code} error!")
@@ -811,12 +814,12 @@ class BaseCitizen(access_points.CitizenAPI):
         if re.search(r'Occasionally there are a couple of things which we need to check or to implement in order make '
                      r'your experience in eRepublik more pleasant. <strong>Don\'t worry about ongoing battles, timer '
                      r'will be stopped during maintenance.</strong>', response.text):
-            self.write_log('eRepublik is having maintenance. Sleeping for 5 minutes')
+            self.logger.warning('eRepublik is having maintenance. Sleeping for 5 mi#nutes')
             self.sleep(5 * 60)
             return True
 
-        if re.search('We are experiencing some tehnical dificulties', response.text):
-            self.write_log('eRepublik is having technical difficulties. Sleeping for 5 minutes')
+        elif re.search('We are experiencing some tehnical dificulties', response.text):
+            self.logger.warning('eRepublik is having technical difficulties. Sleeping for 5 minutes')
             self.sleep(5 * 60)
             return True
 
@@ -834,9 +837,12 @@ class BaseCitizen(access_points.CitizenAPI):
         :param msg: Message about the action
         :param kwargs: Extra information regarding action
         """
-        kwargs = utils.json.loads(utils.json.dumps(kwargs or {}, cls=classes.ErepublikJSONEncoder))
+        kwargs = utils.json_loads(utils.json_dumps(kwargs or {}))
         action = action[:32]
-        self.write_log(msg)
+        if msg.startswith('Unable to'):
+            self.logger.warning(msg)
+        else:
+            self.write_log(msg)
         if self.reporter.allowed:
             self.reporter.report_action(action, kwargs, msg)
         if self.config.telegram:
@@ -862,7 +868,7 @@ class CitizenAnniversary(BaseCitizen):
 
     def spin_wheel_of_fortune(self, max_cost=0, spin_count=0):
         if not self.config.spin_wheel_of_fortune:
-            self.write_log("Unable to spin wheel of fortune because 'config.spin_wheel_of_fortune' is False")
+            self.logger.warning("Unable to spin wheel of fortune because 'config.spin_wheel_of_fortune' is False")
             return
 
         def _write_spin_data(cost: int, prize: str):
@@ -1068,7 +1074,7 @@ class CitizenCompanies(BaseCitizen):
         if wam_list:
             data.update(extra)
             if not self.details.current_region == wam_holding.region:
-                self.write_log("Unable to work as manager because of location - please travel!")
+                self.logger.warning("Unable to work as manager because of location - please travel!")
                 return
 
             employ_factories = self.my_companies.get_employable_factories()
@@ -1094,7 +1100,7 @@ class CitizenCompanies(BaseCitizen):
         """
         Assigns factory to new holding
         """
-        self.write_log(f"{company} moved to {holding}")
+        self.logger.debug(f"{company} moved to {holding}")
         company._holding = weakref.ref(holding)
         return self._post_economy_assign_to_holding(company.id, holding.id)
 
@@ -1109,7 +1115,7 @@ class CitizenCompanies(BaseCitizen):
         company_name = constants.INDUSTRIES[industry_id]
         if building_type == 2:
             company_name = 'Storage'
-        self.write_log(f'{company_name} created!')
+        self.logger.info(f'{company_name} created!')
         return self._post_economy_create_company(industry_id, building_type)
 
 
@@ -1161,8 +1167,7 @@ class CitizenEconomy(CitizenTravel):
             if buy is None:
                 pass
             elif buy['error']:
-                msg = f'Unable to buy q{q} house! \n{buy["message"]}'
-                self.write_log(msg)
+                self.logger.warning(f'Unable to buy q{q} house! \n{buy["message"]}')
             else:
                 ok_to_activate = True
         else:
@@ -1268,7 +1273,7 @@ class CitizenEconomy(CitizenTravel):
         if isinstance(industry, str):
             industry = constants.INDUSTRIES[industry]
         if not constants.INDUSTRIES[industry]:
-            self.write_log(f"Trying to sell unsupported industry {industry}")
+            self.logger.warning(f"Trying to sell unsupported industry {industry}")
 
         _inv_qlt = quality if industry in [1, 2, 3, 4, 23] else 0
         final_kind = industry in [1, 2, 4, 23]
@@ -1323,7 +1328,7 @@ class CitizenEconomy(CitizenTravel):
             quality = 1
             product_name = raw_short_names[product_name]
         elif not constants.INDUSTRIES[product_name]:
-            self.write_log(f"Industry '{product_name}' not implemented")
+            self.logger.error(f"Industry '{product_name}' not implemented")
             raise classes.ErepublikException(f"Industry '{product_name}' not implemented")
 
         offers: Dict[str, classes.OfferItem] = {}
@@ -1356,7 +1361,7 @@ class CitizenEconomy(CitizenTravel):
                             constants.COUNTRIES[int(offer['country_id'])], int(offer['amount']),
                             int(offer['id']), int(offer['citizen_id'])
                         )
-        self.write_log(f"Scraped market in {self.now - start_dt}!")
+        self.logger.debug(f"Scraped market in {self.now - start_dt}!")
 
         return offers
 
@@ -1380,7 +1385,7 @@ class CitizenEconomy(CitizenTravel):
             self.update_inventory()
         else:
             s = f"Don't have enough money! Needed: {amount * cheapest.price}cc, Have: {self.details.cc}cc"
-            self.write_log(s)
+            self.logger.warning(s)
             self._report_action('BUY_FOOD', s)
 
     def get_monetary_offers(self, currency: int = 62) -> List[Dict[str, Union[int, float]]]:
@@ -1444,7 +1449,7 @@ class CitizenEconomy(CitizenTravel):
             self._report_action('DONATE_ITEMS', msg)
             return amount
         elif re.search('You must wait 5 seconds before donating again', response.text):
-            self.write_log('Previous donation failed! Must wait at least 5 seconds before next donation!')
+            self.logger.warning('Previous donation failed! Must wait at least 5 seconds before next donation!')
             self.sleep(5)
             return self.donate_items(citizen_id, int(amount), industry_id, quality)
         else:
@@ -1596,7 +1601,7 @@ class CitizenMedia(BaseCitizen):
                                 kwargs=article_data)
             self._get_main_delete_article(article_id)
         else:
-            self.write_log(f"Unable to delete article (#{article_id})!")
+            self.logger.warning(f"Unable to delete article (#{article_id})!")
 
 
 class CitizenMilitary(CitizenTravel):
@@ -1829,7 +1834,7 @@ class CitizenMilitary(CitizenTravel):
                 side = battle.defender if defender_side else battle.invader
 
             if not silent:
-                self.write_log(battle)
+                self.write_log(str(battle))
 
             travel = (self.config.travel_to_fight and self.should_travel_to_fight() or self.config.force_travel) \
                 if travel_needed else True
@@ -1852,18 +1857,8 @@ class CitizenMilitary(CitizenTravel):
                 if battle.start > self.now:
                     self.sleep(utils.get_sleep_seconds(battle.start))
 
-                if travel_needed:
-                    if battle.is_rw:
-                        countries_to_travel = [battle.defender.country]
-                    elif self.details.current_country in battle.invader.allies:
-                        countries_to_travel = battle.invader.deployed + [battle.invader.country]
-                        side = battle.invader
-                    else:
-                        countries_to_travel = battle.defender.deployed + [battle.defender.country]
-                        side = battle.defender
-
-                    if not self.travel_to_battle(battle, countries_to_travel):
-                        break
+                if travel_needed and not self.change_division(battle, division, side):
+                    break
 
                 if self.change_division(battle, division):
                     self.set_default_weapon(battle, division)
@@ -1891,6 +1886,7 @@ class CitizenMilitary(CitizenTravel):
         :rtype: int
         """
         if self.restricted_ip:
+            self.logger.warning('Fighting is not allowed from restricted IP!')
             self._report_action('IP_BLACKLISTED', 'Fighting is not allowed from restricted IP!')
             return 1
         if not division.is_air and self.config.boosters:
@@ -1903,7 +1899,7 @@ class CitizenMilitary(CitizenTravel):
         if count is None:
             count = self.should_fight()[0]
 
-        self.write_log(f"Fighting in battle for {battle.region_name} on {side} side\n{battle}\n{str(division)}")
+        self.write_log(f"Fighting in battle for {battle.region_name} on {side} side in d{division.div}")
 
         total_damage = 0
         total_hits = 0
@@ -1947,13 +1943,13 @@ class CitizenMilitary(CitizenTravel):
             elif r_json.get('message') == 'NOT_ENOUGH_WEAPONS':
                 self.set_default_weapon(battle, division)
             elif r_json.get('message') == "Cannot activate a zone with a non-native division":
-                self.write_log('Wrong division!!')
+                self.logger.warning('Wrong division!!')
                 return 0, 10, 0
             elif r_json.get('message') == 'ZONE_INACTIVE':
-                self.write_log('Wrong division!!')
+                self.logger.warning('Wrong division!!')
                 return 0, 10, 0
             elif r_json.get('message') == 'NON_BELLIGERENT':
-                self.write_log("Dictatorship/Liberation wars are not supported!")
+                self.logger.warning("Dictatorship/Liberation wars are not supported!")
                 return 0, 10, 0
             elif r_json.get('message') in ['FIGHT_DISABLED', 'DEPLOYMENT_MODE']:
                 self._post_main_profile_update('options',
@@ -2051,7 +2047,7 @@ class CitizenMilitary(CitizenTravel):
         """
         resp = self._post_main_battlefield_change_division(battle.id, division.id)
         if resp.json().get('error'):
-            self.write_log(resp.json().get('message'))
+            self.logger.warning(resp.json().get('message'))
             return False
         self._report_action('MILITARY_DIV_SWITCH', f"Switched to d{division.div} in battle {battle.id}",
                             kwargs=resp.json())
@@ -2161,7 +2157,7 @@ class CitizenMilitary(CitizenTravel):
                 count = (self.energy.limit * 3) // 10
                 force_fight = True
             else:
-                self.write_log('Waiting for fully recovered energy before leveling up.', False)
+                self.write_log('Waiting for fully recovered energy before leveling up.')
 
         # Levelup reachable
         elif self.is_levelup_close:
@@ -2336,7 +2332,7 @@ class CitizenMilitary(CitizenTravel):
         ).json()
         self.write_log(r.get('message'))
         if r.get('error'):
-            self.report_error('Deploy failed!')
+            self.logger.error(f"Deploy failed: '{r.get('message')}'")
         return energy
 
 
@@ -2410,7 +2406,7 @@ class CitizenSocial(BaseCitizen):
     def add_every_player_as_friend(self):
         cities = []
         cities_dict = {}
-        self.write_log('WARNING! This will take a lot of time.')
+        self.logger.warning('his will take a lot of time.')
         rj = self._post_main_travel_data(regionId=662, check='getCountryRegions').json()
         for region_data in rj.get('regions', {}).values():
             cities.append(region_data['cityId'])
@@ -2521,7 +2517,7 @@ class CitizenTasks(CitizenEconomy):
             self._eat('blue')
             if self.energy.food_fights < 1:
                 seconds = (self.energy.reference_time - self.now).total_seconds()
-                self.write_log(f"I don't have energy to work. Will sleep for {seconds}s")
+                self.logger.warning(f"I don't have energy to work. Will sleep for {seconds}s")
                 self.sleep(seconds)
                 self._eat('blue')
             self.work()
@@ -2551,7 +2547,7 @@ class CitizenTasks(CitizenEconomy):
                 if self.energy.food_fights < len(tgs):
                     large = max(self.energy.reference_time, self.now)
                     sleep_seconds = utils.get_sleep_seconds(large)
-                    self.write_log(f"I don't have energy to train. Will sleep for {sleep_seconds} seconds")
+                    self.logger.warning(f"I don't have energy to train. Will sleep for {sleep_seconds} seconds")
                     self.sleep(sleep_seconds)
                     self._eat('blue')
                 self.train()
@@ -2575,7 +2571,7 @@ class CitizenTasks(CitizenEconomy):
             if self.energy.food_fights < 1:
                 large = max(self.energy.reference_time, self.now)
                 sleep_seconds = utils.get_sleep_seconds(large)
-                self.write_log(f"I don't have energy to work OT. Will sleep for {sleep_seconds}s")
+                self.logger.warning(f"I don't have energy to work OT. Will sleep for {sleep_seconds}s")
                 self.sleep(sleep_seconds)
                 self._eat('blue')
             self.work_ot()
@@ -2655,7 +2651,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             if hasattr(self.config, key):
                 setattr(self.config, key, value)
             else:
-                self.write_log(f"Unknown config parameter! ({key}={value})")
+                self.logger.warning(f"Unknown config parameter! ({key}={value})")
 
     def login(self):
         self.get_csrf_token()
@@ -2691,8 +2687,8 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                 if self.details.gold >= 54:
                     self.buy_tg_contract()
                 else:
-                    self.write_log(f'Training ground contract active but '
-                                   f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
+                    self.logger.warning('Training ground contract active but '
+                                        f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
         if self.energy.is_energy_full and self.config.telegram:
             self.telegram.report_full_energy(self.energy.available, self.energy.limit, self.energy.interval)
 
@@ -2793,7 +2789,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             count = count if max_count > count else max_count
 
         if not silent:
-            self.write_log(log_msg, False)
+            self.write_log(log_msg)
 
         return count, log_msg, force_fight
 
@@ -2849,17 +2845,17 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             if self.energy.limit - self.energy.recovered > self.energy.interval or not self.energy.recoverable % 2:
                 super().eat()
             else:
-                self.write_log("I don't want to eat right now!")
+                self.logger.debug("I don't want to eat right now!")
         else:
-            self.write_log(f"I'm out of food! But I'll try to buy some!\n{self.food}")
+            self.logger.warning(f"I'm out of food! But I'll try to buy some!\n{self.food}")
             self.buy_food()
             if self.food['total'] > self.energy.interval:
                 super().eat()
             else:
-                self.write_log('I failed to buy food')
+                self.logger.warning('I failed to buy food')
 
     def eat_eb(self):
-        self.write_log('Eating energy bar')
+        self.logger.warning('Eating energy bar')
         if self.energy.recoverable:
             self._eat('blue')
         self._eat('orange')
@@ -2923,7 +2919,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                     if not rj.get('error'):
                         amount_needed -= amount
                     else:
-                        self.write_log(rj.get('message', ""))
+                        self.logger.warning(rj.get('message', ""))
                         self._report_action(
                             'ECONOMY_BUY', f"Unable to buy products! Reason: {rj.get('message')}", kwargs=rj
                         )
@@ -2942,11 +2938,11 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
             self._wam(holding)
         elif response.get('message') == 'tax_money':
             self._report_action('WORK_AS_MANAGER', 'Not enough money to work as manager!', kwargs=response)
-            self.write_log('Not enough money to work as manager!')
+            self.logger.warning('Not enough money to work as manager!')
         else:
             msg = f'I was not able to wam and or employ because:\n{response}'
             self._report_action('WORK_AS_MANAGER', f'Worked as manager failed: {msg}', kwargs=response)
-            self.write_log(msg)
+            self.logger.warning(msg)
 
     def work_as_manager(self) -> bool:
         """ Does Work as Manager in all holdings with wam. If employees assigned - work them also
@@ -2983,12 +2979,12 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
 
             wam_count = self.my_companies.get_total_wam_count()
             if wam_count:
-                self.write_log(f"Wam ff lockdown is now {wam_count}, was {self.my_companies.ff_lockdown}")
+                self.logger.debug(f"Wam ff lockdown is now {wam_count}, was {self.my_companies.ff_lockdown}")
             self.my_companies.ff_lockdown = wam_count
             self.travel_to_residence()
             return bool(wam_count)
         else:
-            self.write_log('Did not WAM because I would mess up levelup!')
+            self.logger.warning('Did not WAM because I would mess up levelup!')
             self.my_companies.ff_lockdown = 0
 
         self.update_companies()
@@ -3030,9 +3026,7 @@ class Citizen(_Citizen):
     def update_weekly_challenge(self):
         if not self._update_lock.wait(self._update_timeout):
             e = f'Update concurrency not freed in {self._update_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._update_lock.clear()
@@ -3043,9 +3037,7 @@ class Citizen(_Citizen):
     def update_companies(self):
         if not self._update_lock.wait(self._update_timeout):
             e = f'Update concurrency not freed in {self._update_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._update_lock.clear()
@@ -3056,9 +3048,7 @@ class Citizen(_Citizen):
     def update_war_info(self):
         if not self._update_lock.wait(self._update_timeout):
             e = f'Update concurrency not freed in {self._update_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._update_lock.clear()
@@ -3069,9 +3059,7 @@ class Citizen(_Citizen):
     def update_job_info(self):
         if not self._update_lock.wait(self._update_timeout):
             e = f'Update concurrency not freed in {self._update_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._update_lock.clear()
@@ -3082,9 +3070,7 @@ class Citizen(_Citizen):
     def update_money(self, page: int = 0, currency: int = 62):
         if not self._update_lock.wait(self._update_timeout):
             e = f'Update concurrency not freed in {self._update_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._update_lock.clear()
@@ -3095,9 +3081,7 @@ class Citizen(_Citizen):
     def update_inventory(self):
         if not self._update_lock.wait(self._update_timeout):
             e = f'Update concurrency not freed in {self._update_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._update_lock.clear()
@@ -3108,9 +3092,7 @@ class Citizen(_Citizen):
     def _work_as_manager(self, wam_holding: classes.Holding) -> Optional[Dict[str, Any]]:
         if not self._concurrency_lock.wait(self._concurrency_timeout):
             e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._concurrency_lock.clear()
@@ -3122,9 +3104,7 @@ class Citizen(_Citizen):
               count: int = None, use_ebs: bool = False) -> Optional[int]:
         if not self._concurrency_lock.wait(self._concurrency_timeout):
             e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._concurrency_lock.clear()
@@ -3136,9 +3116,7 @@ class Citizen(_Citizen):
                     count: int = 1) -> Optional[int]:
         if not self._concurrency_lock.wait(self._concurrency_timeout):
             e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._concurrency_lock.clear()
@@ -3149,9 +3127,7 @@ class Citizen(_Citizen):
     def buy_market_offer(self, offer: OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
         if not self._concurrency_lock.wait(self._concurrency_timeout):
             e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
-            self.write_log(e)
-            if self.debug:
-                self.report_error(e)
+            self.report_error(e, not self.debug)
             return None
         try:
             self._concurrency_lock.clear()
