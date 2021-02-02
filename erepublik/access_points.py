@@ -418,8 +418,10 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
         data = dict(_token=self.token, sideCountryId=side_id, battleId=battle_id)
         return self.post(f"{self.url}/main/battlefieldTravel", data=data)
 
-    def _post_main_battlefield_change_division(self, battle_id: int, division_id: int) -> Response:
+    def _post_main_battlefield_change_division(self, battle_id: int, division_id: int, side_id: int = None) -> Response:
         data = dict(_token=self.token, battleZoneId=division_id, battleId=battle_id)
+        if side_id is not None:
+            data.update(sideCountryId=side_id)
         return self.post(f"{self.url}/main/battlefieldTravel", data=data)
 
     def _get_wars_show(self, war_id: int) -> Response:
