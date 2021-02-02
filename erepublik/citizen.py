@@ -2036,16 +2036,18 @@ class CitizenMilitary(CitizenTravel):
         self._report_action('MILITARY_BOMB', f"Deployed {deployed_count} bombs in battle {battle.id}")
         return deployed_count
 
-    def change_division(self, battle: classes.Battle, division: classes.BattleDivision) -> bool:
+    def change_division(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide = None) -> bool:
         """Change division.
 
-        :param battle: Battle
-        :type battle: Battle
+        :param battle: classes.Battle
+        :type battle: classes.Battle
         :param division: int target division to switch to
-        :type division: BattleDivision
+        :type division: classes.BattleDivision
+        :param side: Side to choose
+        :type side: classes.BattleSide
         :return:
         """
-        resp = self._post_main_battlefield_change_division(battle.id, division.id)
+        resp = self._post_main_battlefield_change_division(battle.id, division.id, side.id if side else None)
         if resp.json().get('error'):
             self.logger.warning(resp.json().get('message'))
             return False
