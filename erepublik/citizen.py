@@ -1906,67 +1906,67 @@ class CitizenMilitary(CitizenTravel):
         self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
         return error_count
 
-    def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
-        if division.is_air:
-            response = self._post_military_fight_air(battle.id, side.id, division.id)
-        else:
-            response = self._post_military_fight_ground(battle.id, side.id, division.id)
-
-        if 'Zone is not meant for ' in response.text:
-            self.sleep(5)
-            return 0, 1, 0
-        try:
-            r_json = response.json()
-        except (ValueError, HTTPError, RequestException):
-            return 0, 10, 0
-        hits = 0
-        damage = 0
-        err = False
-        if r_json.get('error'):
-            if r_json.get('message') == 'SHOOT_LOCKOUT':
-                pass
-            elif r_json.get('message') == 'NOT_ENOUGH_WEAPONS':
-                self.set_default_weapon(battle, division)
-            elif r_json.get('message') == "Cannot activate a zone with a non-native division":
-                self.logger.warning('Wrong division!!')
-                return 0, 10, 0
-            elif r_json.get('message') == 'ZONE_INACTIVE':
-                self.logger.warning('Wrong division!!')
-                return 0, 10, 0
-            elif r_json.get('message') == 'NON_BELLIGERENT':
-                self.logger.warning("Dictatorship/Liberation wars are not supported!")
-                return 0, 10, 0
-            elif r_json.get('message') in ['FIGHT_DISABLED', 'DEPLOYMENT_MODE']:
-                self._post_main_profile_update('options',
-                                               params='{"optionName":"enable_web_deploy","optionValue":"off"}')
-                self.set_default_weapon(battle, division)
-            else:
-                if r_json.get('message') == 'UNKNOWN_SIDE':
-                    self._rw_choose_side(battle, side)
-                elif r_json.get('message') == 'CHANGE_LOCATION':
-                    countries = [side.country] + side.deployed
-                    self.travel_to_battle(battle, countries)
-                err = True
-        elif r_json.get('message') == 'ENEMY_KILLED':
-            # Non-InfantryKit players
-            if r_json['user']['earnedXp']:
-                hits = r_json['user']['earnedXp']
-            # InfantryKit player
-            # The almost always safe way (breaks on levelup hit)
-            elif self.energy.recovered >= r_json['details']['wellness']:  # Haven't reached levelup
-                hits = (self.energy.recovered - r_json['details']['wellness']) // 10
-            else:
-                hits = r_json['hits']
-                if r_json['user']['epicBattle']:
-                    hits /= 1 + r_json['user']['epicBattle']
-
-            self.energy.recovered = r_json['details']['wellness']
-            self.details.xp = int(r_json['details']['points'])
-            damage = r_json['user']['givenDamage'] * (1.1 if r_json['oldEnemy']['isNatural'] else 1)
-        else:
-            err = True
-
-        return hits, err, damage
+    # def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
+    #     if division.is_air:
+    #         response = self._post_military_fight_air(battle.id, side.id, division.id)
+    #     else:
+    #         response = self._post_military_fight_ground(battle.id, side.id, division.id)
+    #
+    #     if 'Zone is not meant for ' in response.text:
+    #         self.sleep(5)
+    #         return 0, 1, 0
+    #     try:
+    #         r_json = response.json()
+    #     except (ValueError, HTTPError, RequestException):
+    #         return 0, 10, 0
+    #     hits = 0
+    #     damage = 0
+    #     err = False
+    #     if r_json.get('error'):
+    #         if r_json.get('message') == 'SHOOT_LOCKOUT':
+    #             pass
+    #         elif r_json.get('message') == 'NOT_ENOUGH_WEAPONS':
+    #             self.set_default_weapon(battle, division)
+    #         elif r_json.get('message') == "Cannot activate a zone with a non-native division":
+    #             self.logger.warning('Wrong division!!')
+    #             return 0, 10, 0
+    #         elif r_json.get('message') == 'ZONE_INACTIVE':
+    #             self.logger.warning('Wrong division!!')
+    #             return 0, 10, 0
+    #         elif r_json.get('message') == 'NON_BELLIGERENT':
+    #             self.logger.warning("Dictatorship/Liberation wars are not supported!")
+    #             return 0, 10, 0
+    #         elif r_json.get('message') in ['FIGHT_DISABLED', 'DEPLOYMENT_MODE']:
+    #             self._post_main_profile_update('options',
+    #                                            params='{"optionName":"enable_web_deploy","optionValue":"off"}')
+    #             self.set_default_weapon(battle, division)
+    #         else:
+    #             if r_json.get('message') == 'UNKNOWN_SIDE':
+    #                 self._rw_choose_side(battle, side)
+    #             elif r_json.get('message') == 'CHANGE_LOCATION':
+    #                 countries = [side.country] + side.deployed
+    #                 self.travel_to_battle(battle, countries)
+    #             err = True
+    #     elif r_json.get('message') == 'ENEMY_KILLED':
+    #         # Non-InfantryKit players
+    #         if r_json['user']['earnedXp']:
+    #             hits = r_json['user']['earnedXp']
+    #         # InfantryKit player
+    #         # The almost always safe way (breaks on levelup hit)
+    #         elif self.energy.recovered >= r_json['details']['wellness']:  # Haven't reached levelup
+    #             hits = (self.energy.recovered - r_json['details']['wellness']) // 10
+    #         else:
+    #             hits = r_json['hits']
+    #             if r_json['user']['epicBattle']:
+    #                 hits /= 1 + r_json['user']['epicBattle']
+    #
+    #         self.energy.recovered = r_json['details']['wellness']
+    #         self.details.xp = int(r_json['details']['points'])
+    #         damage = r_json['user']['givenDamage'] * (1.1 if r_json['oldEnemy']['isNatural'] else 1)
+    #     else:
+    #         err = True
+    #
+    #     return hits, err, damage
 
     def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool,
                     count: int = 1) -> Optional[int]:
