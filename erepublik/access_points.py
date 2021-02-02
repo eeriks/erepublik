@@ -84,10 +84,8 @@ class SlowRequests(Session):
             body = f"[{utils.now().strftime('%F %T')}]\tURL: '{url}'\tMETHOD: {method}\tARGS: {args}\n"
             with open(self.request_log_name, 'ab') as file:
                 file.write(body.encode("UTF-8"))
-            pass
 
     def _log_response(self, url, resp, redirect: bool = False):
-        from erepublik import Citizen
         if self.debug:
             if resp.history and not redirect:
                 for hist_resp in resp.history:
@@ -96,7 +94,7 @@ class SlowRequests(Session):
 
             fd_path = 'debug/requests'
             fd_time = self.last_time.strftime('%Y/%m/%d/%H-%M-%S')
-            fd_name = utils.slugify(url[len(Citizen.url):])
+            fd_name = utils.slugify(url[len(CitizenBaseAPI.url):])
             fd_extra = '_REDIRECT' if redirect else ""
 
             try:
@@ -107,7 +105,6 @@ class SlowRequests(Session):
 
             filename = f'{fd_path}/{fd_time}_{fd_name}{fd_extra}.{fd_ext}'
             utils.write_file(filename, resp.text)
-        pass
 
 
 class CitizenBaseAPI:
@@ -147,9 +144,11 @@ class CitizenBaseAPI:
     def _get_main_session_unlock_popup(self) -> Response:
         return self.get(f'{self.url}/main/sessionUnlockPopup')
 
-    def _post_main_session_get_challenge(self, captcha_id: int) -> Response:
+    def _post_main_session_get_challenge(self, captcha_id: int, image_id: str = "") -> Response:
         env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
         data = dict(_token=self.token, captchaId=captcha_id, env=utils.b64json(env))
+        if image_id:
+            data.update(imageId=image_id, isRefresh=True)
         return self.post(f'{self.url}/main/sessionGetChallenge', data=data)
 
     def _post_main_session_unlock(
@@ -488,7 +487,6 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
         data = dict(_token=self.token, battleId=battle_id, battleZoneId=battle_zone_id, sideCountryId=side_id,
                     weaponQuality=weapon, totalEnergy=energy, **kwargs)
         return self.post(f"{self.url}/military/fightDeploy-startDeploy", data=data)
-
 
 
 class ErepublikPoliticsAPI(CitizenBaseAPI):
