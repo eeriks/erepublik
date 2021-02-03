@@ -2326,7 +2326,7 @@ class CitizenMilitary(CitizenTravel):
         ).json()
         if r.get('error'):
             self.logger.error(f"Deploy failed: '{r.get('message')}'")
-            if r.json().get('message') == 'Deployment disabled.':
+            if r.get('message') == 'Deployment disabled.':
                 self._post_main_profile_update('options', params='{"optionName":"enable_web_deploy","optionValue":"on"}')
                 if _retry < 5:
                     return self.deploy(division, side, energy, _retry+1)
