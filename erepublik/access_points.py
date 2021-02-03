@@ -156,7 +156,7 @@ class CitizenBaseAPI:
     ) -> Response:
         env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
         data = dict(_token=self.token, captchaId=captcha, imageId=image, challengeId=challenge,
-                    clickMatrix=coords, isMobile=0, env=utils.b64json(env), src=src)
+                    clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=utils.b64json(env), src=src)
         return self.post(f'{self.url}/main/sessionUnlock', data=data)
 
 
