@@ -2314,8 +2314,8 @@ class CitizenMilitary(CitizenTravel):
             if source['type'] == 'pool':
                 _energy -= source['energy']
             elif source['type'] in ['food', 'energy_bar']:
-                recovers = source['energy'] / source['amount']
-                amount = recoverable // recovers
+                recovers = source['energy'] // source['amount']
+                amount = (recoverable if source['type'] == 'food' else _energy) // recovers
                 amount = amount if amount < source['amount'] else source['amount']
                 if amount > 0:
                     energy_sources.update({f'energySources[{source_idx}][quality]': source['quality']})
