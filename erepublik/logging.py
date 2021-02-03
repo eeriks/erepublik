@@ -5,15 +5,15 @@ import logging
 import os
 import sys
 import weakref
+from logging import LogRecord, handlers
 from pathlib import Path
+from typing import Any, Dict, Union
 
 import requests
-from logging import handlers, LogRecord
-from typing import Union, Dict, Any
 
 from erepublik.classes import Reporter
 from erepublik.constants import erep_tz
-from erepublik.utils import slugify, json_loads, json, now, json_dumps
+from erepublik.utils import json, json_dumps, json_loads, slugify
 
 
 class ErepublikFileHandler(handlers.TimedRotatingFileHandler):
@@ -85,7 +85,7 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
     def reporter(self):
         return self._reporter()
 
-    def _get_last_response(self):
+    def _get_last_response(self) -> Dict[str, str]:
         response = self.reporter.citizen.r
         url = response.url
         last_index = url.index("?") if "?" in url else len(response.url)
@@ -107,7 +107,7 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
         return dict(name=f"{resp_time}_{name}.{ext}", content=html.encode('utf-8'),
                     mimetype="application/json" if ext == 'json' else "text/html")
 
-    def _get_local_vars(self):
+    def _get_local_vars(self) -> str:
         trace = inspect.trace()
         local_vars = {}
         if trace:
@@ -128,7 +128,7 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
                 local_vars['citizen'] = repr(local_vars['citizen'])
         return json_dumps(local_vars)
 
-    def _get_instance_json(self):
+    def _get_instance_json(self) -> str:
         if self.reporter:
             return self.reporter.citizen.to_json(False)
         return ""

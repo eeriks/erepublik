@@ -13,7 +13,7 @@ from requests import HTTPError, RequestException, Response
 
 from . import access_points, classes, constants, types, utils
 from .classes import OfferItem
-from .logging import ErepublikLogConsoleHandler, ErepublikFormatter, ErepublikFileHandler, ErepublikErrorHTTTPHandler
+from .logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, ErepublikLogConsoleHandler
 
 
 class BaseCitizen(access_points.CitizenAPI):
