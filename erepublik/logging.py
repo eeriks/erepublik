@@ -85,10 +85,7 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
     def reporter(self):
         return self._reporter()
 
-    def mapLogRecord(self, record: logging.LogRecord) -> Dict[str, Any]:
-        data = super().mapLogRecord(record)
-
-        # Log last response
+    def _get_last_response(self):
         response = self.reporter.citizen.r
         url = response.url
         last_index = url.index("?") if "?" in url else len(response.url)
@@ -107,14 +104,10 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
             ).replace(tzinfo=datetime.timezone.utc).astimezone(erep_tz).strftime('%F_%H-%M-%S')
         except:
             resp_time = slugify(response.headers.get('date'))
-
-        resp = dict(name=f"{resp_time}_{name}.{ext}", content=html.encode('utf-8'),
+        return dict(name=f"{resp_time}_{name}.{ext}", content=html.encode('utf-8'),
                     mimetype="application/json" if ext == 'json' else "text/html")
 
-        files = [('file', (resp.get('name'), resp.get('content'), resp.get('mimetype'))), ]
-        filename = f'log/{now().strftime("%F")}.log'
-        if os.path.isfile(filename):
-            files.append(('file', (filename[4:], open(filename, 'rb'), 'text/plain')))
+    def _get_local_vars(self):
         trace = inspect.trace()
         local_vars = {}
         if trace:
@@ -126,16 +119,34 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
         if local_vars:
             if 'state_thread' in local_vars:
                 local_vars.pop('state_thread', None)
-
-            if isinstance(local_vars.get('self'), self.reporter.citizen.__class__):
+            from erepublik import Citizen
+            if isinstance(local_vars.get('self'), Citizen):
                 local_vars['self'] = repr(local_vars['self'])
-            if isinstance(local_vars.get('player'), self.reporter.citizen.__class__):
+            if isinstance(local_vars.get('player'), Citizen):
                 local_vars['player'] = repr(local_vars['player'])
-            if isinstance(local_vars.get('citizen'), self.reporter.citizen.__class__):
+            if isinstance(local_vars.get('citizen'), Citizen):
                 local_vars['citizen'] = repr(local_vars['citizen'])
+        return json_dumps(local_vars)
 
-            files.append(('file', ('local_vars.json', json_dumps(local_vars), "application/json")))
-        files.append(('file', ('instance.json', self.reporter.citizen.to_json(indent=True), "application/json")))
+    def _get_instance_json(self):
+        if self.reporter:
+            return self.reporter.citizen.to_json(False)
+        return ""
+
+    def mapLogRecord(self, record: logging.LogRecord) -> Dict[str, Any]:
+        data = super().mapLogRecord(record)
+
+        # Log last response
+        resp = self._get_last_response()
+        files = [('file', (resp.get('name'), resp.get('content'), resp.get('mimetype'))), ]
+
+        files += list(('file', (f, open(f'log/{f}', 'rb'))) for f in os.listdir('log') if f.endswith('.log'))
+        local_vars_json = self._get_local_vars()
+        if local_vars_json:
+            files.append(('file', ('local_vars.json', local_vars_json, "application/json")))
+        instance_json = self._get_instance_json()
+        if instance_json:
+            files.append(('file', ('instance.json', instance_json, "application/json")))
         data.update(files=files)
         return data
 
