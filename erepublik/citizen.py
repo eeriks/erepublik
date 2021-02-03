@@ -481,7 +481,7 @@ class BaseCitizen(access_points.CitizenAPI):
         if is_warning:
             self.logger.warning(msg, extra=extra)
         else:
-            self.logger.error(msg, exc_info=True, stack_info=True, extra=extra)
+            self.logger.error(msg, extra=extra)
 
     def sleep(self, seconds: Union[int, float, Decimal]):
         if seconds < 0:
@@ -2292,7 +2292,7 @@ class CitizenMilitary(CitizenTravel):
                 self.report_error(f"Unable to get deployment inventory because: {ret.get('message')}")
         return ret
 
-    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int, _retry = 0):
+    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int, _retry=0):
         _energy = int(energy)
         deploy_inv = self.get_deploy_inventory(division, side)
         if not deploy_inv['minEnergy'] <= energy <= deploy_inv['maxEnergy']:
@@ -2314,7 +2314,10 @@ class CitizenMilitary(CitizenTravel):
                     used_energy = amount * recovers
                     recoverable -= used_energy
                     _energy -= used_energy
-        energy -= _energy
+            if _energy <= 0:
+                break
+        if _energy > 0:
+            energy -= _energy
         weapon_q = -1
         weapon_strength = 0
         if not division.is_air:

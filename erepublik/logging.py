@@ -52,6 +52,18 @@ class ErepublikFormatter(logging.Formatter):
         return datetime.datetime.utcfromtimestamp(timestamp).astimezone(erep_tz)
 
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format the specified record as text.
+
+        The record's attribute dictionary is used as the operand to a
+        string formatting operation which yields the returned string.
+        Before formatting the dictionary, a couple of preparatory steps
+        are carried out. The message attribute of the record is computed
+        using LogRecord.getMessage(). If the formatting string uses the
+        time (as determined by a call to usesTime(), formatTime() is
+        called to format the event time. If there is exception information,
+        it is formatted using formatException() and appended to the message.
+        """
         if record.levelno == logging.DEBUG:
             self._fmt = self.dbg_fmt
         elif record.levelno == logging.INFO:
@@ -59,7 +71,17 @@ class ErepublikFormatter(logging.Formatter):
         else:
             self._fmt = self.default_fmt
         self._style = logging.PercentStyle(self._fmt)
-        return super().format(record)
+
+        record.message = record.getMessage()
+        if self.usesTime():
+            record.asctime = self.formatTime(record, self.datefmt)
+        s = self.formatMessage(record)
+        if record.exc_info:
+            # Cache the traceback text to avoid converting it multiple times
+            # (it's constant anyway)
+            if not record.exc_text:
+                record.exc_text = self.formatException(record.exc_info)
+        return s
 
     def formatTime(self, record, datefmt=None):
         dt = self.converter(record.created)
@@ -68,6 +90,9 @@ class ErepublikFormatter(logging.Formatter):
         else:
             s = dt.strftime('%Y-%m-%d %H:%M:%S')
         return s
+
+    def usesTime(self):
+        return self._style.usesTime()
 
 
 class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
