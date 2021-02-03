@@ -477,11 +477,11 @@ class BaseCitizen(access_points.CitizenAPI):
     def write_log(self, msg: str):
         self.logger.info(msg)
 
-    def report_error(self, msg: str = "", is_warning: bool = False):
+    def report_error(self, msg: str = "", is_warning: bool = False, extra: Dict[str, Any] = None):
         if is_warning:
-            self.logger.warning(msg)
+            self.logger.warning(msg, extra=extra)
         else:
-            self.logger.error(msg)
+            self.logger.error(msg, exc_info=True, stack_info=True, extra=extra)
 
     def sleep(self, seconds: Union[int, float, Decimal]):
         if seconds < 0:
@@ -2664,12 +2664,8 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                                   self.name)
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
 
+        self.init_logger()
         self.update_all(True)
-        for handler in self.logger.handlers:
-            if isinstance(handler, ErepublikErrorHTTTPHandler):
-                self.logger.removeHandler(handler)
-                break
-        self.logger.addHandler(ErepublikErrorHTTTPHandler(self.reporter))
 
     def update_citizen_info(self, html: str = None):
         """
