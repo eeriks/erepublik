@@ -25,7 +25,7 @@ class ErepublikFileHandler(handlers.TimedRotatingFileHandler):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         at_time = erep_tz.localize(datetime.datetime.now()).replace(hour=0, minute=0, second=0, microsecond=0)
         kwargs.update(atTime=at_time)
-        super().__init__(filename, *args, **kwargs)
+        super().__init__(filename, when='d', *args, **kwargs)
 
     def doRollover(self) -> None:
         self._file_path.parent.mkdir(parents=True, exist_ok=True)
