@@ -484,10 +484,14 @@ class BaseCitizen(access_points.CitizenAPI):
         self.logger.info(msg)
 
     def write_warning(self, msg: str = "", extra: Dict[str, Any] = None):
+        if extra is None:
+            extra = {}
         extra.update(erep_version=utils.VERSION)
         self.logger.warning(msg, extra=extra)
 
     def report_error(self, msg: str = "", extra: Dict[str, Any] = None):
+        if extra is None:
+            extra = {}
         extra.update(erep_version=utils.VERSION)
         self.logger.error(msg, exc_info=True, stack_info=True, extra=extra)
 
@@ -1908,10 +1912,9 @@ class CitizenMilitary(CitizenTravel):
         self.write_log(f"Fighting in battle for {battle.region_name} on {side} side in d{division.div}")
 
         total_damage = 0
-        total_hits = 0
         energy_used = self.deploy(division, side, count * 10)
         self.sleep(energy_used // 30)  # TODO: connect to eRepublik's WS and get from there when deploy ends
-        self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
+        self.report_fighting(battle, not side.is_defender, division, total_damage, energy_used // 10)
         return energy_used
 
     # def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
