@@ -134,34 +134,31 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
 
     def _get_local_vars(self) -> str:
         trace = inspect.trace()
+        local_vars = {}
         if trace:
             local_vars = trace[-1][0].f_locals
             if local_vars.get('__name__') == '__main__':
                 local_vars.update(commit_id=local_vars.get('COMMIT_ID'), interactive=local_vars.get('INTERACTIVE'),
                                   version=local_vars.get('__version__'), config=local_vars.get('CONFIG'))
-            if 'state_thread' in local_vars:
-                local_vars.pop('state_thread', None)
-            from erepublik import Citizen
-            if isinstance(local_vars.get('self'), Citizen):
-                local_vars['self'] = repr(local_vars['self'])
-            if isinstance(local_vars.get('player'), Citizen):
-                local_vars['player'] = repr(local_vars['player'])
-            if isinstance(local_vars.get('citizen'), Citizen):
-                local_vars['citizen'] = repr(local_vars['citizen'])
         else:
             stack = inspect.stack()
-            local_vars = [(str(f.frame), f.frame.f_locals) for f in stack]
-            for frame, frame_vars in local_vars:
-                if 'state_thread' in frame_vars:
-                    frame_vars.pop('state_thread', None)
-                from erepublik import Citizen
-                if isinstance(frame_vars.get('self'), Citizen):
-                    frame_vars['self'] = repr(frame_vars['self'])
-                if isinstance(frame_vars.get('player'), Citizen):
-                    frame_vars['player'] = repr(frame_vars['player'])
-                if isinstance(frame_vars.get('citizen'), Citizen):
-                    frame_vars['citizen'] = repr(frame_vars['citizen'])
+            report_error_caller_found = False
+            for frame in stack:
+                if report_error_caller_found:
+                    local_vars = frame.frame.f_locals
+                    break
+                if 'report_error' in str(frame.frame):
+                    report_error_caller_found = True
 
+        if 'state_thread' in local_vars:
+            local_vars.pop('state_thread', None)
+        from erepublik import Citizen
+        if isinstance(local_vars.get('self'), Citizen):
+            local_vars['self'] = repr(local_vars['self'])
+        if isinstance(local_vars.get('player'), Citizen):
+            local_vars['player'] = repr(local_vars['player'])
+        if isinstance(local_vars.get('citizen'), Citizen):
+            local_vars['citizen'] = repr(local_vars['citizen'])
         return json_dumps(local_vars)
 
     def _get_instance_json(self) -> str:
