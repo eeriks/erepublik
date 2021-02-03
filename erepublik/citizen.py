@@ -255,11 +255,17 @@ class BaseCitizen(access_points.CitizenAPI):
             data = utils.json_loads(utils.normalize_html_json(data.group(1)))
             captcha_id = data.get('sessionValidation', {}).get("captchaId")
             captcha_data = self._post_main_session_get_challenge(captcha_id).json()
-            coordinates = self.solve_captcha(captcha_data.get('src'))
+            coordinates = self.solve_captcha(captcha_data['src'])
+
+            for x in range(5):
+                captcha_data = self._post_main_session_get_challenge(captcha_id, captcha_data['imageId']).json()
+                coordinates = self.solve_captcha(captcha_data['src'])
+
             r = self._post_main_session_unlock(
                 captcha_id, captcha_data['imageId'], captcha_data['challengeId'], coordinates, captcha_data['src']
-            ).json()
-            if not r.get('error') and r.get('verified'):
+            )
+            rj = r.json()
+            if not rj.get('error') and rj.get('verified'):
                 return True
             else:
                 self.report_error('Captcha failed!')
