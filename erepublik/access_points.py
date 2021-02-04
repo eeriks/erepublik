@@ -164,11 +164,11 @@ class CitizenBaseAPI:
         self, captcha_id: int, image_id: str, challenge_id: str, coords: List[Dict[str, int]], src: str
     ) -> Response:
         env = dict(l=['tets', ], s=[], c=[c for c in self._req.cookies.keys() if not c.startswith('erpk')], m=0)
-        cookies = dict(sh=hashlib.sha256(','.join(env['l']).encode('utf8')).hexdigest(),
-                       ch=hashlib.sha256(','.join(env['c']).encode('utf8')).hexdigest())
-        self._req.cookies.update(cookies)
         if not env['c']:
             env['c'] = ['']
+        cookies = dict(sh=hashlib.sha256(','.join(env['l']+env['s']).encode('utf8')).hexdigest(),
+                       ch=hashlib.sha256(','.join(env['c']).encode('utf8')).hexdigest())
+        self._req.cookies.update(cookies)
         b64_env = utils.b64json(env)
         data = dict(_token=self.token, captchaId=captcha_id, imageId=image_id, challengeId=challenge_id,
                     clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=b64_env, src=src)
