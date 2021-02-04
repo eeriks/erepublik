@@ -7,7 +7,7 @@ from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, U
 
 from requests import Response, Session, post
 
-from . import constants, types, utils
+from . import constants, _types as types, utils
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
            'ErepublikNetworkException', 'EnergyToFight', 'Holding', 'Inventory', 'MyCompanies', 'OfferItem', 'Politics',

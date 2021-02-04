@@ -1,7 +1,9 @@
 import datetime
+import hashlib
 import random
 import time
 from typing import Any, Dict, List, Mapping, Union
+from requests_toolbelt.utils import dump
 
 from requests import Response, Session
 
@@ -45,6 +47,7 @@ class SlowRequests(Session):
         self.request_log_name = utils.get_file(utils.now().strftime("debug/requests_%Y-%m-%d.log"))
         self.last_time = utils.now()
         self.headers.update({'User-Agent': user_agent})
+        self.hooks["response"] = [self._log_response]
 
     @property
     def as_dict(self):
@@ -55,7 +58,7 @@ class SlowRequests(Session):
         self._slow_down_requests()
         self._log_request(url, method, **kwargs)
         resp = super().request(method, url, *args, **kwargs)
-        self._log_response(url, resp)
+        self._log_response(resp)
         return resp
 
     def _slow_down_requests(self):
@@ -85,12 +88,14 @@ class SlowRequests(Session):
             with open(self.request_log_name, 'ab') as file:
                 file.write(body.encode("UTF-8"))
 
-    def _log_response(self, url, resp, redirect: bool = False):
+    def _log_response(self, response: Response, *args, **kwargs):
+        redirect = kwargs.get('redirect')
+        url = response.request.url
         if self.debug:
-            if resp.history and not redirect:
-                for hist_resp in resp.history:
+            if response.history and not redirect:
+                for hist_resp in response.history:
                     self._log_request(hist_resp.request.url, 'REDIRECT')
-                    self._log_response(hist_resp.request.url, hist_resp, redirect=True)
+                    self._log_response(hist_resp, redirect=True)
 
             fd_path = 'debug/requests'
             fd_time = self.last_time.strftime('%Y/%m/%d/%H-%M-%S')
@@ -98,13 +103,17 @@ class SlowRequests(Session):
             fd_extra = '_REDIRECT' if redirect else ""
 
             try:
-                utils.json.loads(resp.text)
+                utils.json.loads(response.text)
                 fd_ext = 'json'
             except utils.json.JSONDecodeError:
                 fd_ext = 'html'
 
             filename = f'{fd_path}/{fd_time}_{fd_name}{fd_extra}.{fd_ext}'
-            utils.write_file(filename, resp.text)
+            utils.write_file(filename, response.text)
+
+            if not redirect:
+                data = dump.dump_all(response)
+                utils.write_file(f'debug/dumps/{fd_time}_{fd_name}{fd_extra}.{fd_ext}', data.decode('utf8'))
 
 
 class CitizenBaseAPI:
@@ -152,12 +161,18 @@ class CitizenBaseAPI:
         return self.post(f'{self.url}/main/sessionGetChallenge', data=data)
 
     def _post_main_session_unlock(
-        self, captcha: int, image: str, challenge: str, coords: List[Dict[str, int]], src: str
+        self, captcha_id: int, image_id: str, challenge_id: str, coords: List[Dict[str, int]], src: str
     ) -> Response:
-        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
-        data = dict(_token=self.token, captchaId=captcha, imageId=image, challengeId=challenge,
-                    clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=utils.b64json(env), src=src)
-        return self.post(f'{self.url}/main/sessionUnlock', data=data)
+        env = dict(l=['tets', ], s=[], c=[c for c in self._req.cookies.keys() if not c.startswith('erpk')], m=0)
+        cookies = dict(sh=hashlib.sha256(','.join(env['l']).encode('utf8')).hexdigest(),
+                       ch=hashlib.sha256(','.join(env['c']).encode('utf8')).hexdigest())
+        self._req.cookies.update(cookies)
+        if not env['c']:
+            env['c'] = ['']
+        b64_env = utils.b64json(env)
+        data = dict(_token=self.token, captchaId=captcha_id, imageId=image_id, challengeId=challenge_id,
+                    clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=b64_env, src=src)
+        return self.post(f'{self.url}/main/sessionUnlock', data=data, headers={'X-Requested-With': 'XMLHttpRequest'})
 
 
 class ErepublikAnniversaryAPI(CitizenBaseAPI):

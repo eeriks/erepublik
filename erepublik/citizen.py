@@ -11,9 +11,9 @@ from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from requests import RequestException, Response
 
-from . import access_points, classes, constants, types, utils
+from . import access_points, classes, constants, _types as types, utils
 from .classes import OfferItem
-from .logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, ErepublikLogConsoleHandler
+from ._logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, ErepublikLogConsoleHandler
 
 
 class BaseCitizen(access_points.CitizenAPI):
@@ -256,21 +256,21 @@ class BaseCitizen(access_points.CitizenAPI):
             captcha_id = data.get('sessionValidation', {}).get("captchaId")
             captcha_data = self._post_main_session_get_challenge(captcha_id).json()
             coordinates = self.solve_captcha(captcha_data['src'])
+            while True:
+                r = self._post_main_session_unlock(
+                    captcha_id, captcha_data['imageId'], captcha_data['challengeId'], coordinates, captcha_data['src']
+                )
+                rj = r.json()
+                if not rj.get('error') and rj.get('verified'):
+                    return True
+                else:
+                    try:
+                        raise classes.ErepublikException('Captcha failed!')
+                    except classes.ErepublikException:
+                        self.report_error('Captcha failed!')
+                    captcha_data = self._post_main_session_get_challenge(captcha_id, captcha_data['imageId']).json()
+                    coordinates = self.solve_captcha(captcha_data['src'])
 
-            for x in range(5):
-                captcha_data = self._post_main_session_get_challenge(captcha_id, captcha_data['imageId']).json()
-                coordinates = self.solve_captcha(captcha_data['src'])
-
-            r = self._post_main_session_unlock(
-                captcha_id, captcha_data['imageId'], captcha_data['challengeId'], coordinates, captcha_data['src']
-            )
-            rj = r.json()
-            if not rj.get('error') and rj.get('verified'):
-                return True
-            else:
-                self.report_error('Captcha failed!')
-                if retry < 6:
-                    return self.do_captcha_challenge(retry + 1)
         return False
 
     def refresh_captcha_image(self, captcha_id: int, image_id: str):
