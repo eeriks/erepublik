@@ -58,7 +58,7 @@ class SlowRequests(Session):
         self._slow_down_requests()
         self._log_request(url, method, **kwargs)
         resp = super().request(method, url, *args, **kwargs)
-        self._log_response(resp)
+        # self._log_response(resp)
         return resp
 
     def _slow_down_requests(self):
@@ -113,7 +113,7 @@ class SlowRequests(Session):
 
             if not redirect:
                 data = dump.dump_all(response)
-                utils.write_file(f'debug/dumps/{fd_time}_{fd_name}{fd_extra}.{fd_ext}', data.decode('utf8'))
+                utils.write_file(f'debug/dumps/{fd_time}_{fd_name}{fd_extra}.{fd_ext}.dump', data.decode('utf8'))
 
 
 class CitizenBaseAPI:
