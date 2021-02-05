@@ -163,16 +163,23 @@ class CitizenBaseAPI:
     def _post_main_session_unlock(
         self, captcha_id: int, image_id: str, challenge_id: str, coords: List[Dict[str, int]], src: str
     ) -> Response:
-        env = dict(l=['tets', ], s=[], c=[c for c in self._req.cookies.keys() if not c.startswith('erpk')], m=0)
-        if not env['c']:
-            env['c'] = ['']
+        if self._req.cookies.get('sh'):
+            self._req.cookies.pop('sh')
+        if self._req.cookies.get('ch'):
+            self._req.cookies.pop('ch')
+        c = [cookie.name for cookie in self._req.cookies if cookie.domain == '.www.erepublik.com' and not cookie.name.startswith('erpk')]
+        env = dict(l=[], s=[], c=c, m=0)
         cookies = dict(sh=hashlib.sha256(','.join(env['l']+env['s']).encode('utf8')).hexdigest(),
                        ch=hashlib.sha256(','.join(env['c']).encode('utf8')).hexdigest())
-        self._req.cookies.update(cookies)
+        cookie_kwargs = dict(expires=int(time.time())+120, path="/en/main/sessionUnlock", domain='.www.erepublik.com',
+                             secure=True)
+        self._req.cookies.set('sh', cookies['sh'], **cookie_kwargs)
+        self._req.cookies.set('ch', cookies['ch'], **cookie_kwargs)
         b64_env = utils.b64json(env)
         data = dict(_token=self.token, captchaId=captcha_id, imageId=image_id, challengeId=challenge_id,
                     clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=b64_env, src=src)
-        return self.post(f'{self.url}/main/sessionUnlock', data=data, headers={'X-Requested-With': 'XMLHttpRequest'})
+        return self.post(f'{self.url}/main/sessionUnlock', data=data, json=data,
+                         headers={'X-Requested-With': 'XMLHttpRequest', 'Referrer': 'https://www.erepublik.com/en'})
 
 
 class ErepublikAnniversaryAPI(CitizenBaseAPI):
