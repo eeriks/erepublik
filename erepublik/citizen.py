@@ -551,9 +551,15 @@ class BaseCitizen(access_points.CitizenAPI):
 
     def dump_instance(self):
         filename = f"{self.__class__.__name__}__dump.json"
+        cookie_attrs = [
+            "version", "name", "value", "port", "domain", "path", "secure",
+            "expires", "discard", "comment", "comment_url", "rfc2109"
+        ]
+        cookies = [{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in self._req.cookies]
+
         with open(filename, 'w') as f:
-            utils.json_dump(dict(config=self.config, cookies=self._req.cookies.get_dict(),
-                                 user_agent=self._req.headers.get("User-Agent")), f,)
+            utils.json_dump(dict(config=self.config, cookies=cookies,
+                                 user_agent=self._req.headers.get("User-Agent")), f)
         self.logger.debug(f"Session saved to: '{filename}'")
 
     @classmethod
@@ -561,7 +567,8 @@ class BaseCitizen(access_points.CitizenAPI):
         with open(dump_name) as f:
             data = utils.json.load(f, object_hook=utils.json_decode_object_hook)
         player = cls(data['config']['email'], "")
-        player._req.cookies.update(data['cookies'])
+        for cookie in data['cookies']:
+            player._req.cookies.set(**cookie)
         player._req.headers.update({"User-Agent": data['user_agent']})
         for k, v in data.get('config', {}).items():
             if hasattr(player.config, k):
@@ -818,8 +825,8 @@ class BaseCitizen(access_points.CitizenAPI):
                 if self.restricted_ip:
                     self._req.cookies.clear()
                     return True
-                self.write_warning('eRepublik servers are having internal troubles. Sleeping for 5 minutes')
-                self.sleep(5 * 60)
+                self.write_warning('eRepublik servers are having internal troubles. Sleeping for 1 minutes')
+                self.sleep(1 * 60)
             else:
                 raise classes.ErepublikException(f"HTTP {response.status_code} error!")
 
@@ -1912,9 +1919,18 @@ class CitizenMilitary(CitizenTravel):
         self.write_log(f"Fighting in battle for {battle.region_name} on {side} side in d{division.div}")
 
         total_damage = 0
-        energy_used = self.deploy(division, side, count * 10)
-        self.sleep(energy_used // 30)  # TODO: connect to eRepublik's WS and get from there when deploy ends
-        self.report_fighting(battle, not side.is_defender, division, total_damage, energy_used // 10)
+        deployment_id = self.deploy(division, side, count * 10)
+        self.sleep(count // 3)  # TODO: connect to eRepublik's WS and get from there when deploy ends
+        energy_used = 0
+        if deployment_id:
+            self.write_warning('If erepublik responds with HTTP 500 Internal Error, it is kind of ok, because deployment has not finished yet.')
+            deployment_data = self._post_military_fight_deploy_deploy_report_data(deployment_id).json()
+            if not deployment_data.get('error'):
+                data = deployment_data['data']
+                total_damage = int(data['damage'].replace(',', ''))
+                energy_used = int(data['energySpent'].replace(',', ''))
+                self.details.pp += int(data['rewards']['prestigePoints'].replace(',', ''))
+            self.report_fighting(battle, not side.is_defender, division, total_damage, energy_used // 10)
         return energy_used
 
     # def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
@@ -2302,7 +2318,7 @@ class CitizenMilitary(CitizenTravel):
                 self.report_error(f"Unable to get deployment inventory because: {ret.get('message')}")
         return ret
 
-    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int, _retry=0):
+    def deploy(self, division: classes.BattleDivision, side: classes.BattleSide, energy: int, _retry=0) -> int:
         _energy = int(energy)
         deploy_inv = self.get_deploy_inventory(division, side)
         if not deploy_inv['minEnergy'] <= energy <= deploy_inv['maxEnergy']:
@@ -2346,7 +2362,7 @@ class CitizenMilitary(CitizenTravel):
                 else:
                     self.report_error('Unable to deploy 5 times!')
             return 0
-        return r.get('data', {}).get('energyTotal', energy-1)
+        return r.get('deploymentId')
 
 
 class CitizenPolitics(BaseCitizen):
