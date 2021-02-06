@@ -3,9 +3,9 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Union
+from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Union, Optional
 
-from requests import Response, Session, post
+from requests import Response, Session, post, HTTPError
 
 from . import constants, _types as types, utils
 
@@ -606,23 +606,35 @@ class Reporter:
             for unreported_data in self.__to_update:
                 unreported_data.update(player_id=self.citizen_id, key=self.key)
                 unreported_data = utils.json_loads(utils.json_dumps(unreported_data))
-                self._req.post(f"{self.url}/bot/update", json=unreported_data)
+                r = self._req.post(f"{self.url}/bot/update", json=unreported_data)
+                r.raise_for_status()
             self.__to_update.clear()
         data = utils.json.loads(utils.json_dumps(data))
         r = self._req.post(f"{self.url}/bot/update", json=data)
+        r.raise_for_status()
         return r
+
+    def _bot_update(self, data: Dict[str, Any]) -> Optional[Response]:
+        if not self.__registered:
+            self.do_init()
+        if self.allowed:
+            try:
+                return self.__bot_update(data)
+            except HTTPError:
+                self.__to_update.append(data)
+        else:
+            self.__to_update.append(data)
 
     def register_account(self):
         if not self.__registered:
-            try:
-                r = self.__bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
+            r = self._bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
+            if r:
                 if not r.json().get('status'):
                     self._req.post(f"{self.url}/bot/register", json=dict(name=self.name, email=self.email,
                                                                          player_id=self.citizen_id))
-            finally:
+                self.report_action('STARTED', value=utils.now().strftime("%F %T"))
                 self.__registered = True
                 self.allowed = True
-                self.report_action('STARTED', value=utils.now().strftime("%F %T"))
 
     def send_state_update(self, xp: int, cc: float, gold: float, inv_total: int, inv: int,
                           hp_limit: int, hp_interval: int, hp_available: int, food: int, pp: int):
@@ -631,9 +643,7 @@ class Reporter:
             xp=xp, cc=cc, gold=gold, inv_total=inv_total, inv_free=inv_total - inv, inv=inv, food=food,
             pp=pp, hp_limit=hp_limit, hp_interval=hp_interval, hp_available=hp_available,
         ))
-
-        if self.allowed:
-            self.__bot_update(data)
+        self._bot_update(data)
 
     def report_action(self, action: str, json_val: Dict[Any, Any] = None, value: str = None):
         json_data = dict(
@@ -645,10 +655,7 @@ class Reporter:
             json_data['log'].update(dict(value=value))
         if not any([self.key, self.email, self.name, self.citizen_id]):
             return
-        if self.allowed:
-            self.__bot_update(json_data)
-        else:
-            self.__to_update.append(json_data)
+        self._bot_update(json_data)
 
     def report_fighting(self, battle: 'Battle', invader: bool, division: 'BattleDivision', damage: float, hits: int):
         side = battle.invader if invader else battle.defender
