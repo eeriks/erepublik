@@ -9,7 +9,7 @@ from threading import Event
 from time import sleep
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
-from requests import RequestException, Response
+from requests import RequestException, Response, HTTPError
 
 from . import access_points, classes, constants, _types as types, utils
 from .classes import OfferItem
@@ -270,7 +270,9 @@ class BaseCitizen(access_points.CitizenAPI):
                         self.report_error('Captcha failed!')
                     captcha_data = self._post_main_session_get_challenge(captcha_id, captcha_data['imageId']).json()
                     coordinates = self.solve_captcha(captcha_data['src'])
-
+                    if retry < 1:
+                        return False
+                    retry -= 1
         return False
 
     def refresh_captcha_image(self, captcha_id: int, image_id: str):
@@ -1918,82 +1920,102 @@ class CitizenMilitary(CitizenTravel):
 
         self.write_log(f"Fighting in battle for {battle.region_name} on {side} side in d{division.div}")
 
-        total_damage = 0
-        deployment_id = self.deploy(division, side, count * 10)
-        self.sleep(count // 3)  # TODO: connect to eRepublik's WS and get from there when deploy ends
-        energy_used = 0
-        if deployment_id:
-            self.write_warning('If erepublik responds with HTTP 500 Internal Error, it is kind of ok, because deployment has not finished yet.')
-            deployment_data = self._post_military_fight_deploy_deploy_report_data(deployment_id).json()
-            if not deployment_data.get('error'):
-                data = deployment_data['data']
-                total_damage = int(data['damage'].replace(',', ''))
-                energy_used = int(data['energySpent'].replace(',', ''))
-                self.details.pp += int(data['rewards']['prestigePoints'].replace(',', ''))
-            self.report_fighting(battle, not side.is_defender, division, total_damage, energy_used // 10)
-        return energy_used
+        if self.now < utils.localize_dt(datetime(2021, 2, 8)):
+            error_count = total_damage = total_hits = 0
+            ok_to_fight = True
+            while ok_to_fight and error_count < 10 and count > 0:
+                while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
+                    hits, error, damage = self._shoot(battle, division, side)
+                    count -= hits
+                    total_hits += hits
+                    total_damage += damage
+                    error_count += error
+                else:
+                    self._eat('blue')
+                    if count > 0 and self.energy.recovered < 50 and use_ebs:
+                        self._eat('orange')
+                    if self.energy.recovered < 50 or error_count >= 10 or count <= 0:
+                        self.write_log(f"Hits: {total_hits:>4} | Damage: {total_damage}")
+                        ok_to_fight = False
+                        if total_damage:
+                            self.report_fighting(battle, not side.is_defender, division, total_damage, total_hits)
+            return error_count
+        else:
+            deployment_id = self.deploy(division, side, count * 10)
+            self.sleep(count // 3)  # TODO: connect to eRepublik's WS and get from there when deploy ends
+            energy_used = 0
+            if deployment_id:
+                self.write_warning('If erepublik responds with HTTP 500 Internal Error, it is kind of ok, because deployment has not finished yet.')
+                deployment_data = self._post_military_fight_deploy_deploy_report_data(deployment_id).json()
+                if not deployment_data.get('error'):
+                    data = deployment_data['data']
+                    total_damage = int(data['damage'].replace(',', ''))
+                    energy_used = int(data['energySpent'].replace(',', ''))
+                    self.details.pp += int(data['rewards']['prestigePoints'].replace(',', ''))
+                    self.report_fighting(battle, not side.is_defender, division, total_damage, energy_used // 10)
+            return energy_used
 
-    # def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
-    #     if division.is_air:
-    #         response = self._post_military_fight_air(battle.id, side.id, division.id)
-    #     else:
-    #         response = self._post_military_fight_ground(battle.id, side.id, division.id)
-    #
-    #     if 'Zone is not meant for ' in response.text:
-    #         self.sleep(5)
-    #         return 0, 1, 0
-    #     try:
-    #         r_json = response.json()
-    #     except (ValueError, HTTPError, RequestException):
-    #         return 0, 10, 0
-    #     hits = 0
-    #     damage = 0
-    #     err = False
-    #     if r_json.get('error'):
-    #         if r_json.get('message') == 'SHOOT_LOCKOUT':
-    #             pass
-    #         elif r_json.get('message') == 'NOT_ENOUGH_WEAPONS':
-    #             self.set_default_weapon(battle, division)
-    #         elif r_json.get('message') == "Cannot activate a zone with a non-native division":
-    #             self.report_warning('Wrong division!!')
-    #             return 0, 10, 0
-    #         elif r_json.get('message') == 'ZONE_INACTIVE':
-    #             self.report_warning('Wrong division!!')
-    #             return 0, 10, 0
-    #         elif r_json.get('message') == 'NON_BELLIGERENT':
-    #             self.report_warning("Dictatorship/Liberation wars are not supported!")
-    #             return 0, 10, 0
-    #         elif r_json.get('message') in ['FIGHT_DISABLED', 'DEPLOYMENT_MODE']:
-    #             self._post_main_profile_update('options',
-    #                                            params='{"optionName":"enable_web_deploy","optionValue":"off"}')
-    #             self.set_default_weapon(battle, division)
-    #         else:
-    #             if r_json.get('message') == 'UNKNOWN_SIDE':
-    #                 self._rw_choose_side(battle, side)
-    #             elif r_json.get('message') == 'CHANGE_LOCATION':
-    #                 countries = [side.country] + side.deployed
-    #                 self.travel_to_battle(battle, countries)
-    #             err = True
-    #     elif r_json.get('message') == 'ENEMY_KILLED':
-    #         # Non-InfantryKit players
-    #         if r_json['user']['earnedXp']:
-    #             hits = r_json['user']['earnedXp']
-    #         # InfantryKit player
-    #         # The almost always safe way (breaks on levelup hit)
-    #         elif self.energy.recovered >= r_json['details']['wellness']:  # Haven't reached levelup
-    #             hits = (self.energy.recovered - r_json['details']['wellness']) // 10
-    #         else:
-    #             hits = r_json['hits']
-    #             if r_json['user']['epicBattle']:
-    #                 hits /= 1 + r_json['user']['epicBattle']
-    #
-    #         self.energy.recovered = r_json['details']['wellness']
-    #         self.details.xp = int(r_json['details']['points'])
-    #         damage = r_json['user']['givenDamage'] * (1.1 if r_json['oldEnemy']['isNatural'] else 1)
-    #     else:
-    #         err = True
-    #
-    #     return hits, err, damage
+    def _shoot(self, battle: classes.Battle, division: classes.BattleDivision, side: classes.BattleSide):
+        if division.is_air:
+            response = self._post_military_fight_air(battle.id, side.id, division.id)
+        else:
+            response = self._post_military_fight_ground(battle.id, side.id, division.id)
+
+        if 'Zone is not meant for ' in response.text:
+            self.sleep(5)
+            return 0, 1, 0
+        try:
+            r_json = response.json()
+        except (ValueError, HTTPError, RequestException):
+            return 0, 10, 0
+        hits = 0
+        damage = 0
+        err = False
+        if r_json.get('error'):
+            if r_json.get('message') == 'SHOOT_LOCKOUT':
+                pass
+            elif r_json.get('message') == 'NOT_ENOUGH_WEAPONS':
+                self.set_default_weapon(battle, division)
+            elif r_json.get('message') == "Cannot activate a zone with a non-native division":
+                self.write_warning('Wrong division!!')
+                return 0, 10, 0
+            elif r_json.get('message') == 'ZONE_INACTIVE':
+                self.write_warning('Wrong division!!')
+                return 0, 10, 0
+            elif r_json.get('message') == 'NON_BELLIGERENT':
+                self.write_warning("Dictatorship/Liberation wars are not supported!")
+                return 0, 10, 0
+            elif r_json.get('message') in ['FIGHT_DISABLED', 'DEPLOYMENT_MODE']:
+                self._post_main_profile_update('options',
+                                               params='{"optionName":"enable_web_deploy","optionValue":"off"}')
+                self.set_default_weapon(battle, division)
+            else:
+                if r_json.get('message') == 'UNKNOWN_SIDE':
+                    self._rw_choose_side(battle, side)
+                elif r_json.get('message') == 'CHANGE_LOCATION':
+                    countries = [side.country] + side.deployed
+                    self.travel_to_battle(battle, countries)
+                err = True
+        elif r_json.get('message') == 'ENEMY_KILLED':
+            # Non-InfantryKit players
+            if r_json['user']['earnedXp']:
+                hits = r_json['user']['earnedXp']
+            # InfantryKit player
+            # The almost always safe way (breaks on levelup hit)
+            elif self.energy.recovered >= r_json['details']['wellness']:  # Haven't reached levelup
+                hits = (self.energy.recovered - r_json['details']['wellness']) // 10
+            else:
+                hits = r_json['hits']
+                if r_json['user']['epicBattle']:
+                    hits /= 1 + r_json['user']['epicBattle']
+
+            self.energy.recovered = r_json['details']['wellness']
+            self.details.xp = int(r_json['details']['points'])
+            damage = r_json['user']['givenDamage'] * (1.1 if r_json['oldEnemy']['isNatural'] else 1)
+        else:
+            err = True
+
+        return hits, err, damage
 
     def deploy_bomb(self, battle: classes.Battle, division: classes.BattleDivision, bomb_id: int, inv_side: bool,
                     count: int = 1) -> Optional[int]:
@@ -2308,8 +2330,7 @@ class CitizenMilitary(CitizenTravel):
         #     self.buy_food()
         #     return self.get_deploy_inventory(division, side)
         if ret.get('captcha'):
-            while not self.do_captcha_challenge():
-                self.sleep(5)
+            self.do_captcha_challenge()
         if ret.get('error'):
             if ret.get('message') == 'Deployment disabled.':
                 self._post_main_profile_update('options', params='{"optionName":"enable_web_deploy","optionValue":"on"}')
