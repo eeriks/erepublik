@@ -163,12 +163,14 @@ class CitizenBaseAPI:
     def _post_main_session_unlock(
         self, captcha_id: int, image_id: str, challenge_id: str, coords: List[Dict[str, int]], src: str
     ) -> Response:
+        if not self._req.cookies.get('l_chathwe'):
+            self._req.cookies.set('l_chathwe', 1, expires=int(time.time())+300, path="/en/military", domain='.www.erepublik.com', secure=True)
         if self._req.cookies.get('sh'):
             self._req.cookies.pop('sh')
         if self._req.cookies.get('ch'):
             self._req.cookies.pop('ch')
         c = [cookie.name for cookie in self._req.cookies if cookie.domain == '.www.erepublik.com' and not cookie.name.startswith('erpk')]
-        env = dict(l=[], s=[], c=c, m=0)
+        env = dict(l=['tets'], s=[], c=c + ['l_chathwe'], m=0)
         cookies = dict(sh=hashlib.sha256(','.join(env['l']+env['s']).encode('utf8')).hexdigest(),
                        ch=hashlib.sha256(','.join(env['c']).encode('utf8')).hexdigest())
         cookie_kwargs = dict(expires=int(time.time())+120, path="/en/main/sessionUnlock", domain='.www.erepublik.com',
@@ -179,7 +181,7 @@ class CitizenBaseAPI:
         data = dict(_token=self.token, captchaId=captcha_id, imageId=image_id, challengeId=challenge_id,
                     clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=b64_env, src=src)
         return self.post(f'{self.url}/main/sessionUnlock', data=data, json=data,
-                         headers={'X-Requested-With': 'XMLHttpRequest', 'Referrer': 'https://www.erepublik.com/en'})
+                         headers={'X-Requested-With': 'XMLHttpRequest', 'Referer': 'https://www.erepublik.com/en'})
 
 
 class ErepublikAnniversaryAPI(CitizenBaseAPI):
@@ -511,6 +513,10 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
         data = dict(_token=self.token, battleId=battle_id, battleZoneId=battle_zone_id, sideCountryId=side_id,
                     weaponQuality=weapon, totalEnergy=energy, **kwargs)
         return self.post(f"{self.url}/military/fightDeploy-startDeploy", data=data)
+
+    def _post_military_fight_deploy_deploy_report_data(self, deployment_id: int) -> Response:
+        data = dict(_token=self.token, deploymentId=deployment_id)
+        return self.post(f"{self.url}/military/fightDeploy-deployReportData", data=data)
 
 
 class ErepublikPoliticsAPI(CitizenBaseAPI):
