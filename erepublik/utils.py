@@ -7,6 +7,7 @@ import unicodedata
 import warnings
 from base64 import b64encode
 from decimal import Decimal
+from logging import Logger
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -100,27 +101,6 @@ def interactive_sleep(sleep_seconds: int):
 
 
 silent_sleep = time.sleep
-
-
-# def _write_log(msg, timestamp: bool = True, should_print: bool = False):
-#     erep_time_now = now()
-#     txt = f"[{erep_time_now.strftime('%F %T')}] {msg}" if timestamp else msg
-#     if not os.path.isdir('log'):
-#         os.mkdir('log')
-#     with open(f'log/{erep_time_now.strftime("%F")}.log', 'a', encoding='utf-8') as f:
-#         f.write(f'{txt}\n')
-#     if should_print:
-#         print(txt)
-#
-#
-# def write_interactive_log(*args, **kwargs):
-#     kwargs.pop('should_print', None)
-#     _write_log(should_print=True, *args, **kwargs)
-#
-#
-# def write_silent_log(*args, **kwargs):
-#     kwargs.pop('should_print', None)
-#     _write_log(should_print=False, *args, **kwargs)
 
 
 def get_file(filepath: str) -> str:
@@ -228,27 +208,6 @@ def deprecation(message):
     warnings.warn(message, DeprecationWarning, stacklevel=2)
 
 
-# def wait_for_lock(function):
-#     def wrapper(instance, *args, **kwargs):
-#         if not instance.concurrency_available.wait(600):
-#             e = 'Concurrency not freed in 10min!'
-#             instance.write_log(e)
-#             if instance.debug:
-#                 instance.report_error(e)
-#             return None
-#         else:
-#             instance.concurrency_available.clear()
-#             try:
-#                 ret = function(instance, *args, **kwargs)
-#             except Exception as e:
-#                 instance.concurrency_available.set()
-#                 raise e
-#             instance.concurrency_available.set()
-#             return ret
-#
-#     return wrapper
-
-
 def json_decode_object_hook(
     o: Union[Dict[str, Any], List[Any], int, float, str]
 ) -> Union[Dict[str, Any], List[Any], int, float, str, datetime.date, datetime.datetime, datetime.timedelta]:
@@ -310,26 +269,31 @@ def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
 
 class ErepublikJSONEncoder(json.JSONEncoder):
     def default(self, o):
-        from erepublik.citizen import Citizen
-        if isinstance(o, Decimal):
-            return float(f"{o:.02f}")
-        elif isinstance(o, datetime.datetime):
-            return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
-                        tzinfo=str(o.tzinfo) if o.tzinfo else None)
-        elif isinstance(o, datetime.date):
-            return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
-        elif isinstance(o, datetime.timedelta):
-            return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
-                        microseconds=o.microseconds, total_seconds=o.total_seconds())
-        elif isinstance(o, Response):
-            return dict(headers=dict(o.__dict__['headers']), url=o.url, text=o.text, status_code=o.status_code)
-        elif hasattr(o, 'as_dict'):
-            return o.as_dict
-        elif isinstance(o, set):
-            return list(o)
-        elif isinstance(o, Citizen):
-            return o.to_json()
         try:
-            return super().default(o)
+            from erepublik.citizen import Citizen
+            if isinstance(o, Decimal):
+                return float(f"{o:.02f}")
+            elif isinstance(o, datetime.datetime):
+                return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
+                            tzinfo=str(o.tzinfo) if o.tzinfo else None)
+            elif isinstance(o, datetime.date):
+                return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
+            elif isinstance(o, datetime.timedelta):
+                return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
+                            microseconds=o.microseconds, total_seconds=o.total_seconds())
+            elif isinstance(o, Response):
+                return dict(headers=dict(o.__dict__['headers']), url=o.url, text=o.text, status_code=o.status_code)
+            elif hasattr(o, 'as_dict'):
+                return o.as_dict
+            elif isinstance(o, set):
+                return list(o)
+            elif isinstance(o, Citizen):
+                return o.to_json()
+            elif isinstance(o, Logger):
+                return str(o)
+            elif hasattr(o, '__dict__'):
+                return o.__dict__
+            else:
+                return super().default(o)
         except Exception as e:  # noqa
-            return 'Object is not JSON serializable'
+            return str(e)
