@@ -3,11 +3,13 @@ import hashlib
 import threading
 import weakref
 from decimal import Decimal
-from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Union, Optional
+from io import BytesIO
+from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Optional, Tuple, Union
 
-from requests import Response, Session, post, HTTPError
+from requests import HTTPError, Response, Session, post
 
-from . import constants, _types as types, utils
+from erepublik import _types as types
+from erepublik import constants, utils
 
 __all__ = ['Battle', 'BattleDivision', 'BattleSide', 'Company', 'Config', 'Details', 'Energy', 'ErepublikException',
            'ErepublikNetworkException', 'EnergyToFight', 'Holding', 'Inventory', 'MyCompanies', 'OfferItem', 'Politics',
@@ -627,14 +629,14 @@ class Reporter:
 
     def register_account(self):
         if not self.__registered:
-            r = self._bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
+            r = self.__bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
             if r:
                 if not r.json().get('status'):
                     self._req.post(f"{self.url}/bot/register", json=dict(name=self.name, email=self.email,
                                                                          player_id=self.citizen_id))
-                self.report_action('STARTED', value=utils.now().strftime("%F %T"))
                 self.__registered = True
                 self.allowed = True
+                self.report_action('STARTED', value=utils.now().strftime("%F %T"))
 
     def send_state_update(self, xp: int, cc: float, gold: float, inv_total: int, inv: int,
                           hp_limit: int, hp_interval: int, hp_available: int, food: int, pp: int):
@@ -967,7 +969,7 @@ class TelegramReporter:
         if token is None:
             token = "864251270:AAFzZZdjspI-kIgJVk4gF3TViGFoHnf8H4o"
         self.chat_id = chat_id
-        self.api_url = f"https://api.telegram.org/bot{token}/sendMessage"
+        self.api_url = f"https://api.telegram.org/bot{token}"
         self.player_name = player_name or ""
         self.__initialized = True
         self._last_time = utils.good_timedelta(utils.now(), datetime.timedelta(minutes=-5))
@@ -1024,12 +1026,20 @@ class TelegramReporter:
         message = "\n\n".join(self.__queue)
         if self.player_name:
             message = f"Player *{self.player_name}*\n\n" + message
-        response = post(self.api_url, json=dict(chat_id=self.chat_id, text=message, parse_mode='Markdown'))
+        response = post(f"{self.api_url}/sendMessage", json=dict(chat_id=self.chat_id, text=message, parse_mode='Markdown'))
         self._last_time = utils.now()
         if response.json().get('ok'):
             self.__queue.clear()
             return True
         return False
+
+    def send_photos(self, photos: List[Tuple[str, BytesIO]]):
+        for photo_title, photo in photos:
+            photo.seek(0)
+            post(f"https://{self.api_url}/sendPhoto",
+                 data=dict(chat_id=self.chat_id, caption=photo_title),
+                 files=[('photo', ("f{utils.slugify(photo_title)}.png", photo))])
+        return
 
 
 class OfferItem(NamedTuple):

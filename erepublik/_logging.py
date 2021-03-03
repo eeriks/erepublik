@@ -49,7 +49,7 @@ class ErepublikFormatter(logging.Formatter):
     default_fmt = "[%(asctime)s] %(levelname)s: %(msg)s"
 
     def converter(self, timestamp: Union[int, float]) -> datetime.datetime:
-        return datetime.datetime.utcfromtimestamp(timestamp).astimezone(erep_tz)
+        return datetime.datetime.fromtimestamp(timestamp).astimezone(erep_tz)
 
     def format(self, record: logging.LogRecord) -> str:
         """

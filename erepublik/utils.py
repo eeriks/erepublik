@@ -15,7 +15,7 @@ import pytz
 import requests
 from requests import Response
 
-from . import __version__, constants
+from erepublik import __version__, constants
 
 try:
     import simplejson as json
@@ -255,7 +255,7 @@ def json_dumps(obj, *args, **kwargs):
 
 def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
     if isinstance(obj, list):
-        return b64encode(json.dumps(obj).replace(' ', '').encode('utf-8')).decode('utf-8')
+        return b64encode(json.dumps(obj, separators=(',', ':')).encode('utf-8')).decode('utf-8')
     elif isinstance(obj, (int, str)):
         return obj
     elif isinstance(obj, dict):
@@ -264,7 +264,7 @@ def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
     else:
         from .classes import ErepublikException
         raise ErepublikException(f'Unhandled object type! obj is {type(obj)}')
-    return b64encode(json.dumps(obj).replace(' ', '').encode('utf-8')).decode('utf-8')
+    return b64encode(json.dumps(obj, separators=(',', ':')).encode('utf-8')).decode('utf-8')
 
 
 class ErepublikJSONEncoder(json.JSONEncoder):

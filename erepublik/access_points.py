@@ -3,11 +3,11 @@ import hashlib
 import random
 import time
 from typing import Any, Dict, List, Mapping, Union
-from requests_toolbelt.utils import dump
 
 from requests import Response, Session
+from requests_toolbelt.utils import dump
 
-from . import constants, utils
+from erepublik import constants, utils
 
 __all__ = ['SlowRequests', 'CitizenAPI']
 

@@ -9,11 +9,12 @@ from threading import Event
 from time import sleep
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
-from requests import RequestException, Response, HTTPError
+from requests import HTTPError, RequestException, Response
 
-from . import access_points, classes, constants, _types as types, utils
-from .classes import OfferItem
-from ._logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, ErepublikLogConsoleHandler
+from erepublik import _types as types
+from erepublik import access_points, classes, constants, utils
+from erepublik._logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, \
+    ErepublikLogConsoleHandler
 
 
 class BaseCitizen(access_points.CitizenAPI):
@@ -279,7 +280,7 @@ class BaseCitizen(access_points.CitizenAPI):
         return self._post_main_session_get_challenge(captcha_id, image_id).json()
 
     def solve_captcha(self, src: str) -> List[Dict[str, int]]:
-        raise NotImplemented
+        return []
 
     @property
     def inventory(self) -> classes.Inventory:
@@ -1327,7 +1328,7 @@ class CitizenEconomy(CitizenTravel):
             self._report_action('BOUGHT_PRODUCTS', json_ret.get('message'), kwargs=json_ret)
         return json_ret
 
-    def buy_market_offer(self, offer: OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
+    def buy_market_offer(self, offer: classes.OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
         if amount is None or amount > offer.amount:
             amount = offer.amount
         traveled = False
@@ -2734,7 +2735,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                     self.buy_tg_contract()
                 else:
                     self.write_warning('Training ground contract active but '
-                                        f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
+                                       f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
         if self.energy.is_energy_full and self.config.telegram:
             self.telegram.report_full_energy(self.energy.available, self.energy.limit, self.energy.interval)
 
@@ -3170,7 +3171,7 @@ class Citizen(_Citizen):
         finally:
             self._concurrency_lock.set()
 
-    def buy_market_offer(self, offer: OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
+    def buy_market_offer(self, offer: classes.OfferItem, amount: int = None) -> Optional[Dict[str, Any]]:
         if not self._concurrency_lock.wait(self._concurrency_timeout):
             e = f'Concurrency not freed in {self._concurrency_timeout}sec!'
             self.report_error(e)
