@@ -570,8 +570,14 @@ class BaseCitizen(access_points.CitizenAPI):
         with open(dump_name) as f:
             data = utils.json.load(f, object_hook=utils.json_decode_object_hook)
         player = cls(data['config']['email'], "")
-        for cookie in data['cookies']:
-            player._req.cookies.set(**cookie)
+        if data.get('cookies'):
+            cookies = data.get('cookies')
+            if isinstance(cookies, list):
+                for cookie in data['cookies']:
+                    player._req.cookies.set(**cookie)
+            else:
+                player._req.cookies.update(cookies)
+
         player._req.headers.update({"User-Agent": data['user_agent']})
         for k, v in data.get('config', {}).items():
             if hasattr(player.config, k):
