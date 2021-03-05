@@ -163,18 +163,12 @@ class CitizenBaseAPI:
     def _post_main_session_unlock(
         self, captcha_id: int, image_id: str, challenge_id: str, coords: List[Dict[str, int]], src: str
     ) -> Response:
-        if not self._req.cookies.get('l_chathwe'):
-            self._req.cookies.set('l_chathwe', 1, expires=int(time.time())+300, path="/en/military", domain='.www.erepublik.com', secure=True)
-        if self._req.cookies.get('sh'):
-            self._req.cookies.pop('sh')
-        if self._req.cookies.get('ch'):
-            self._req.cookies.pop('ch')
-        c = [cookie.name for cookie in self._req.cookies if cookie.domain == '.www.erepublik.com' and not cookie.name.startswith('erpk')]
-        env = dict(l=['tets'], s=[], c=c + ['l_chathwe'], m=0)
+        c = [cookie.name for cookie in self._req.cookies if not cookie.has_nonstandard_attr('HttpOnly')]
+        env = dict(l=['tets'], s=[], c=c, m=0)
         cookies = dict(sh=hashlib.sha256(','.join(env['l']+env['s']).encode('utf8')).hexdigest(),
                        ch=hashlib.sha256(','.join(env['c']).encode('utf8')).hexdigest())
         cookie_kwargs = dict(expires=int(time.time())+120, path="/en/main/sessionUnlock", domain='.www.erepublik.com',
-                             secure=True)
+                             secure=True, rest={'HttpOnly': True})
         self._req.cookies.set('sh', cookies['sh'], **cookie_kwargs)
         self._req.cookies.set('ch', cookies['ch'], **cookie_kwargs)
         b64_env = utils.b64json(env)
