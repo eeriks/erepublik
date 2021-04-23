@@ -81,23 +81,44 @@ class Industries:
         return dict(by_id=self.__by_id, by_name=self.__by_name)
 
 
-AIR_RANKS: Dict[int, str] = {
-    1: 'Airman', 2: 'Airman 1st Class', 3: 'Airman 1st Class*', 4: 'Airman 1st Class**', 5: 'Airman 1st Class***',
-    6: 'Airman 1st Class****', 7: 'Airman 1st Class*****', 8: 'Senior Airman', 9: 'Senior Airman*',
-    10: 'Senior Airman**', 11: 'Senior Airman***', 12: 'Senior Airman****', 13: 'Senior Airman*****',
-    14: 'Staff Sergeant', 15: 'Staff Sergeant*', 16: 'Staff Sergeant**', 17: 'Staff Sergeant***',
-    18: 'Staff Sergeant****', 19: 'Staff Sergeant*****', 20: 'Aviator', 21: 'Aviator*', 22: 'Aviator**',
-    23: 'Aviator***', 24: 'Aviator****', 25: 'Aviator*****', 26: 'Flight Lieutenant', 27: 'Flight Lieutenant*',
-    28: 'Flight Lieutenant**', 29: 'Flight Lieutenant***', 30: 'Flight Lieutenant****', 31: 'Flight Lieutenant*****',
-    32: 'Squadron Leader', 33: 'Squadron Leader*', 34: 'Squadron Leader**', 35: 'Squadron Leader***',
-    36: 'Squadron Leader****', 37: 'Squadron Leader*****', 38: 'Chief Master Sergeant', 39: 'Chief Master Sergeant*',
-    40: 'Chief Master Sergeant**', 41: 'Chief Master Sergeant***', 42: 'Chief Master Sergeant****',
-    43: 'Chief Master Sergeant*****', 44: 'Wing Commander', 45: 'Wing Commander*', 46: 'Wing Commander**',
-    47: 'Wing Commander***', 48: 'Wing Commander****', 49: 'Wing Commander*****', 50: 'Group Captain',
-    51: 'Group Captain*', 52: 'Group Captain**', 53: 'Group Captain***', 54: 'Group Captain****',
-    55: 'Group Captain*****', 56: 'Air Commodore', 57: 'Air Commodore*', 58: 'Air Commodore**', 59: 'Air Commodore***',
-    60: 'Air Commodore****', 61: 'Air Commodore*****',
+class Rank:
+    id: int
+    name: str
+    rank_points: int
+    is_air: bool
+
+    def __init__(self, id: int, name: str, rank_points: int, is_air: bool = False):
+        self.id = id
+        self._name = name
+        self.rank_points = rank_points
+        self.is_air = bool(is_air)
+
+
+AIR_RANK_NAMES: Dict[int, str] = {
+    1: 'Airman', 2: 'Airman 1st Class', 3: 'Airman 1st Class*', 4: 'Airman 1st Class**', 5: 'Airman 1st Class***', 6: 'Airman 1st Class****', 7: 'Airman 1st Class*****',
+    8: 'Senior Airman', 9: 'Senior Airman*', 10: 'Senior Airman**', 11: 'Senior Airman***', 12: 'Senior Airman****', 13: 'Senior Airman*****',
+    14: 'Staff Sergeant', 15: 'Staff Sergeant*', 16: 'Staff Sergeant**', 17: 'Staff Sergeant***', 18: 'Staff Sergeant****', 19: 'Staff Sergeant*****',
+    20: 'Aviator', 21: 'Aviator*', 22: 'Aviator**', 23: 'Aviator***', 24: 'Aviator****', 25: 'Aviator*****',
+    26: 'Flight Lieutenant', 27: 'Flight Lieutenant*', 28: 'Flight Lieutenant**', 29: 'Flight Lieutenant***', 30: 'Flight Lieutenant****', 31: 'Flight Lieutenant*****',
+    32: 'Squadron Leader', 33: 'Squadron Leader*', 34: 'Squadron Leader**', 35: 'Squadron Leader***', 36: 'Squadron Leader****', 37: 'Squadron Leader*****',
+    38: 'Chief Master Sergeant', 39: 'Chief Master Sergeant*', 40: 'Chief Master Sergeant**', 41: 'Chief Master Sergeant***', 42: 'Chief Master Sergeant****', 43: 'Chief Master Sergeant*****',
+    44: 'Wing Commander', 45: 'Wing Commander*', 46: 'Wing Commander**', 47: 'Wing Commander***', 48: 'Wing Commander****', 49: 'Wing Commander*****',
+    50: 'Group Captain', 51: 'Group Captain*', 52: 'Group Captain**', 53: 'Group Captain***', 54: 'Group Captain****', 55: 'Group Captain*****',
+    56: 'Air Commodore', 57: 'Air Commodore*', 58: 'Air Commodore**', 59: 'Air Commodore***', 60: 'Air Commodore****', 61: 'Air Commodore*****',
+    62: 'Air Vice Marshal', 63: 'Air Vice Marshal*', 64: 'Air Vice Marshal**', 65: 'Air Vice Marshal***', 66: 'Air Vice Marshal****', 67: 'Air Vice Marshal*****',
+    68: 'Air Marshal', 69: 'Air Marshal*', 70: 'Air Marshal**', 71: 'Air Marshal***', 72: 'Air Marshal****', 73: 'Air Marshal*****',
+    74: 'Air Chief Marshal', 75: 'Air Chief Marshal*', 76: 'Air Chief Marshal**', 77: 'Air Chief Marshal***', 78: 'Air Chief Marshal****', 79: 'Air Chief Marshal*****',
 }
+
+AIR_RANK_POINTS: Dict[int, Optional[int]] = {
+    1: 0, 2: 10, 3: 25, 4: 45, 5: 70, 6: 100, 7: 140, 8: 190, 9: 270, 10: 380, 11: 530, 12: 850, 13: 1300, 14: 2340, 15: 3300, 16: 4200, 17: 5150, 18: 6100, 19: 7020, 20: 9100, 21: 12750, 22: 16400, 23: 20000, 24: 23650, 25: 27300,
+    26: 35500, 27: 48000, 28: 60000, 29: 72400, 30: 84500, 31: 97000, 32: 110000, 33: 140000, 34: 170000, 35: 210000, 36: 290000, 37: 350000, 38: 429000, 39: 601000, 40: 772000, 41: 944000, 42: 1115000, 43: 1287000,
+    44: 1673000, 45: 2238000, 46: 2804000, 47: 3369000, 48: 3935000, 49: 4500000, 50: 5020000, 51: 7028000, 52: 9036000, 53: 11044000, 54: 13052000, 55: 15060000,
+    56: 19580000, 57: 27412000, 58: 35244000, 59: 43076000, 60: 50908000, 61: 58740000, 62: 76360000, 63: 113166443, 64: 137448000, 65: None, 66: None, 67: None,
+    68: None, 69: None, 70: None, 71: None, 72: None, 73: None, 74: None, 75: None, 76: None, 77: None, 78: None, 79: None,
+}
+
+AIR_RANKS: Dict[int, Rank] = {i: Rank(i, AIR_RANK_NAMES[i], AIR_RANK_POINTS[i], True) for i in range(1, 80)}
 
 COUNTRIES: Dict[int, Country] = {
     1: Country(1, 'Romania', 'Romania', 'ROU'), 9: Country(9, 'Brazil', 'Brazil', 'BRA'),
@@ -144,28 +165,18 @@ COUNTRIES: Dict[int, Country] = {
 
 FOOD_ENERGY: Dict[str, int] = dict(q1=2, q2=4, q3=6, q4=8, q5=10, q6=12, q7=20)
 
-GROUND_RANKS: Dict[int, str] = {
-    1: 'Recruit', 2: 'Private', 3: 'Private*', 4: 'Private**', 5: 'Private***',
-    6: 'Corporal', 7: 'Corporal*', 8: 'Corporal**', 9: 'Corporal***',
-    10: 'Sergeant', 11: 'Sergeant*', 12: 'Sergeant**', 13: 'Sergeant***',
-    14: 'Lieutenant', 15: 'Lieutenant*', 16: 'Lieutenant**', 17: 'Lieutenant***',
-    18: 'Captain', 19: 'Captain*', 20: 'Captain**', 21: 'Captain***',
-    22: 'Major', 23: 'Major*', 24: 'Major**', 25: 'Major***',
-    26: 'Commander', 27: 'Commander*', 28: 'Commander**', 29: 'Commander***',
-    30: 'Lt Colonel', 31: 'Lt Colonel*', 32: 'Lt Colonel**', 33: 'Lt Colonel***',
-    34: 'Colonel', 35: 'Colonel*', 36: 'Colonel**', 37: 'Colonel***',
-    38: 'General', 39: 'General*', 40: 'General**', 41: 'General***',
-    42: 'Field Marshal', 43: 'Field Marshal*', 44: 'Field Marshal**', 45: 'Field Marshal***',
-    46: 'Supreme Marshal', 47: 'Supreme Marshal*', 48: 'Supreme Marshal**', 49: 'Supreme Marshal***',
-    50: 'National Force', 51: 'National Force*', 52: 'National Force**', 53: 'National Force***',
-    54: 'World Class Force', 55: 'World Class Force*', 56: 'World Class Force**', 57: 'World Class Force***',
-    58: 'Legendary Force', 59: 'Legendary Force*', 60: 'Legendary Force**', 61: 'Legendary Force***',
-    62: 'God of War', 63: 'God of War*', 64: 'God of War**', 65: 'God of War***',
+GROUND_RANK_NAMES: Dict[int, str] = {
+    1: 'Recruit', 2: 'Private', 3: 'Private*', 4: 'Private**', 5: 'Private***', 6: 'Corporal', 7: 'Corporal*', 8: 'Corporal**', 9: 'Corporal***',
+    10: 'Sergeant', 11: 'Sergeant*', 12: 'Sergeant**', 13: 'Sergeant***', 14: 'Lieutenant', 15: 'Lieutenant*', 16: 'Lieutenant**', 17: 'Lieutenant***',
+    18: 'Captain', 19: 'Captain*', 20: 'Captain**', 21: 'Captain***', 22: 'Major', 23: 'Major*', 24: 'Major**', 25: 'Major***',
+    26: 'Commander', 27: 'Commander*', 28: 'Commander**', 29: 'Commander***', 30: 'Lt Colonel', 31: 'Lt Colonel*', 32: 'Lt Colonel**', 33: 'Lt Colonel***',
+    34: 'Colonel', 35: 'Colonel*', 36: 'Colonel**', 37: 'Colonel***', 38: 'General', 39: 'General*', 40: 'General**', 41: 'General***',
+    42: 'Field Marshal', 43: 'Field Marshal*', 44: 'Field Marshal**', 45: 'Field Marshal***', 46: 'Supreme Marshal', 47: 'Supreme Marshal*', 48: 'Supreme Marshal**', 49: 'Supreme Marshal***',
+    50: 'National Force', 51: 'National Force*', 52: 'National Force**', 53: 'National Force***', 54: 'World Class Force', 55: 'World Class Force*', 56: 'World Class Force**', 57: 'World Class Force***',
+    58: 'Legendary Force', 59: 'Legendary Force*', 60: 'Legendary Force**', 61: 'Legendary Force***', 62: 'God of War', 63: 'God of War*', 64: 'God of War**', 65: 'God of War***',
     66: 'Titan', 67: 'Titan*', 68: 'Titan**', 69: 'Titan***',
-    70: 'Legends I', 71: 'Legends II', 72: 'Legends III', 73: 'Legends IV', 74: 'Legends V', 75: 'Legends VI',
-    76: 'Legends VII', 77: 'Legends VIII', 78: 'Legends IX', 79: 'Legends X', 80: 'Legends XI', 81: 'Legends XII',
-    82: 'Legends XIII', 83: 'Legends XIV', 84: 'Legends XV', 85: 'Legends XVI', 86: 'Legends XVII', 87: 'Legends XVIII',
-    88: 'Legends XIX', 89: 'Legends XX',
+    70: 'Legends I', 71: 'Legends II', 72: 'Legends III', 73: 'Legends IV', 74: 'Legends V', 75: 'Legends VI', 76: 'Legends VII', 77: 'Legends VIII', 78: 'Legends IX', 79: 'Legends X',
+    80: 'Legends XI', 81: 'Legends XII', 82: 'Legends XIII', 83: 'Legends XIV', 84: 'Legends XV', 85: 'Legends XVI', 86: 'Legends XVII', 87: 'Legends XVIII', 88: 'Legends XIX', 89: 'Legends XX'
 }
 
 GROUND_RANK_POINTS: Dict[int, int] = {
@@ -183,6 +194,8 @@ GROUND_RANK_POINTS: Dict[int, int] = {
     81: 130000000000, 82: 140000000000, 83: 150000000000, 84: 160000000000, 85: 170000000000,
     86: 180000000000, 87: 190000000000, 88: 200000000000, 89: 210000000000
 }
+
+GROUND_RANKS: Dict[int, Rank] = {i: Rank(i, GROUND_RANK_NAMES[i], GROUND_RANK_POINTS[i], True) for i in range(1, 90)}
 
 INDUSTRIES = Industries()
 
