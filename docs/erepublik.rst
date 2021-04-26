@@ -36,18 +36,18 @@ erepublik.constants module
    :undoc-members:
    :show-inheritance:
 
-erepublik.types module
-----------------------
-
-.. automodule:: erepublik.types
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 erepublik.utils module
 ----------------------
 
 .. automodule:: erepublik.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+erepublik.ws module
+-------------------
+
+.. automodule:: erepublik.ws
    :members:
    :undoc-members:
    :show-inheritance:

@@ -89,7 +89,7 @@ class Rank:
 
     def __init__(self, id: int, name: str, rank_points: int, is_air: bool = False):
         self.id = id
-        self._name = name
+        self.name = name
         self.rank_points = rank_points
         self.is_air = bool(is_air)
 
