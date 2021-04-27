@@ -139,6 +139,9 @@ class Rank:
     def __str__(self):
         return f"{'Air' if self.is_air else 'Ground'}Rank<#{self.id} {self.name}>"
 
+    def __repr__(self):
+        return str(self)
+
 
 AIR_RANK_NAMES: Dict[int, str] = {
     1: 'Airman', 2: 'Airman 1st Class', 3: 'Airman 1st Class*', 4: 'Airman 1st Class**', 5: 'Airman 1st Class***', 6: 'Airman 1st Class****', 7: 'Airman 1st Class*****',
@@ -241,7 +244,7 @@ GROUND_RANK_POINTS: Dict[int, int] = {
     86: 180000000000, 87: 190000000000, 88: 200000000000, 89: 210000000000
 }
 
-GROUND_RANKS: Dict[int, Rank] = {i: Rank(i, GROUND_RANK_NAMES[i], GROUND_RANK_POINTS[i], True) for i in range(1, 90)}
+GROUND_RANKS: Dict[int, Rank] = {i: Rank(i, GROUND_RANK_NAMES[i], GROUND_RANK_POINTS[i], False) for i in range(1, 90)}
 
 INDUSTRIES = Industries()
 
