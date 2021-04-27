@@ -93,6 +93,49 @@ class Rank:
         self.rank_points = rank_points
         self.is_air = bool(is_air)
 
+    def __int__(self):
+        return self.id
+
+    def __eq__(self, other):
+        if isinstance(other, Rank):
+            return self.id == other.id if other.is_air == self.is_air else False
+        else:
+            return self.id == int(other)
+
+    def __ne__(self, other):
+        if isinstance(other, Rank):
+            return not self.id == other.id if other.is_air == self.is_air else True
+        else:
+            return not self.id == int(other)
+
+    def __lt__(self, other):
+        if isinstance(other, Rank):
+            return self.id < other.id if other.is_air == self.is_air else False
+        else:
+            return self.id < int(other)
+
+    def __le__(self, other):
+        if isinstance(other, Rank):
+            return self.id <= other.id if other.is_air == self.is_air else False
+        else:
+            return self.id <= int(other)
+
+    def __gt__(self, other):
+        if isinstance(other, Rank):
+            return self.id > other.id if other.is_air == self.is_air else False
+        else:
+            return self.id > int(other)
+
+    def __ge__(self, other):
+        if isinstance(other, Rank):
+            return self.id >= other.id if other.is_air == self.is_air else False
+        else:
+            return self.id >= int(other)
+
+    @property
+    def as_dict(self):
+        return dict(id=self.id, name=self.name, rank_points=self.rank_points, is_air=self.is_air)
+
 
 AIR_RANK_NAMES: Dict[int, str] = {
     1: 'Airman', 2: 'Airman 1st Class', 3: 'Airman 1st Class*', 4: 'Airman 1st Class**', 5: 'Airman 1st Class***', 6: 'Airman 1st Class****', 7: 'Airman 1st Class*****',
