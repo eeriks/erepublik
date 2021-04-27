@@ -136,6 +136,9 @@ class Rank:
     def as_dict(self):
         return dict(id=self.id, name=self.name, rank_points=self.rank_points, is_air=self.is_air)
 
+    def __str__(self):
+        return f"{'Air' if self.is_air else 'Ground'}Rank<#{self.id} {self.name}>"
+
 
 AIR_RANK_NAMES: Dict[int, str] = {
     1: 'Airman', 2: 'Airman 1st Class', 3: 'Airman 1st Class*', 4: 'Airman 1st Class**', 5: 'Airman 1st Class***', 6: 'Airman 1st Class****', 7: 'Airman 1st Class*****',
