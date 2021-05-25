@@ -144,7 +144,7 @@ class CitizenBaseAPI:
         self._req.proxies = dict(http=url, https=url)
 
     def set_http_proxy(self, host: str, port: int, username: str = None, password: str = None):
-        url = f'http://{username}:{password}@{host}:{port}' if username and password else f'socks5://{host}:{port}'
+        url = f'http://{username}:{password}@{host}:{port}' if username and password else f'http://{host}:{port}'
         self._req.proxies = dict(http=url)
 
     def _get_main_session_captcha(self) -> Response:
@@ -154,7 +154,8 @@ class CitizenBaseAPI:
         return self.get(f'{self.url}/main/sessionUnlockPopup')
 
     def _post_main_session_get_challenge(self, captcha_id: int, image_id: str = "") -> Response:
-        env = dict(l=['tets', ], s=[], c=["l_chathwe", "l_chatroom"], m=0)
+        c = [cookie.name for cookie in self._req.cookies if not cookie.has_nonstandard_attr('HttpOnly')]
+        env = dict(l=['tets'], s=[], c=c, m=0)
         data = dict(_token=self.token, captchaId=captcha_id, env=utils.b64json(env))
         if image_id:
             data.update(imageId=image_id, isRefresh=True)
@@ -176,6 +177,9 @@ class CitizenBaseAPI:
                     clickMatrix=utils.json_dumps(coords).replace(' ', ''), isMobile=0, env=b64_env, src=src)
         return self.post(f'{self.url}/main/sessionUnlock', data=data, json=data,
                          headers={'X-Requested-With': 'XMLHttpRequest', 'Referer': 'https://www.erepublik.com/en'})
+
+    def _post_energy_refill_get_inventory(self):
+        return self.post(f'{self.url}/economy/energyRefill-getInventory', data={'_token': self.token})
 
 
 class ErepublikAnniversaryAPI(CitizenBaseAPI):

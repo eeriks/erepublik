@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import threading
+import warnings
 import weakref
 from decimal import Decimal
 from io import BytesIO
@@ -25,6 +26,14 @@ class ErepublikNetworkException(ErepublikException):
     def __init__(self, message, request):
         super().__init__(message)
         self.request = request
+
+
+class CloudFlareSessionError(ErepublikNetworkException):
+    pass
+
+
+class CaptchaSessionError(ErepublikNetworkException):
+    pass
 
 
 class Holding:
@@ -414,26 +423,35 @@ class Config:
 class Energy:
     limit = 500  # energyToRecover
     interval = 10  # energyPerInterval
-    recoverable = 0  # energyFromFoodRemaining
-    recovered = 0  # energy
+    energy = 0  # energy
     _recovery_time = None
 
     def __init__(self):
         self._recovery_time = utils.now()
 
     def __repr__(self):
-        return f"{self.recovered:4}/{self.limit:4} + {self.recoverable:4}, {self.interval:3}hp/6min"
+        return f"{self.energy:4}/{self.limit:4}, {self.interval:3}hp/6min"
+
+    @property
+    def recovered(self):
+        warnings.warn('Deprecated since auto auto-eat! Will be removed soon. Use Energy.energy', DeprecationWarning)
+        return self.energy
+
+    @property
+    def recoverable(self):
+        warnings.warn('Deprecated since auto auto-eat! Will be removed soon. Use Energy.energy', DeprecationWarning)
+        return 0
 
     def set_reference_time(self, recovery_time: datetime.datetime):
         self._recovery_time = recovery_time.replace(microsecond=0)
 
     @property
     def food_fights(self):
-        return self.available // 10
+        return self.energy // 10
 
     @property
     def reference_time(self):
-        if self.is_recovered_full or self._recovery_time < utils.now():
+        if self.is_energy_full or self._recovery_time < utils.now():
             ret = utils.now()
         else:
             ret = self._recovery_time
@@ -441,26 +459,28 @@ class Energy:
 
     @property
     def is_recoverable_full(self):
-        return self.recoverable >= self.limit - 5 * self.interval
+        warnings.warn('Deprecated since auto auto-eat! Will be removed soon. Use Energy.is_energy_full', DeprecationWarning)
+        return self.is_energy_full
 
     @property
     def is_recovered_full(self):
-        return self.recovered >= self.limit - self.interval
+        warnings.warn('Deprecated since auto auto-eat! Will be removed soon. Use Energy.is_energy_full', DeprecationWarning)
+        return self.is_energy_full
 
     @property
     def is_energy_full(self):
-        return self.is_recoverable_full and self.is_recovered_full
+        return self.energy >= self.limit - self.interval
 
     @property
     def available(self):
-        return self.recovered + self.recoverable
+        warnings.warn('Deprecated since auto auto-eat! Will be removed soon. Use Energy.energy', DeprecationWarning)
+        return self.energy
 
     @property
     def as_dict(self) -> Dict[str, Union[int, datetime.datetime, bool]]:
-        return dict(limit=self.limit, interval=self.interval, recoverable=self.recoverable, recovered=self.recovered,
+        return dict(limit=self.limit, interval=self.interval, energy=self.energy,
                     reference_time=self.reference_time, food_fights=self.food_fights,
-                    is_recoverable_full=self.is_recoverable_full, is_recovered_full=self.is_recovered_full,
-                    is_energy_full=self.is_energy_full, available=self.available)
+                    is_energy_full=self.is_energy_full)
 
 
 class Details:

@@ -7,7 +7,7 @@ from decimal import Decimal
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, TypedDict
 
 from requests import HTTPError, RequestException, Response
 
@@ -78,7 +78,8 @@ class BaseCitizen(access_points.CitizenAPI):
         (after 15min time of inactivity opening page in eRepublik.com redirects to home page),
         by explicitly requesting homepage.
         """
-        resp = self._req.get(self.url)
+        # Idiots have fucked up their session manager - after logging in You might be redirected to public homepage instead of authenticated
+        resp = self._req.get(self.url if self.logged_in else f"{self.url}/economy/myCompanies")
         self.r = resp
         if self._errors_in_response(resp):
             self.get_csrf_token()
@@ -210,9 +211,9 @@ class BaseCitizen(access_points.CitizenAPI):
         self.division = int(citizen.get('division', 0))
 
         self.energy.interval = citizen.get('energyPerInterval', 0)
-        self.energy.limit = citizen.get('energyToRecover', 0)
-        self.energy.recovered = citizen.get('energy', 0)
-        self.energy.recoverable = citizen.get('energyFromFoodRemaining', 0)
+        self.energy.limit = citizen.get('energyPoolLimit', 0)
+        self.energy.energy = citizen.get('energy', 0)
+        # self.energy.set_reference_time(utils.good_timedelta(self.now, timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2]))))
 
         self.details.current_region = citizen.get('regionLocationId', 0)
         self.details.current_country = constants.COUNTRIES.get(
@@ -279,8 +280,19 @@ class BaseCitizen(access_points.CitizenAPI):
     def refresh_captcha_image(self, captcha_id: int, image_id: str):
         return self._post_main_session_get_challenge(captcha_id, image_id).json()
 
-    def solve_captcha(self, src: str) -> List[Dict[str, int]]:
-        return []
+    def solve_captcha(self, src: str) -> Optional[List[Dict[str, int]]]:
+        class _API_RESULT(TypedDict):
+            x: int
+            y: int
+
+        class _API_RETURN(TypedDict):
+            status: bool
+            message: str
+            result: Optional[List[_API_RESULT]]
+
+        solve_data: _API_RETURN = self.post('https://api.erep.lv/captcha/api', data=dict(citizen_id=self.details.citizen_id, src=src, key='CaptchaDevAPI')).json()
+        if solve_data['status']:
+            return solve_data.get('result')
 
     @property
     def inventory(self) -> classes.Inventory:
@@ -636,7 +648,7 @@ class BaseCitizen(access_points.CitizenAPI):
 
     @property
     def health_info(self):
-        ret = f"{self.energy.recovered}/{self.energy.limit} + {self.energy.recoverable}, " \
+        ret = f"{self.energy.energy}/{self.energy.limit}, " \
               f"{self.energy.interval}hp/6m. {self.details.xp_till_level_up}xp until level up"
         return ret
 
@@ -663,10 +675,9 @@ class BaseCitizen(access_points.CitizenAPI):
 
     @property
     def time_till_full_ff(self) -> timedelta:
-        energy = self.energy.recoverable + self.energy.recovered
-        if energy >= self.energy.limit * 2:
+        if self.energy.energy >= self.energy.limit:
             return timedelta(0)
-        minutes_needed = round((self.energy.limit * 2 - energy) / self.energy.interval) * 6
+        minutes_needed = round((self.energy.limit - self.energy.energy) / self.energy.interval) * 6
         return (self.energy.reference_time - self.now) + timedelta(minutes=minutes_needed)
 
     @property
@@ -675,7 +686,7 @@ class BaseCitizen(access_points.CitizenAPI):
         Max required time for 0 to full energy (0/0 -> limit/limit) (last interval rounded up)
         :return:
         """
-        return timedelta(minutes=round((self.energy.limit * 2 / self.energy.interval) + 0.49) * 6)
+        return timedelta(minutes=round((self.energy.limit / self.energy.interval) + 0.49) * 6)
 
     @property
     def is_levelup_close(self) -> bool:
@@ -699,8 +710,8 @@ class BaseCitizen(access_points.CitizenAPI):
         If Energy limit >= xp till levelup * 10
         :return: bool
         """
-        can_reach_next_level = self.energy.recovered >= self.details.xp_till_level_up * 10
-        can_do_max_amount_of_dmg = self.energy.recoverable + 2 * self.energy.interval >= self.energy.limit
+        can_reach_next_level = self.energy.energy >= self.details.xp_till_level_up * 10
+        can_do_max_amount_of_dmg = self.energy.energy + 2 * self.energy.interval >= self.energy.limit
         return can_reach_next_level and can_do_max_amount_of_dmg
 
     @property
@@ -774,28 +785,6 @@ class BaseCitizen(access_points.CitizenAPI):
             ret.update({id_: name})
         return ret
 
-    def _eat(self, colour: str = 'blue') -> Response:
-        response = self._post_eat(colour)
-        r_json = response.json()
-        for q, amount in r_json.get('units_consumed').items():
-            if f"q{q}" in self.food:
-                self.food[f"q{q}"] -= amount
-            elif q == '10':
-                self.eb_normal -= amount
-            elif q == '11':
-                self.eb_double -= amount
-            elif 11 < int(q) < 17:
-                self.eb_small -= amount
-            elif q == '17':
-                self.eb_triple -= amount
-        next_recovery = r_json.get('food_remaining_reset').split(":")
-        self.energy.set_reference_time(
-            utils.good_timedelta(self.now, timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2])))
-        )
-        self.energy.recovered = r_json.get('health')
-        self.energy.recoverable = r_json.get('food_remaining')
-        return response
-
     def _login(self):
         # MUST BE CALLED TROUGH self.get_csrf_token()
         r = self._post_login(self.config.email, self.config.password)
@@ -827,9 +816,12 @@ class BaseCitizen(access_points.CitizenAPI):
             pass
         if response.status_code >= 400:
             self.r = response
+            if '<title>Attention Required! | Cloudflare</title>' in response.text:
+                self.write_warning('Cloudflare blocked request! You must inject valid CloudFlare cookie!')
+                raise classes.CloudFlareSessionError(f"CloudFlare session error!", response)
             if response.text == 'Please verify your account.' or response.text == 'Forbidden':
                 self.do_captcha_challenge()
-                return True
+                raise classes.CaptchaSessionError(f"CaptchaSession has expired!", response)
             elif response.status_code >= 500:
                 if self.restricted_ip:
                     self._req.cookies.clear()
@@ -1931,17 +1923,14 @@ class CitizenMilitary(CitizenTravel):
             error_count = total_damage = total_hits = 0
             ok_to_fight = True
             while ok_to_fight and error_count < 10 and count > 0:
-                while all((count > 0, error_count < 10, self.energy.recovered >= 50)):
+                while all((count > 0, error_count < 10, self.energy.energy >= 50)):
                     hits, error, damage = self._shoot(battle, division, side)
                     count -= hits
                     total_hits += hits
                     total_damage += damage
                     error_count += error
                 else:
-                    self._eat('blue')
-                    if count > 0 and self.energy.recovered < 50 and use_ebs:
-                        self._eat('orange')
-                    if self.energy.recovered < 50 or error_count >= 10 or count <= 0:
+                    if self.energy.energy < 50 or error_count >= 10 or count <= 0:
                         self.write_log(f"Hits: {total_hits:>4} | Damage: {total_damage}")
                         ok_to_fight = False
                         if total_damage:
@@ -2009,14 +1998,14 @@ class CitizenMilitary(CitizenTravel):
                 hits = r_json['user']['earnedXp']
             # InfantryKit player
             # The almost always safe way (breaks on levelup hit)
-            elif self.energy.recovered >= r_json['details']['wellness']:  # Haven't reached levelup
-                hits = (self.energy.recovered - r_json['details']['wellness']) // 10
+            elif self.energy.energy >= r_json['details']['wellness']:  # Haven't reached levelup
+                hits = (self.energy.energy - r_json['details']['wellness']) // 10
             else:
                 hits = r_json['hits']
                 if r_json['user']['epicBattle']:
                     hits /= 1 + r_json['user']['epicBattle']
 
-            self.energy.recovered = r_json['details']['wellness']
+            self.energy.energy = r_json['details']['wellness']
             self.details.xp = int(r_json['details']['points'])
             damage = r_json['user']['givenDamage'] * (1.1 if r_json['oldEnemy']['isNatural'] else 1)
         else:
@@ -2179,7 +2168,7 @@ class CitizenMilitary(CitizenTravel):
         elif self.next_reachable_energy and self.config.next_energy:
             ret = True
         # 1h worth of energy
-        elif self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
+        elif self.energy.energy + self.energy.interval * 3 >= self.energy.limit:
             ret = True
         return ret
 
@@ -2218,7 +2207,7 @@ class CitizenMilitary(CitizenTravel):
             msg = 'Continuing to fight in previous battle'
 
         # All-in (type = all-in and full ff)
-        elif self.config.all_in and self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
+        elif self.config.all_in and self.energy.energy + self.energy.interval * 3 >= self.energy.limit:
             count = self.energy.food_fights
             msg = "Fighting all-in. Doing %i hits" % count
 
@@ -2228,7 +2217,7 @@ class CitizenMilitary(CitizenTravel):
             msg = "Fighting for +1 energy. Doing %i hits" % count
 
         # 1h worth of energy
-        elif self.energy.available + self.energy.interval * 3 >= self.energy.limit * 2:
+        elif self.energy.energy + self.energy.interval * 3 >= self.energy.limit:
             count = self.energy.interval
             msg = "Fighting for 1h energy. Doing %i hits" % count
             force_fight = True
@@ -2551,10 +2540,6 @@ class CitizenTasks(CitizenEconomy):
         d.update(tg_contract=self.tg_contract, ot_points=self.ot_points, next_ot_time=self.next_ot_time)
         return d
 
-    def eat(self):
-        """ Eat food """
-        self._eat('blue')
-
     def work(self):
         if self.energy.food_fights >= 1:
             response = self._post_economy_work('work')
@@ -2571,12 +2556,10 @@ class CitizenTasks(CitizenEconomy):
             else:
                 self.reporter.report_action('WORK', json_val=js)
         else:
-            self._eat('blue')
             if self.energy.food_fights < 1:
                 seconds = (self.energy.reference_time - self.now).total_seconds()
                 self.write_warning(f"I don't have energy to work. Will sleep for {seconds}s")
                 self.sleep(seconds)
-                self._eat('blue')
             self.work()
 
     def train(self):
@@ -2600,13 +2583,11 @@ class CitizenTasks(CitizenEconomy):
                 else:
                     self.reporter.report_action('TRAIN', response.json())
             else:
-                self._eat('blue')
                 if self.energy.food_fights < len(tgs):
                     large = max(self.energy.reference_time, self.now)
                     sleep_seconds = utils.get_sleep_seconds(large)
                     self.write_warning(f"I don't have energy to train. Will sleep for {sleep_seconds} seconds")
                     self.sleep(sleep_seconds)
-                    self._eat('blue')
                 self.train()
 
     def work_ot(self):
@@ -2624,13 +2605,11 @@ class CitizenTasks(CitizenEconomy):
                     self.buy_food(120)
                 self.reporter.report_action('WORK_OT', r.json())
         elif self.energy.food_fights < 1 and self.ot_points >= 24:
-            self._eat('blue')
             if self.energy.food_fights < 1:
                 large = max(self.energy.reference_time, self.now)
                 sleep_seconds = utils.get_sleep_seconds(large)
                 self.write_warning(f"I don't have energy to work OT. Will sleep for {sleep_seconds}s")
                 self.sleep(sleep_seconds)
-                self._eat('blue')
             self.work_ot()
 
     def resign_from_employer(self) -> bool:
@@ -2694,14 +2673,6 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
         player.login()
         return player
 
-    def _eat(self, colour: str = 'blue') -> Response:
-        resp = super()._eat(colour)
-        if not any([resp.json().get('units_consumed').values()]):
-            if colour == 'orange' and resp.json().get('food_remaining'):
-                self.eat()
-            return self._eat(colour)
-        return resp
-
     def config_setup(self, **kwargs):
         self.config.reset()
         for key, value in kwargs.items():
@@ -2720,9 +2691,10 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                                   self.config.telegram_token,
                                   self.name)
             self.telegram.send_message(f"*Started* {utils.now():%F %T}")
-
         self.init_logger()
-        self.update_all(True)
+
+        if self.logged_in:
+            self.update_all(True)
 
     def update_citizen_info(self, html: str = None):
         """
@@ -2743,7 +2715,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
                     self.write_warning('Training ground contract active but '
                                        f"don't have enough gold ({self.details.gold}g {self.details.cc}cc)")
         if self.energy.is_energy_full and self.config.telegram:
-            self.telegram.report_full_energy(self.energy.available, self.energy.limit, self.energy.interval)
+            self.telegram.report_full_energy(self.energy.energy, self.energy.limit, self.energy.interval)
 
     def check_for_notification_medals(self):
         notifications = self._get_main_citizen_daily_assistant().json()
@@ -2880,7 +2852,7 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
         data = dict(xp=self.details.xp, cc=self.details.cc, gold=self.details.gold, pp=self.details.pp,
                     inv_total=self.inventory.total, inv=self.inventory.used,
                     hp_limit=self.energy.limit,
-                    hp_interval=self.energy.interval, hp_available=self.energy.available, food=self.food['total'], )
+                    hp_interval=self.energy.interval, hp_available=self.energy.energy, food=self.food['total'], )
         self.reporter.send_state_update(**data)
 
     def send_inventory_update(self):
@@ -2888,31 +2860,6 @@ class _Citizen(CitizenAnniversary, CitizenCompanies, CitizenLeaderBoard,
 
     def send_my_companies_update(self):
         self.reporter.report_action('COMPANIES', json_val=self.my_companies.as_dict)
-
-    def eat(self):
-        """
-        Try to eat food
-        """
-        self._eat('blue')
-        if self.food['total'] > self.energy.interval:
-            if self.energy.limit - self.energy.recovered > self.energy.interval or not self.energy.recoverable % 2:
-                super().eat()
-            else:
-                self.logger.debug("I don't want to eat right now!")
-        else:
-            self.write_warning(f"I'm out of food! But I'll try to buy some!\n{self.food}")
-            self.buy_food()
-            if self.food['total'] > self.energy.interval:
-                super().eat()
-            else:
-                self.write_warning('I failed to buy food')
-
-    def eat_eb(self):
-        self.write_warning('Eating energy bar')
-        if self.energy.recoverable:
-            self._eat('blue')
-        self._eat('orange')
-        self.write_log(self.health_info)
 
     def sell_produced_product(self, kind: str, quality: int = 1, amount: int = 0):
         if not amount:
