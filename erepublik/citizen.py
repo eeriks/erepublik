@@ -7,7 +7,7 @@ from decimal import Decimal
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, TypedDict, Union
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from requests import HTTPError, RequestException, Response
 
@@ -280,11 +280,11 @@ class BaseCitizen(access_points.CitizenAPI):
         return self._post_main_session_get_challenge(captcha_id, image_id).json()
 
     def solve_captcha(self, src: str) -> Optional[List[Dict[str, int]]]:
-        class _API_RESULT(TypedDict):
+        class _API_RESULT(dict):
             x: int
             y: int
 
-        class _API_RETURN(TypedDict):
+        class _API_RETURN(dict):
             status: bool
             message: str
             result: Optional[List[_API_RESULT]]
