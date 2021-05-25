@@ -7,14 +7,13 @@ from decimal import Decimal
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, TypedDict
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, TypedDict, Union
 
 from requests import HTTPError, RequestException, Response
 
 from erepublik import _types as types
 from erepublik import access_points, classes, constants, utils
-from erepublik._logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, \
-    ErepublikLogConsoleHandler
+from erepublik._logging import ErepublikErrorHTTTPHandler, ErepublikFileHandler, ErepublikFormatter, ErepublikLogConsoleHandler
 
 
 class BaseCitizen(access_points.CitizenAPI):
