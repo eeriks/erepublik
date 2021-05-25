@@ -26,9 +26,7 @@ def main():
     player.login()
     now = player.now.replace(second=0, microsecond=0)
     dt_max = constants.max_datetime
-    tasks = {
-        'eat': now,
-    }
+    tasks = {}
     if player.config.work:
         tasks.update({'work': now})
     if player.config.train:
@@ -61,7 +59,6 @@ def main():
             if tasks.get('wam', dt_max) <= now:
                 player.write_log("Doing task: Work as manager")
                 success = player.work_as_manager()
-                player.eat()
                 if success:
                     next_time = utils.good_timedelta(now.replace(hour=14, minute=0, second=0, microsecond=0),
                                                      timedelta(days=1))
@@ -70,19 +67,8 @@ def main():
 
                 tasks.update({'wam': next_time})
 
-            if tasks.get('eat', dt_max) <= now:
-                player.write_log("Doing task: eat")
-                player.eat()
-
-                if player.energy.food_fights > player.energy.limit // 10:
-                    next_minutes = 12
-                else:
-                    next_minutes = (player.energy.limit - 5 * player.energy.interval) // player.energy.interval * 6
-
-                next_time = player.energy.reference_time + timedelta(minutes=next_minutes)
-                tasks.update({'eat': next_time})
-
             if tasks.get('ot', dt_max) <= now:
+                player.update_job_info()
                 player.write_log("Doing task: work overtime")
                 if now > player.my_companies.next_ot_time:
                     player.work_ot()
