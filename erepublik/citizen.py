@@ -213,7 +213,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.division = int(citizen.get('division', 0))
 
         self.energy.interval = citizen.get('energyPerInterval', 0)
-        self.energy.limit = citizen.get('energyPoolLimit', 0)
+        self.energy.limit = citizen.get('energyToRecover', 0)
         self.energy.energy = citizen.get('energy', 0)
         # self.energy.set_reference_time(utils.good_timedelta(self.now, timedelta(seconds=int(next_recovery[1]) * 60 + int(next_recovery[2]))))
 
