@@ -206,6 +206,9 @@ class BaseCitizen(access_points.CitizenAPI):
         citizen_js = utils.json.loads(ugly_js)
         citizen = citizen_js.get('citizen', {})
 
+        self.details.citizen_id = int(citizen['citizenId'])
+        self.name = citizen['name']
+
         self.eday = citizen_js.get('settings').get('eDay')
         self.division = int(citizen.get('division', 0))
 
@@ -599,11 +602,11 @@ class BaseCitizen(access_points.CitizenAPI):
 
     def _resume_session(self):
         resp = self._req.get(self.url)
-        re_name_id = re.search(r'<a data-fblog="profile_avatar" href="/en/citizen/profile/(\d+)" '
-                               r'class="user_avatar" title="(.*?)">', resp.text)
-        if re_name_id:
-            self.name = re_name_id.group(2)
-            self.details.citizen_id = re_name_id.group(1)
+        try:
+            self.update_citizen_info(resp.text)
+            if not self.name:
+                raise classes.ErepublikException("Unable to find player name")
+
             self.write_log(f"Resumed as: {self.name}")
             if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', resp.text):
                 self.restricted_ip = True
@@ -611,7 +614,7 @@ class BaseCitizen(access_points.CitizenAPI):
 
             self.logged_in = True
             self.get_csrf_token()
-        else:
+        except classes.ErepublikException:
             self._login()
 
     def __str__(self) -> str:
