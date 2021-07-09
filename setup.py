@@ -12,17 +12,17 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'PySocks==1.7.1',
-    'pytz==2021.1',
-    'requests==2.25.1',
-    'requests-toolbelt==0.9.1',
+    'PySocks>=1.7.1',
+    'pytz>=2021.1',
+    'requests>=2.25.0',
+    'requests-toolbelt>=0.9.0',
 ]
 
 setup_requirements = []
 
 test_requirements = [
-    "pytest==6.1.2",
-    "responses==0.12.1"
+    "pytest==6.2.4",
+    "responses==0.13.3"
 ]
 
 setup(
@@ -34,8 +34,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     description="Python package for automated eRepublik playing",
     entry_points={},
@@ -46,7 +46,7 @@ setup(
     keywords='erepublik',
     name='eRepublik',
     packages=find_packages(include=['erepublik']),
-    python_requires='>=3.7, <4',
+    python_requires='>=3.8, <4',
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
