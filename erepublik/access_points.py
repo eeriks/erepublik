@@ -15,27 +15,6 @@ __all__ = ['SlowRequests', 'CitizenAPI']
 class SlowRequests(Session):
     last_time: datetime.datetime
     timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)
-    _uas: List[str] = [
-        # Chrome
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
-
-        # FireFox
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:81.0) Gecko/20100101 Firefox/81.0',
-        'Mozilla/5.0 (X11; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0',
-        'Mozilla/5.0 (X11; Linux x86_64; rv:83.0) Gecko/20100101 Firefox/83.0',
-        'Mozilla/5.0 (X11; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0',
-        'Mozilla/5.0 (X11; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0',
-    ]
     debug: bool = False
 
     def __init__(self, proxies: Dict[str, str] = None, user_agent: str = None):
@@ -43,7 +22,7 @@ class SlowRequests(Session):
         if proxies:
             self.proxies = proxies
         if user_agent is None:
-            user_agent = random.choice(self._uas)
+            user_agent = random.choice(self.get_random_user_agent())
         self.request_log_name = utils.get_file(utils.now().strftime("debug/requests_%Y-%m-%d.log"))
         self.last_time = utils.now()
         self.headers.update({'User-Agent': user_agent})
@@ -114,6 +93,36 @@ class SlowRequests(Session):
             if not redirect:
                 data = dump.dump_all(response)
                 utils.write_file(f'debug/dumps/{fd_time}_{fd_name}{fd_extra}.{fd_ext}.dump', data.decode('utf8'))
+
+    @staticmethod
+    def get_random_user_agent() -> str:
+        windows_x64 = 'Windows NT 10.0; Win64; x64'
+        linux_x64 = 'X11; Linux x86_64'
+        android_11 = 'Android 11; Mobile'
+        android_10 = 'Android 10; Mobile'
+        android_9 = 'Android 9; Mobile'
+
+        firefox_tmplt = 'Mozilla/5.0 ({osystem}; rv:{version}.0) Gecko/20100101 Firefox/{version}.0'
+        ff_version = range(85, 92)
+
+        chrome_tmplt = 'Mozilla/5.0 ({osystem}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36'
+        chrome_version = ['85.0.4183.121',
+                          '86.0.4240.183',
+                          '87.0.4280.141',
+                          '88.0.4324.182',
+                          '89.0.4389.128',
+                          '90.0.4430.18',
+                          '91.0.4472.73',
+                          '92.0.4515.14']
+        uas = []
+
+        for osystem in [windows_x64, linux_x64, android_9, android_10, android_11]:
+            for version in ff_version:
+                uas.append(firefox_tmplt.format(osystem=osystem, version=version))
+            for version in chrome_version:
+                uas.append(chrome_tmplt.format(osystem=osystem, version=version))
+
+        return random.choice(uas)
 
 
 class CitizenBaseAPI:
