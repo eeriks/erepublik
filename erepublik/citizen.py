@@ -795,11 +795,7 @@ class BaseCitizen(access_points.CitizenAPI):
         if r.url == f"{self.url}/login":
             self.report_error("Citizen email and/or password is incorrect!")
         else:
-            re_name_id = re.search(r'<a data-fblog="profile_avatar" href="/en/citizen/profile/(\d+)" '
-                                   r'class="user_avatar" title="(.*?)">', r.text)
-            self.name = re_name_id.group(2)
-            self.details.citizen_id = re_name_id.group(1)
-
+            self.update_citizen_info(r.text)
             self.write_log(f"Logged in as: {self.name}")
             self.get_csrf_token()
             if re.search('<div id="accountSecurity" class="it-hurts-when-ip">', self.r.text):
