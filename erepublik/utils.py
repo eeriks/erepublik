@@ -232,12 +232,12 @@ def json_decode_object_hook(
 
 
 def json_load(f, **kwargs):
-    kwargs.update(object_hook=json_decode_object_hook)
+    # kwargs.update(object_hook=json_decode_object_hook)
     return json.load(f, **kwargs)
 
 
 def json_loads(s: str, **kwargs):
-    kwargs.update(object_hook=json_decode_object_hook)
+    # kwargs.update(object_hook=json_decode_object_hook)
     return json.loads(s, **kwargs)
 
 
