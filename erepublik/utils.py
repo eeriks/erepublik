@@ -23,10 +23,33 @@ except ImportError:
     import json
 
 __all__ = [
-    'VERSION', 'calculate_hit', 'date_from_eday', 'eday_from_date', 'deprecation', 'get_final_hit_dmg', 'write_file',
-    'get_air_hit_dmg_value', 'get_file', 'get_ground_hit_dmg_value', 'get_sleep_seconds', 'good_timedelta', 'slugify',
-    'interactive_sleep', 'json', 'localize_dt', 'localize_timestamp', 'normalize_html_json', 'now', 'silent_sleep',
-    'json_decode_object_hook', 'json_load', 'json_loads', 'json_dump', 'json_dumps', 'b64json', 'ErepublikJSONEncoder',
+    "VERSION",
+    "calculate_hit",
+    "date_from_eday",
+    "eday_from_date",
+    "deprecation",
+    "get_final_hit_dmg",
+    "write_file",
+    "get_air_hit_dmg_value",
+    "get_file",
+    "get_ground_hit_dmg_value",
+    "get_sleep_seconds",
+    "good_timedelta",
+    "slugify",
+    "interactive_sleep",
+    "json",
+    "localize_dt",
+    "localize_timestamp",
+    "normalize_html_json",
+    "now",
+    "silent_sleep",
+    "json_decode_object_hook",
+    "json_load",
+    "json_loads",
+    "json_dump",
+    "json_dumps",
+    "b64json",
+    "ErepublikJSONEncoder",
 ]
 
 VERSION: str = __version__
@@ -75,7 +98,7 @@ def date_from_eday(eday: int) -> datetime.date:
 
 
 def get_sleep_seconds(time_until: datetime.datetime) -> int:
-    """ time_until aware datetime object Wrapper for sleeping until """
+    """time_until aware datetime object Wrapper for sleeping until"""
     sleep_seconds = int((time_until - now()).total_seconds())
     return sleep_seconds if sleep_seconds > 0 else 0
 
@@ -107,7 +130,7 @@ def get_file(filepath: str) -> str:
     file = Path(filepath)
     if file.exists():
         if file.is_dir():
-            return str(file / 'new_file.txt')
+            return str(file / "new_file.txt")
         else:
             version = 1
             try:
@@ -129,16 +152,16 @@ def get_file(filepath: str) -> str:
 
 def write_file(filename: str, content: str) -> int:
     filename = get_file(filename)
-    with open(filename, 'ab') as f:
+    with open(filename, "ab") as f:
         ret = f.write(content.encode("utf-8"))
     return ret
 
 
 def normalize_html_json(js: str) -> str:
-    js = re.sub(r' \'(.*?)\'', lambda a: f'"{a.group(1)}"', js)
-    js = re.sub(r'(\d\d):(\d\d):(\d\d)', r'\1\2\3', js)
+    js = re.sub(r" \'(.*?)\'", lambda a: f'"{a.group(1)}"', js)
+    js = re.sub(r"(\d\d):(\d\d):(\d\d)", r"\1\2\3", js)
     js = re.sub(r'([{\s,])(\w+)(:)(?!"})', r'\1"\2"\3', js)
-    js = re.sub(r',\s*}', '}', js)
+    js = re.sub(r",\s*}", "}", js)
     return js
 
 
@@ -151,47 +174,51 @@ def slugify(value, allow_unicode=False) -> str:
     """
     value = str(value)
     if allow_unicode:
-        value = unicodedata.normalize('NFKC', value)
+        value = unicodedata.normalize("NFKC", value)
     else:
-        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub(r'[^\w\s-]', '_', value).strip().lower()
-    return re.sub(r'[-\s]+', '-', value)
+        value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    value = re.sub(r"[^\w\s-]", "_", value).strip().lower()
+    return re.sub(r"[-\s]+", "-", value)
 
 
-def calculate_hit(strength: float, rang: int, tp: bool, elite: bool, ne: bool, booster: int = 0,
-                  weapon: int = 200, is_deploy: bool = False) -> Decimal:
+def calculate_hit(
+    strength: float, rang: int, tp: bool, elite: bool, ne: bool, booster: int = 0, weapon: int = 200, is_deploy: bool = False
+) -> Decimal:
     dec = 3 if is_deploy else 0
-    base_str = (1 + Decimal(str(round(strength, 3))) / 400)
-    base_rnk = (1 + Decimal(str(rang / 5)))
-    base_wpn = (1 + Decimal(str(weapon / 100)))
+    base_str = 1 + Decimal(str(round(strength, 3))) / 400
+    base_rnk = 1 + Decimal(str(rang / 5))
+    base_wpn = 1 + Decimal(str(weapon / 100))
     dmg = 10 * base_str * base_rnk * base_wpn
 
     dmg = get_final_hit_dmg(dmg, rang, tp=tp, elite=elite, ne=ne, booster=booster)
     return Decimal(round(dmg, dec))
 
 
-def get_ground_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False,
-                             booster: int = 0, weapon_power: int = 200) -> Decimal:
-    r = requests.get(f'https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}').json()
-    rang = r['military']['militaryData']['ground']['rankNumber']
-    strength = r['military']['militaryData']['ground']['strength']
-    elite = r['citizenAttributes']['level'] > 100
+def get_ground_hit_dmg_value(
+    citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0, weapon_power: int = 200
+) -> Decimal:
+    r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
+    rang = r["military"]["militaryData"]["ground"]["rankNumber"]
+    strength = r["military"]["militaryData"]["ground"]["strength"]
+    elite = r["citizenAttributes"]["level"] > 100
     if natural_enemy:
         true_patriot = True
 
     return calculate_hit(strength, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
 
 
-def get_air_hit_dmg_value(citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0,
-                          weapon_power: int = 0) -> Decimal:
-    r = requests.get(f'https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}').json()
-    rang = r['military']['militaryData']['aircraft']['rankNumber']
-    elite = r['citizenAttributes']['level'] > 100
+def get_air_hit_dmg_value(
+    citizen_id: int, natural_enemy: bool = False, true_patriot: bool = False, booster: int = 0, weapon_power: int = 0
+) -> Decimal:
+    r = requests.get(f"https://www.erepublik.com/en/main/citizen-profile-json/{citizen_id}").json()
+    rang = r["military"]["militaryData"]["aircraft"]["rankNumber"]
+    elite = r["citizenAttributes"]["level"] > 100
     return calculate_hit(0, rang, true_patriot, elite, natural_enemy, booster, weapon_power)
 
 
-def get_final_hit_dmg(base_dmg: Union[Decimal, float, str], rang: int,
-                      tp: bool = False, elite: bool = False, ne: bool = False, booster: int = 0) -> Decimal:
+def get_final_hit_dmg(
+    base_dmg: Union[Decimal, float, str], rang: int, tp: bool = False, elite: bool = False, ne: bool = False, booster: int = 0
+) -> Decimal:
     dmg = Decimal(str(base_dmg))
 
     if elite:
@@ -211,23 +238,23 @@ def deprecation(message):
 def json_decode_object_hook(
     o: Union[Dict[str, Any], List[Any], int, float, str]
 ) -> Union[Dict[str, Any], List[Any], int, float, str, datetime.date, datetime.datetime, datetime.timedelta]:
-    """ Convert classes.ErepublikJSONEncoder datetime, date and timedelta to their python objects
+    """Convert classes.ErepublikJSONEncoder datetime, date and timedelta to their python objects
 
     :param o:
     :return: Union[Dict[str, Any], List[Any], int, float, str, datetime.date, datetime.datetime, datetime.timedelta]
     """
-    if o.get('__type__'):
-        _type = o.get('__type__')
-        if _type == 'datetime':
-            dt = datetime.datetime.strptime(f"{o['date']} {o['time']}", '%Y-%m-%d %H:%M:%S')
-            if o.get('tzinfo'):
-                dt = pytz.timezone(o['tzinfo']).localize(dt)
+    if o.get("__type__"):
+        _type = o.get("__type__")
+        if _type == "datetime":
+            dt = datetime.datetime.strptime(f"{o['date']} {o['time']}", "%Y-%m-%d %H:%M:%S")
+            if o.get("tzinfo"):
+                dt = pytz.timezone(o["tzinfo"]).localize(dt)
             return dt
-        elif _type == 'date':
-            dt = datetime.datetime.strptime(f"{o['date']}", '%Y-%m-%d')
+        elif _type == "date":
+            dt = datetime.datetime.strptime(f"{o['date']}", "%Y-%m-%d")
             return dt.date()
-        elif _type == 'timedelta':
-            return datetime.timedelta(seconds=o['total_seconds'])
+        elif _type == "timedelta":
+            return datetime.timedelta(seconds=o["total_seconds"])
     return o
 
 
@@ -242,20 +269,20 @@ def json_loads(s: str, **kwargs):
 
 
 def json_dump(obj, fp, *args, **kwargs):
-    if not kwargs.get('cls'):
+    if not kwargs.get("cls"):
         kwargs.update(cls=ErepublikJSONEncoder)
     return json.dump(obj, fp, *args, **kwargs)
 
 
 def json_dumps(obj, *args, **kwargs):
-    if not kwargs.get('cls'):
+    if not kwargs.get("cls"):
         kwargs.update(cls=ErepublikJSONEncoder)
     return json.dumps(obj, *args, **kwargs)
 
 
 def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
     if isinstance(obj, list):
-        return b64encode(json.dumps(obj, separators=(',', ':')).encode('utf-8')).decode('utf-8')
+        return b64encode(json.dumps(obj, separators=(",", ":")).encode("utf-8")).decode("utf-8")
     elif isinstance(obj, (int, str)):
         return obj
     elif isinstance(obj, dict):
@@ -263,27 +290,34 @@ def b64json(obj: Union[Dict[str, Union[int, List[str]]], List[str]]):
             obj[k] = b64json(v)
     else:
         from .classes import ErepublikException
-        raise ErepublikException(f'Unhandled object type! obj is {type(obj)}')
-    return b64encode(json.dumps(obj, separators=(',', ':')).encode('utf-8')).decode('utf-8')
+
+        raise ErepublikException(f"Unhandled object type! obj is {type(obj)}")
+    return b64encode(json.dumps(obj, separators=(",", ":")).encode("utf-8")).decode("utf-8")
 
 
 class ErepublikJSONEncoder(json.JSONEncoder):
     def default(self, o):
         try:
             from erepublik.citizen import Citizen
+
             if isinstance(o, Decimal):
                 return float(f"{o:.02f}")
             elif isinstance(o, datetime.datetime):
-                return dict(__type__='datetime', date=o.strftime("%Y-%m-%d"), time=o.strftime("%H:%M:%S"),
-                            tzinfo=str(o.tzinfo) if o.tzinfo else None)
+                return dict(
+                    __type__="datetime",
+                    date=o.strftime("%Y-%m-%d"),
+                    time=o.strftime("%H:%M:%S"),
+                    tzinfo=str(o.tzinfo) if o.tzinfo else None,
+                )
             elif isinstance(o, datetime.date):
-                return dict(__type__='date', date=o.strftime("%Y-%m-%d"))
+                return dict(__type__="date", date=o.strftime("%Y-%m-%d"))
             elif isinstance(o, datetime.timedelta):
-                return dict(__type__='timedelta', days=o.days, seconds=o.seconds,
-                            microseconds=o.microseconds, total_seconds=o.total_seconds())
+                return dict(
+                    __type__="timedelta", days=o.days, seconds=o.seconds, microseconds=o.microseconds, total_seconds=o.total_seconds()
+                )
             elif isinstance(o, Response):
-                return dict(headers=dict(o.__dict__['headers']), url=o.url, text=o.text, status_code=o.status_code)
-            elif hasattr(o, 'as_dict'):
+                return dict(headers=dict(o.__dict__["headers"]), url=o.url, text=o.text, status_code=o.status_code)
+            elif hasattr(o, "as_dict"):
                 return o.as_dict
             elif isinstance(o, set):
                 return list(o)
@@ -291,7 +325,7 @@ class ErepublikJSONEncoder(json.JSONEncoder):
                 return o.to_json()
             elif isinstance(o, Logger):
                 return str(o)
-            elif hasattr(o, '__dict__'):
+            elif hasattr(o, "__dict__"):
                 return o.__dict__
             else:
                 return super().default(o)

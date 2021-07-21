@@ -3,9 +3,9 @@
 """Top-level package for eRepublik script."""
 
 __author__ = """Eriks Karls"""
-__email__ = 'eriks@72.lv'
-__version__ = '0.25.1.2'
+__email__ = "eriks@72.lv"
+__version__ = "0.25.1.2"
 
 from erepublik.citizen import Citizen
 
-__all__ = ['Citizen', '__version__']
+__all__ = ["Citizen", "__version__"]

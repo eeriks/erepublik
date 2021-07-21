@@ -19,13 +19,13 @@ from erepublik.utils import json, json_dumps, json_loads, slugify
 class ErepublikFileHandler(handlers.TimedRotatingFileHandler):
     _file_path: Path
 
-    def __init__(self, filename: str = 'log/erepublik.log', *args, **kwargs):
+    def __init__(self, filename: str = "log/erepublik.log", *args, **kwargs):
         log_path = Path(filename)
         self._file_path = log_path
         log_path.parent.mkdir(parents=True, exist_ok=True)
         at_time = erep_tz.localize(datetime.datetime.now()).replace(hour=0, minute=0, second=0, microsecond=0)
         kwargs.update(atTime=at_time)
-        super().__init__(filename, when='d', *args, **kwargs)
+        super().__init__(filename, when="d", *args, **kwargs)
 
     def doRollover(self) -> None:
         self._file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ class ErepublikFormatter(logging.Formatter):
         if datefmt:
             s = dt.strftime(datefmt)
         else:
-            s = dt.strftime('%Y-%m-%d %H:%M:%S')
+            s = dt.strftime("%Y-%m-%d %H:%M:%S")
         return s
 
     def usesTime(self):
@@ -99,9 +99,9 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
     def __init__(self, reporter: Reporter):
         logging.Handler.__init__(self, level=logging.ERROR)
         self._reporter = weakref.ref(reporter)
-        self.host = 'erep.lv'
-        self.url = '/ebot/error/'
-        self.method = 'POST'
+        self.host = "erep.lv"
+        self.url = "/ebot/error/"
+        self.method = "POST"
         self.secure = True
         self.credentials = (str(reporter.citizen_id), reporter.key)
         self.context = None
@@ -115,31 +115,39 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
         url = response.url
         last_index = url.index("?") if "?" in url else len(response.url)
 
-        name = slugify(response.url[len(self.reporter.citizen.url):last_index])
+        name = slugify(response.url[len(self.reporter.citizen.url) : last_index])
         html = response.text
 
         try:
             json_loads(html)
-            ext = 'json'
+            ext = "json"
         except json.decoder.JSONDecodeError:
-            ext = 'html'
+            ext = "html"
         try:
-            resp_time = datetime.datetime.strptime(
-                response.headers.get('date'), '%a, %d %b %Y %H:%M:%S %Z'
-            ).replace(tzinfo=datetime.timezone.utc).astimezone(erep_tz).strftime('%F_%H-%M-%S')
-        except:
-            resp_time = slugify(response.headers.get('date'))
-        return dict(name=f"{resp_time}_{name}.{ext}", content=html.encode('utf-8'),
-                    mimetype="application/json" if ext == 'json' else "text/html")
+            resp_time = (
+                datetime.datetime.strptime(response.headers.get("date"), "%a, %d %b %Y %H:%M:%S %Z")
+                .replace(tzinfo=datetime.timezone.utc)
+                .astimezone(erep_tz)
+                .strftime("%F_%H-%M-%S")
+            )
+        except:  # noqa
+            resp_time = slugify(response.headers.get("date"))
+        return dict(
+            name=f"{resp_time}_{name}.{ext}", content=html.encode("utf-8"), mimetype="application/json" if ext == "json" else "text/html"
+        )
 
     def _get_local_vars(self) -> str:
         trace = inspect.trace()
         local_vars = {}
         if trace:
             local_vars = trace[-1][0].f_locals
-            if local_vars.get('__name__') == '__main__':
-                local_vars.update(commit_id=local_vars.get('COMMIT_ID'), interactive=local_vars.get('INTERACTIVE'),
-                                  version=local_vars.get('__version__'), config=local_vars.get('CONFIG'))
+            if local_vars.get("__name__") == "__main__":
+                local_vars.update(
+                    commit_id=local_vars.get("COMMIT_ID"),
+                    interactive=local_vars.get("INTERACTIVE"),
+                    version=local_vars.get("__version__"),
+                    config=local_vars.get("CONFIG"),
+                )
         else:
             stack = inspect.stack()
             report_error_caller_found = False
@@ -147,18 +155,19 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
                 if report_error_caller_found:
                     local_vars = frame.frame.f_locals
                     break
-                if 'report_error' in str(frame.frame):
+                if "report_error" in str(frame.frame):
                     report_error_caller_found = True
 
-        if 'state_thread' in local_vars:
-            local_vars.pop('state_thread', None)
+        if "state_thread" in local_vars:
+            local_vars.pop("state_thread", None)
         from erepublik import Citizen
-        if isinstance(local_vars.get('self'), Citizen):
-            local_vars['self'] = repr(local_vars['self'])
-        if isinstance(local_vars.get('player'), Citizen):
-            local_vars['player'] = repr(local_vars['player'])
-        if isinstance(local_vars.get('citizen'), Citizen):
-            local_vars['citizen'] = repr(local_vars['citizen'])
+
+        if isinstance(local_vars.get("self"), Citizen):
+            local_vars["self"] = repr(local_vars["self"])
+        if isinstance(local_vars.get("player"), Citizen):
+            local_vars["player"] = repr(local_vars["player"])
+        if isinstance(local_vars.get("citizen"), Citizen):
+            local_vars["citizen"] = repr(local_vars["citizen"])
         return json_dumps(local_vars)
 
     def _get_instance_json(self) -> str:
@@ -171,15 +180,17 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
 
         # Log last response
         resp = self._get_last_response()
-        files = [('file', (resp.get('name'), resp.get('content'), resp.get('mimetype'))), ]
+        files = [
+            ("file", (resp.get("name"), resp.get("content"), resp.get("mimetype"))),
+        ]
 
-        files += list(('file', (f, open(f'log/{f}', 'rb'))) for f in os.listdir('log') if f.endswith('.log'))
+        files += list(("file", (f, open(f"log/{f}", "rb"))) for f in os.listdir("log") if f.endswith(".log"))
         local_vars_json = self._get_local_vars()
         if local_vars_json:
-            files.append(('file', ('local_vars.json', local_vars_json, "application/json")))
+            files.append(("file", ("local_vars.json", local_vars_json, "application/json")))
         instance_json = self._get_instance_json()
         if instance_json:
-            files.append(('file', ('instance.json', instance_json, "application/json")))
+            files.append(("file", ("instance.json", instance_json, "application/json")))
         data.update(files=files)
         return data
 
@@ -190,12 +201,12 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
         Send the record to the Web server as a percent-encoded dictionary
         """
         try:
-            proto = 'https' if self.secure else 'http'
+            proto = "https" if self.secure else "http"
             u, p = self.credentials
-            s = 'Basic ' + base64.b64encode(f'{u}:{p}'.encode('utf-8')).strip().decode('ascii')
-            headers = {'Authorization': s}
+            s = "Basic " + base64.b64encode(f"{u}:{p}".encode("utf-8")).strip().decode("ascii")
+            headers = {"Authorization": s}
             data = self.mapLogRecord(record)
-            files = data.pop('files') if 'files' in data else None
+            files = data.pop("files") if "files" in data else None
             requests.post(f"{proto}://{self.host}{self.url}", headers=headers, data=data, files=files)
         except Exception:
             self.handleError(record)

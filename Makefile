@@ -52,12 +52,13 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8
+	black erepublik tests
 	flake8 erepublik tests
 
 test: ## run tests quickly with the default Python
-	python setup.py test
+	python -m unittest
 
-coverage: ## check code coverage quickly with the default Python
+coverage: lint ## check code coverage quickly with the default Python
 	coverage run --source erepublik setup.py test
 	coverage report -m
 	coverage html
