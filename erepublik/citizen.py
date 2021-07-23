@@ -180,9 +180,8 @@ class BaseCitizen(access_points.CitizenAPI):
         ugly_js_match = re.search(r'"promotions":\s*(\[{?.*?}?])', html)
         ugly_js = ugly_js_match.group(1) if ugly_js_match else "null"
         promos = utils.json_loads(utils.normalize_html_json(ugly_js))
-        if promos is None:
-            self.promos = {}
-        else:
+        self.promos = {}
+        if promos:
             self.promos = {k: v for k, v in self.promos.items() if v > self.now}
         send_mail = False
         for promo in promos:
