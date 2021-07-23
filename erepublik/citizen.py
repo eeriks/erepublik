@@ -177,9 +177,10 @@ class BaseCitizen(access_points.CitizenAPI):
         if html is None:
             self._get_main()
             return
-        ugly_js = re.search(r'"promotions":\s*(\[{?.*?}?])', html).group(1)
-        promos = utils.json.loads(utils.normalize_html_json(ugly_js))
-        if self.promos is None:
+        ugly_js_match = re.search(r'"promotions":\s*(\[{?.*?}?])', html)
+        ugly_js = ugly_js_match.group(1) if ugly_js_match else "null"
+        promos = utils.json_loads(utils.normalize_html_json(ugly_js))
+        if promos is None:
             self.promos = {}
         else:
             self.promos = {k: v for k, v in self.promos.items() if v > self.now}
@@ -2920,7 +2921,7 @@ class _Citizen(
                 self.send_my_companies_update()
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
-        except:  # noqa
+        except Exception as e:  # noqa
             self.report_error("State updater crashed")
 
     def send_state_update(self):

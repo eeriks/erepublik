@@ -5,6 +5,7 @@ import time
 from typing import Any, Dict, List, Mapping, Union
 
 from requests import Response, Session
+from requests.exceptions import ConnectionError
 from requests_toolbelt.utils import dump
 
 from erepublik import constants, utils
@@ -43,7 +44,11 @@ class SlowRequests(Session):
     def request(self, method, url, *args, **kwargs):
         self._slow_down_requests()
         self._log_request(url, method, **kwargs)
-        resp = super().request(method, url, *args, **kwargs)
+        try:
+            resp = super().request(method, url, *args, **kwargs)
+        except ConnectionError:
+            time.sleep(1)
+            return self.request(method, url, *args, **kwargs)
         # self._log_response(resp)
         return resp
 
