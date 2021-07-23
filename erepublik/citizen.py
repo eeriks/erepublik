@@ -183,17 +183,7 @@ class BaseCitizen(access_points.CitizenAPI):
         self.promos = {}
         if promos:
             self.promos = {k: v for k, v in self.promos.items() if v > self.now}
-        send_mail = False
-        for promo in promos:
-            promo_name = promo.get("id")
-            expire = utils.localize_timestamp(int(promo.get("expiresAt")))
-            if promo_name not in self.promos:
-                send_mail = True
-                self.promos.update({promo_name: expire})
-        if send_mail:
-            active_promos = []
             for kind, time_until in self.promos.items():
-                active_promos.append(f"{kind} active until {time_until}")
                 self.reporter.report_promo(kind, time_until)
 
         new_date = re.search(r"var new_date = '(\d*)';", html)
