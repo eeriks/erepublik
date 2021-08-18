@@ -7,7 +7,7 @@ from decimal import Decimal
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, TypedDict
 
 from requests import HTTPError, RequestException, Response
 
@@ -270,20 +270,20 @@ class BaseCitizen(access_points.CitizenAPI):
         return self._post_main_session_get_challenge(captcha_id, image_id).json()
 
     def solve_captcha(self, src: str) -> Optional[List[Dict[str, int]]]:
-        class _API_RESULT(dict):
+        class ApiResult(TypedDict):
             x: int
             y: int
 
-        class _API_RETURN(dict):
+        class ApiReturn(TypedDict):
             status: bool
             message: str
-            result: Optional[List[_API_RESULT]]
+            result: Optional[List[ApiResult]]
 
-        solve_data: _API_RETURN = self.post(
-            "https://api.erep.lv/captcha/api", data=dict(citizen_id=self.details.citizen_id, src=src, key="CaptchaDevAPI")
-        ).json()
+        solve_data = ApiReturn(**self.post(
+            "https://api.erep.lv/captcha/api", data=dict(citizen_id=self.details.citizen_id, src=src, password="CaptchaDevAPI")
+        ).json())
         if solve_data["status"]:
-            return solve_data.get("result")
+            return solve_data["result"]
 
     @property
     def inventory(self) -> classes.Inventory:
@@ -470,12 +470,8 @@ class BaseCitizen(access_points.CitizenAPI):
                 else:
                     icon = "//www.erepublik.net/" + item_data["icon"]
 
-                raw_materials[constants.INDUSTRIES[item_data.get("industryId")]].update(
-                    {
-                        0: dict(
-                            name=item_data.get("name"), amount=item_data["amount"] + (item_data.get("underCostruction", 0) / 100), icon=icon
-                        )
-                    }
+                raw_materials[constants.INDUSTRIES[item_data.get("industryId")]][0] = dict(
+                    name=item_data.get("name"), amount=item_data["amount"] + (item_data.get("underCostruction", 0) / 100), icon=icon
                 )
 
         offers: Dict[str, Dict[int, Dict[str, Union[str, int]]]] = {}
@@ -1993,7 +1989,7 @@ class CitizenMilitary(CitizenTravel):
             energy_used = 0
             if deployment_id:
                 self.write_warning(
-                    "If erepublik responds with HTTP 500 Internal Error, it is kind of ok, because deployment has not finished yet."
+                    "If eRepublik responds with HTTP 500 Internal Error, it is kind of ok, because deployment has not finished yet."
                 )
                 deployment_data = self._post_military_fight_deploy_deploy_report_data(deployment_id).json()
                 if not deployment_data.get("error"):
@@ -2296,7 +2292,7 @@ class CitizenMilitary(CitizenTravel):
             type="damage",
         )
         r_json = r.json()
-        return (r_json.get(str(battle.invader.id)).get("fighterData"), r_json.get(str(battle.defender.id)).get("fighterData"))
+        return r_json.get(str(battle.invader.id)).get("fighterData"), r_json.get(str(battle.defender.id)).get("fighterData")
 
     def get_battle_division_stats(self, division: classes.BattleDivision) -> Dict[str, Any]:
         battle = division.battle

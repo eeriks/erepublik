@@ -90,7 +90,7 @@ class SlowRequests(Session):
 
             fd_path = "debug/requests"
             fd_time = self.last_time.strftime("%Y/%m/%d/%H-%M-%S")
-            fd_name = utils.slugify(url[len(CitizenBaseAPI.url) :])
+            fd_name = utils.slugify(url[len(CitizenBaseAPI.url):])
             fd_extra = "_REDIRECT" if redirect else ""
 
             try:
@@ -187,15 +187,14 @@ class CitizenBaseAPI:
     ) -> Response:
         c = [cookie.name for cookie in self._req.cookies if not cookie.has_nonstandard_attr("HttpOnly")]
         env = dict(l=["tets"], s=[], c=c, m=0)
-        cookies = dict(
-            sh=hashlib.sha256(",".join(env["l"] + env["s"]).encode("utf8")).hexdigest(),
-            ch=hashlib.sha256(",".join(env["c"]).encode("utf8")).hexdigest(),
+
+        session_hash = hashlib.sha256(",".join(env["l"] + env["s"]).encode("utf8")).hexdigest()
+        cookies_hash = hashlib.sha256(",".join(env["c"]).encode("utf8")).hexdigest()
+
+        cookie_kwargs = dict(expires=int(time.time()) + 120, path="/en/main/sessionUnlock", domain=".www.erepublik.com", secure=True, rest={"HttpOnly": True}
         )
-        cookie_kwargs = dict(
-            expires=int(time.time()) + 120, path="/en/main/sessionUnlock", domain=".www.erepublik.com", secure=True, rest={"HttpOnly": True}
-        )
-        self._req.cookies.set("sh", cookies["sh"], **cookie_kwargs)
-        self._req.cookies.set("ch", cookies["ch"], **cookie_kwargs)
+        self._req.cookies.set("sh", session_hash, **cookie_kwargs)
+        self._req.cookies.set("ch", cookies_hash, **cookie_kwargs)
         b64_env = utils.b64json(env)
         data = dict(
             _token=self.token,
