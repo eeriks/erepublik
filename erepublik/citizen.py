@@ -783,7 +783,7 @@ class BaseCitizen(access_points.CitizenAPI):
                         reward = reward[:-1]
 
                 if (title, reward) not in data:
-                    data[(title, reward)] = dict(about=about, kind=title, reward=reward, count=1, currency=currency)
+                    data[(title, reward)] = dict(about=about, kind=title, reward=reward or 0, count=1, currency=currency)
                 else:
                     data[(title, reward)]["count"] += 1
             except AttributeError:
@@ -2791,15 +2791,18 @@ class _Citizen(
                 if award_id and title and medal.get("details").get("isWallMaterial"):
                     self._post_main_wall_post_automatic(title.lower(), award_id)
 
-                if params.get("ccValue"):
-                    reward = params.get("ccValue")
+                if "ccValue" in params:
+                    reward = params.get("ccValue") or 0
                     currency = "Currency"
-                elif params.get("goldValue"):
-                    reward = params.get("goldValue")
+                elif "goldValue" in params:
+                    reward = params.get("goldValue") or 0
                     currency = "Gold"
-                else:
-                    reward = params.get("energyValue")
+                elif "energyValue" in params:
+                    reward = params.get("energyValue") or 0
                     currency = "Energy"
+                else:
+                    reward = 0
+                    currency = "Unknown"
 
                 if (title, reward) not in data:
                     data[(title, reward)] = {
