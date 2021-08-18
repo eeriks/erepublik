@@ -8,7 +8,9 @@ __all__ = [
     "min_datetime",
     "max_datetime",
     "Country",
+    "Rank",
     "AIR_RANKS",
+    "AIR_RANK_POINTS",
     "COUNTRIES",
     "FOOD_ENERGY",
     "GROUND_RANKS",
@@ -198,6 +200,10 @@ class Rank:
     @property
     def as_dict(self):
         return dict(id=self.id, name=self.name, rank_points=self.rank_points, is_air=self.is_air)
+
+    @property
+    def __dict__(self):
+        return self.as_dict
 
     def __str__(self):
         return f"{'Air' if self.is_air else 'Ground'}Rank<#{self.id} {self.name}>"

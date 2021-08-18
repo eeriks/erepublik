@@ -110,15 +110,13 @@ class SlowRequests(Session):
     def get_random_user_agent() -> str:
         windows_x64 = "Windows NT 10.0; Win64; x64"
         linux_x64 = "X11; Linux x86_64"
-        android_11 = "Android 11; Mobile"
-        android_10 = "Android 10; Mobile"
-        android_9 = "Android 9; Mobile"
+        android = [f"Android {version}; Mobile" for version in range(8, 12)]
 
-        firefox_tmplt = "Mozilla/5.0 ({osystem}; rv:{version}.0) Gecko/20100101 Firefox/{version}.0"
-        ff_version = range(85, 92)
+        firefox_template = "Mozilla/5.0 ({osystem}; rv:{version}.0) Gecko/20100101 Firefox/{version}.0"
+        firefox_versions = range(85, 92)
 
-        chrome_tmplt = "Mozilla/5.0 ({osystem}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
-        chrome_version = [
+        chrome_template = "Mozilla/5.0 ({osystem}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
+        chrome_versions = [
             "85.0.4183.121",
             "86.0.4240.183",
             "87.0.4280.141",
@@ -126,15 +124,15 @@ class SlowRequests(Session):
             "89.0.4389.128",
             "90.0.4430.18",
             "91.0.4472.73",
-            "92.0.4515.14",
+            "92.0.4515.159",
         ]
         uas = []
 
-        for osystem in [windows_x64, linux_x64, android_9, android_10, android_11]:
-            for version in ff_version:
-                uas.append(firefox_tmplt.format(osystem=osystem, version=version))
-            for version in chrome_version:
-                uas.append(chrome_tmplt.format(osystem=osystem, version=version))
+        for osystem in [windows_x64, linux_x64, *android]:
+            for version in firefox_versions:
+                uas.append(firefox_template.format(osystem=osystem, version=version))
+            for version in chrome_versions:
+                uas.append(chrome_template.format(osystem=osystem, version=version))
 
         return random.choice(uas)
 
