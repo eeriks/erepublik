@@ -182,7 +182,7 @@ class BaseCitizen(access_points.CitizenAPI):
         promos = utils.json_loads(utils.normalize_html_json(ugly_js))
         self.promos = {}
         if promos:
-            self.promos = {k: v for k, v in self.promos.items() if v > self.now}
+            self.promos = {k: v for k, v in promos.items() if v > self.now}
             for kind, time_until in self.promos.items():
                 self.reporter.report_promo(kind, time_until)
 
