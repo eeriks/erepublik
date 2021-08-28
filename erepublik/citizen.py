@@ -181,11 +181,11 @@ class BaseCitizen(access_points.CitizenAPI):
         ugly_js = ugly_js_match.group(1) if ugly_js_match else "null"
         promos = utils.json_loads(utils.normalize_html_json(ugly_js))
         self.promos = {}
-        if promos:
-            self.promos = {k: v for k, v in promos.items() if v > self.now}
-            for kind, time_until in self.promos.items():
-                self.reporter.report_promo(kind, time_until)
-
+        try:
+            if promos:
+                self.promos = {p['typeId']: p for p in promos}
+        except:
+            pass
         new_date = re.search(r"var new_date = '(\d*)';", html)
         if new_date:
             self.energy.set_reference_time(utils.good_timedelta(self.now, timedelta(seconds=int(new_date.group(1)))))
