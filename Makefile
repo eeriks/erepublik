@@ -52,8 +52,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8
-	black erepublik tests
-	flake8 erepublik tests
+	isort erepublik examples tests
+	black erepublik examples tests
+	flake8 erepublik examples tests
 
 test: ## run tests quickly with the default Python
 	python -m unittest
