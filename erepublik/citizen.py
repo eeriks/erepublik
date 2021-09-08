@@ -2910,11 +2910,12 @@ class _Citizen(
                     start_time = utils.good_timedelta(start_time.replace(minute=0), timedelta(hours=1))
             while not self.stop_threads.is_set():
                 start_time = utils.good_timedelta(start_time, timedelta(minutes=10 if self.restricted_ip else 30))
-                self.update_citizen_info()
-                self.update_weekly_challenge()
-                self.send_state_update()
+                try:
+                    self.update_all()
+                except classes.CaptchaSessionError:
+                    self.send_state_update()
+                    pass
                 self.send_inventory_update()
-                self.update_companies()
                 self.send_my_companies_update()
                 sleep_seconds = (start_time - self.now).total_seconds()
                 self.stop_threads.wait(sleep_seconds if sleep_seconds > 0 else 0)
