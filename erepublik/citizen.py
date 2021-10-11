@@ -2621,10 +2621,9 @@ class CitizenTasks(CitizenEconomy):
             else:
                 self.reporter.report_action("WORK", json_val=js)
         else:
-            if self.energy.food_fights < 1:
-                seconds = (self.energy.reference_time - self.now).total_seconds()
-                self.write_warning(f"I don't have energy to work. Will sleep for {seconds}s")
-                self.sleep(seconds)
+            seconds = self.now.timestamp() % 360
+            self.write_warning(f"I don't have energy to work. Will sleep for {seconds}s")
+            self.sleep(seconds)
             self.work()
 
     def train(self):
@@ -2648,11 +2647,9 @@ class CitizenTasks(CitizenEconomy):
                 else:
                     self.reporter.report_action("TRAIN", response.json())
             else:
-                if self.energy.food_fights < len(tgs):
-                    large = max(self.energy.reference_time, self.now)
-                    sleep_seconds = utils.get_sleep_seconds(large)
-                    self.write_warning(f"I don't have energy to train. Will sleep for {sleep_seconds} seconds")
-                    self.sleep(sleep_seconds)
+                seconds = self.now.timestamp() % 360
+                self.write_warning(f"I don't have energy to train. Will sleep for {seconds}s")
+                self.sleep(seconds)
                 self.train()
 
     def work_ot(self):
@@ -2670,11 +2667,9 @@ class CitizenTasks(CitizenEconomy):
                     self.buy_food(120)
                 self.reporter.report_action("WORK_OT", r.json())
         elif self.energy.food_fights < 1 and self.ot_points >= 24:
-            if self.energy.food_fights < 1:
-                large = max(self.energy.reference_time, self.now)
-                sleep_seconds = utils.get_sleep_seconds(large)
-                self.write_warning(f"I don't have energy to work OT. Will sleep for {sleep_seconds}s")
-                self.sleep(sleep_seconds)
+            seconds = self.now.timestamp() % 360
+            self.write_warning(f"I don't have energy to work OT. Will sleep for {seconds}s")
+            self.sleep(seconds)
             self.work_ot()
 
     def resign_from_employer(self) -> bool:
