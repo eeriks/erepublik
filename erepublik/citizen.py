@@ -870,7 +870,7 @@ class BaseCitizen(access_points.CitizenAPI):
         if re.search(
             r"Occasionally there are a couple of things which we need to check or to implement in order make "
             r"your experience in eRepublik more pleasant. <strong>Don\'t worry about ongoing battles, timer "
-            r"will be stopped during maintenance.</strong>",
+            r"will be stopped during maintenance.</strong>|Maintenance. We&rsquo;ll be back any second now.",
             response.text,
         ):
             self.write_warning("eRepublik is having maintenance. Sleeping for 5 mi#nutes")
