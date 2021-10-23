@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 import erepublik
 import edx_theme
+import datetime
 
 # -- General configuration ---------------------------------------------
 
@@ -50,7 +51,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "eRepublik script"
-copyright = "2019, Eriks Karls"
+copyright = "2017-%i, Eriks Karls" % datetime.date.today().year
 author = "Eriks Karls"
 
 # The version info for the project you're documenting, acts as replacement

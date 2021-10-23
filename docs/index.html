@@ -8,12 +8,10 @@
     <meta name="generator" content="Jekyll v4.0.1">
     <title>eBot configuration</title>
     <!-- CSS only -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <!-- JS, Popper.js, and jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="container">
@@ -120,57 +118,57 @@
                     </div>
 
                     <div class="col-12 col-sm-6">
-                        <h3>Fighting</h3>
+                        <h3><span style="text-decoration: line-through;">Fighting</span></h3>
                         <div class="form-group">
                             <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="fight" checked>
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="fight" disabled>
                                 <label class="custom-control-label" for="fight">Fight</label>
                             </div>
                             <div class="custom-control custom-switch custom-control-inline">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="air" checked>
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="air" disabled>
                                 <label class="custom-control-label" for="air">Air</label>
                             </div>
                             <div class="custom-control custom-switch custom-control-inline">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="ground">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="ground" disabled>
                                 <label class="custom-control-label" for="ground">Ground</label>
                             </div>
                             <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="boosters">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="boosters" disabled>
                                 <label class="custom-control-label" for="boosters">Use ground boosters</label>
                             </div>
                             <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="continuous_fighting">
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="continuous_fighting" disabled>
                                 <label class="custom-control-label" for="continuous_fighting">Continue fighting all FF in round</label>
                             </div>
                             <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="next_energy" checked>
+                                <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="next_energy" disabled>
                                 <label class="custom-control-label" for="next_energy">Fight for next WC +1hp/6min if reachable by FF</label>
                             </div>
                         </div>
                         <div class="form-group">
                             <div class="form-check form-check-inline">
-                                <input type="radio" class="form-check-input" onchange="updateJson()" id="all_in" name="fight_amount" value="all_in">
+                                <input type="radio" class="form-check-input" onchange="updateJson()" id="all_in" name="fight_amount" value="all_in" disabled>
                                 <label class="form-check-label" for="all_in">All energy</label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input type="radio" class="form-check-input" onchange="updateJson()" id="h_energy" name="fight_amount" value="h_energy" checked>
+                                <input type="radio" class="form-check-input" onchange="updateJson()" id="h_energy" name="fight_amount" value="h_energy"  disabled>
                                 <label class="form-check-label" for="h_energy">1h energy</label>
                             </div>
                         </div>
                         <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="rw_def_side" checked>
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="rw_def_side" disabled>
                             <label class="custom-control-label" for="rw_def_side">In RWs fight on right side (occupier/defender)</label>
                         </div>
                         <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="travel_to_fight" checked>
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="travel_to_fight" disabled>
                             <label class="custom-control-label" for="travel_to_fight">Travel to fight</label>
                         </div>
                         <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="epic_hunt">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="epic_hunt" disabled>
                             <label class="custom-control-label" for="epic_hunt">Hunt epics</label>
                         </div>
                         <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="epic_hunt_ebs">
+                            <input type="checkbox" class="custom-control-input" onchange="updateJson()" id="epic_hunt_ebs" disabled>
                             <label class="custom-control-label" for="epic_hunt_ebs">Spend <small>[all]</small> EBs in epics</label>
                         </div>
                     </div>
@@ -262,7 +260,13 @@
             </form>
         </div>
         <div class="col-12">
-            <pre id="json-output"></pre>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">config.json</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Copy-paste the content below into 'config.json' file</h6>
+                    <pre id="json-output" class="bg-light card-text"></pre>
+                </div>
+            </div>
         </div>
     </div>
 </div>
