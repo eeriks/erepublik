@@ -7,7 +7,7 @@ from decimal import Decimal
 from itertools import product
 from threading import Event
 from time import sleep
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, TypedDict
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, TypedDict, Union
 
 from requests import HTTPError, RequestException, Response
 
@@ -288,9 +288,11 @@ class BaseCitizen(access_points.CitizenAPI):
             message: str
             result: Optional[List[ApiResult]]
 
-        solve_data = ApiReturn(**self.post(
-            "https://api.erep.lv/captcha/api", data=dict(citizen_id=self.details.citizen_id, src=src, password="CaptchaDevAPI")
-        ).json())
+        solve_data = ApiReturn(
+            **self.post(
+                "https://api.erep.lv/captcha/api", data=dict(citizen_id=self.details.citizen_id, src=src, password="CaptchaDevAPI")
+            ).json()
+        )
         if solve_data["status"]:
             return solve_data["result"]
 
