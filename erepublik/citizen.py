@@ -193,8 +193,8 @@ class BaseCitizen(access_points.CitizenAPI):
                     if kind not in self.promos:
                         self.reporter.report_promo(kind, time_until)
                         self.promos[kind] = time_until
-        except Exception:
-            self.process_error()
+        except Exception:  # noqa
+            self.report_error()
         new_date = re.search(r"var new_date = '(\d*)';", html)
         if new_date:
             self.energy.set_reference_time(utils.good_timedelta(self.now, timedelta(seconds=int(new_date.group(1)))))
@@ -1593,6 +1593,12 @@ class CitizenEconomy(CitizenTravel):
         if self.config.telegram:
             self.telegram.report_item_donation(citizen_id, amount, f"{industry} q{quality}")
 
+    def _update_inventory_data(self, *args, **kwargs):
+        super()._update_inventory_data(*args, **kwargs)
+
+        if self.food["total"] < 240 * self.energy.interval:
+            self.buy_food()
+
 
 class CitizenLeaderBoard(BaseCitizen):
     def get_aircraft_damage_rankings(self, country: int, weeks: int = 0, mu: int = 0) -> Dict[str, any]:
@@ -2839,8 +2845,8 @@ class _Citizen(
             self.update_companies()
             self.update_money()
             self.update_weekly_challenge()
-            self.send_state_update()
             self.check_for_notification_medals()
+            self.send_state_update()
 
     def update_weekly_challenge(self):
         data = self._get_main_weekly_challenge_data().json()
