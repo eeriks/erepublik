@@ -30,7 +30,7 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
@@ -39,7 +39,7 @@ setup(
     description="Python package for automated eRepublik playing",
     entry_points={},
     install_requires=requirements,
-    license="MIT license",
+    license="GPLv3",
     long_description=readme + "\n\n" + history,
     include_package_data=True,
     keywords="erepublik",
@@ -50,6 +50,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/eeriks/erepublik/",
-    version="0.25.1.5",
+    version="0.27.0",
     zip_safe=False,
 )
