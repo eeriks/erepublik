@@ -44,14 +44,6 @@ erepublik.utils module
    :undoc-members:
    :show-inheritance:
 
-erepublik.ws module
--------------------
-
-.. automodule:: erepublik.ws
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 

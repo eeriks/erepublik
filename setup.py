@@ -11,18 +11,15 @@ with open("README.rst") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-requirements = [
-    "PySocks==1.7.1",
-    "pytz==2021.1",
-    "requests==2.26.0",
-    "requests-toolbelt==0.9.1",
-]
+with open("requirements.txt") as requirements_file:
+    requirements = requirements_file.read()
+    requirements = requirements.split()
 
 setup_requirements = []
 
-test_requirements = [
-    "pytest==6.2.4",
-]
+with open("requirements-tests.txt") as test_req_file:
+    test_requirements = test_req_file.read()
+    test_requirements = [line.strip() for line in test_requirements.split() if line.strip()[:2].strip() not in ("#", "-r")]
 
 setup(
     author="Eriks Karls",

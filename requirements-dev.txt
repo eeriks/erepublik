@@ -1,0 +1,16 @@
+-r requirements.txt
+-r requirements-tests.txt
+bump2version==1.0.1
+coverage==6.1.1
+edx-sphinx-theme==3.0.0
+flake8==4.0.1
+ipython>=7.29.0
+jedi!=0.18.0
+isort==5.9.3
+pre-commit==2.15.0
+pur==5.4.2
+responses==0.15.0
+Sphinx==4.2.0
+twine==3.4.2
+wheel==0.37.0
+black==21.7b0
