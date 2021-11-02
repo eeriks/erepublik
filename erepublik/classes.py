@@ -697,7 +697,7 @@ class Reporter:
     def __init__(self, citizen):
         self._citizen = weakref.ref(citizen)
         self._req = Session()
-        self.url = "https://api.erep.lv"
+        self.url = "https://erep.lv"
         self._req.headers.update(
             {
                 "user-agent": "eRepublik Script Reporter v3",
