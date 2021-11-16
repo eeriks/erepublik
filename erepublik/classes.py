@@ -416,6 +416,13 @@ class Config:
     auto_sell: List[str] = None
     auto_sell_all = False
     employees = False
+    interactive = True
+    auto_buy_raw = False
+    force_wam = False
+    telegram = True
+    telegram_chat_id = 0
+    telegram_token = ""
+    spin_wheel_of_fortune = False
     # fight = False
     # air = False
     # ground = False
@@ -427,17 +434,10 @@ class Config:
     # epic_hunt = False
     # epic_hunt_ebs = False
     # rw_def_side = False
-    # interactive = True
     # continuous_fighting = False
-    auto_buy_raw = False
-    force_wam = False
     # sort_battles_time = True
     # force_travel = False
-    telegram = True
-    telegram_chat_id = 0
-    telegram_token = ""
     # maverick = False
-    spin_wheel_of_fortune = False
 
     def __init__(self):
         self.auto_sell = []
@@ -450,6 +450,13 @@ class Config:
         self.auto_sell = list()
         self.auto_sell_all = False
         self.employees = False
+        self.interactive = True
+        self.auto_buy_raw = False
+        self.force_wam = False
+        self.telegram = True
+        self.telegram_chat_id = 0
+        self.telegram_token = ""
+        self.spin_wheel_of_fortune = False
         # self.fight = False
         # self.air = False
         # self.ground = False
@@ -461,17 +468,10 @@ class Config:
         # self.epic_hunt = False
         # self.epic_hunt_ebs = False
         # self.rw_def_side = False
-        # self.interactive = True
         # self.continuous_fighting = False
-        self.auto_buy_raw = False
-        self.force_wam = False
         # self.sort_battles_time = True
         # self.force_travel = False
-        self.telegram = True
-        self.telegram_chat_id = 0
-        self.telegram_token = ""
         # self.maverick = False
-        self.spin_wheel_of_fortune = False
 
     @property
     def as_dict(self) -> Dict[str, Union[bool, int, str, List[str]]]:
@@ -484,6 +484,13 @@ class Config:
             auto_sell=self.auto_sell,
             auto_sell_all=self.auto_sell_all,
             employees=self.employees,
+            interactive=self.interactive,
+            auto_buy_raw=self.auto_buy_raw,
+            force_wam=self.force_wam,
+            telegram=self.telegram,
+            telegram_chat_id=self.telegram_chat_id,
+            telegram_token=self.telegram_token,
+            spin_wheel_of_fortune=self.spin_wheel_of_fortune,
             # fight=self.fight,
             # air=self.air,
             # ground=self.ground,
@@ -494,17 +501,10 @@ class Config:
             # epic_hunt=self.epic_hunt,
             # epic_hunt_ebs=self.epic_hunt_ebs,
             # rw_def_side=self.rw_def_side,
-            # interactive=self.interactive,
             # maverick=self.maverick,
             # continuous_fighting=self.continuous_fighting,
-            auto_buy_raw=self.auto_buy_raw,
-            force_wam=self.force_wam,
             # sort_battles_time=self.sort_battles_time,
             # force_travel=self.force_travel,
-            telegram=self.telegram,
-            telegram_chat_id=self.telegram_chat_id,
-            telegram_token=self.telegram_token,
-            spin_wheel_of_fortune=self.spin_wheel_of_fortune,
         )
 
 
