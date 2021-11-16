@@ -60,7 +60,9 @@ def main():
                 player.write_log("Doing task: Work as manager")
                 success = player.work_as_manager()
                 if success:
-                    next_time = utils.good_timedelta(now.replace(hour=14, minute=0, second=0, microsecond=0), timedelta(days=1))
+                    next_time = utils.good_timedelta(
+                        now.replace(hour=14, minute=0, second=0, microsecond=0), timedelta(days=1)
+                    )
                 else:
                     next_time = utils.good_timedelta(now.replace(second=0, microsecond=0), timedelta(minutes=30))
 
@@ -86,7 +88,9 @@ def main():
             if sleep_seconds <= 0:
                 player.write_log(f"Loop detected! Offending task: '{next_tasks[0]}'")
             player.write_log("My next Tasks and there time:\n" + "\n".join(sorted(next_tasks)))
-            player.write_log(f"Sleeping until (eRep): {closest_next_time.strftime('%F %T')}" f" (sleeping for {sleep_seconds}s)")
+            player.write_log(
+                f"Sleeping until (eRep): {closest_next_time.strftime('%F %T')}" f" (sleeping for {sleep_seconds}s)"
+            )
             seconds_to_sleep = sleep_seconds if sleep_seconds > 0 else 0
             player.sleep(seconds_to_sleep)
         except Exception as e:

@@ -182,7 +182,14 @@ def slugify(value, allow_unicode=False) -> str:
 
 
 def calculate_hit(
-    strength: float, rang: int, tp: bool, elite: bool, ne: bool, booster: int = 0, weapon: int = 200, is_deploy: bool = False
+    strength: float,
+    rang: int,
+    tp: bool,
+    elite: bool,
+    ne: bool,
+    booster: int = 0,
+    weapon: int = 200,
+    is_deploy: bool = False,
 ) -> Decimal:
     dec = 3 if is_deploy else 0
     base_str = 1 + Decimal(str(round(strength, 3))) / 400
@@ -217,7 +224,12 @@ def get_air_hit_dmg_value(
 
 
 def get_final_hit_dmg(
-    base_dmg: Union[Decimal, float, str], rang: int, tp: bool = False, elite: bool = False, ne: bool = False, booster: int = 0
+    base_dmg: Union[Decimal, float, str],
+    rang: int,
+    tp: bool = False,
+    elite: bool = False,
+    ne: bool = False,
+    booster: int = 0,
 ) -> Decimal:
     dmg = Decimal(str(base_dmg))
 
@@ -313,7 +325,11 @@ class ErepublikJSONEncoder(json.JSONEncoder):
                 return dict(__type__="date", date=o.strftime("%Y-%m-%d"))
             elif isinstance(o, datetime.timedelta):
                 return dict(
-                    __type__="timedelta", days=o.days, seconds=o.seconds, microseconds=o.microseconds, total_seconds=o.total_seconds()
+                    __type__="timedelta",
+                    days=o.days,
+                    seconds=o.seconds,
+                    microseconds=o.microseconds,
+                    total_seconds=o.total_seconds(),
                 )
             elif isinstance(o, Response):
                 return dict(headers=dict(o.__dict__["headers"]), url=o.url, text=o.text, status_code=o.status_code)

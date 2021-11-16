@@ -23,9 +23,11 @@ import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-import erepublik
-import edx_theme
 import datetime
+
+import edx_theme
+
+import erepublik
 
 # -- General configuration ---------------------------------------------
 
@@ -146,5 +148,13 @@ man_pages = [(master_doc, "erepublik", "eRepublik script Documentation", [author
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, "erepublik", "eRepublik script Documentation", author, "erepublik", "One line description of project.", "Miscellaneous"),
+    (
+        master_doc,
+        "erepublik",
+        "eRepublik script Documentation",
+        author,
+        "erepublik",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]

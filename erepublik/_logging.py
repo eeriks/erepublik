@@ -133,7 +133,9 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
         except:  # noqa
             resp_time = slugify(response.headers.get("date"))
         return dict(
-            name=f"{resp_time}_{name}.{ext}", content=html.encode("utf-8"), mimetype="application/json" if ext == "json" else "text/html"
+            name=f"{resp_time}_{name}.{ext}",
+            content=html.encode("utf-8"),
+            mimetype="application/json" if ext == "json" else "text/html",
         )
 
     def _get_local_vars(self) -> str:

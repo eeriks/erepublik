@@ -129,7 +129,13 @@ class Holding:
 
     @property
     def as_dict(self) -> Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]:
-        return dict(name=self.name, id=self.id, region=self.region, companies=[c.as_dict for c in self.companies], wam_count=self.wam_count)
+        return dict(
+            name=self.name,
+            id=self.id,
+            region=self.region,
+            companies=[c.as_dict for c in self.companies],
+            wam_count=self.wam_count,
+        )
 
     @property
     def citizen(self):
@@ -303,7 +309,13 @@ class MyCompanies:
         """
         for holding in holdings.values():
             if holding.get("id") not in self.holdings:
-                self.holdings.update({int(holding.get("id")): Holding(holding["id"], holding["region_id"], self.citizen, holding["name"])})
+                self.holdings.update(
+                    {
+                        int(holding.get("id")): Holding(
+                            holding["id"], holding["region_id"], self.citizen, holding["name"]
+                        )
+                    }
+                )
         if not self.holdings.get(0):
             self.holdings.update({0: Holding(0, 0, self.citizen, "Unassigned")})  # unassigned
 
@@ -373,7 +385,12 @@ class MyCompanies:
         self,
     ) -> Dict[
         str,
-        Union[str, int, datetime.datetime, Dict[str, Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]]],
+        Union[
+            str,
+            int,
+            datetime.datetime,
+            Dict[str, Dict[str, Union[str, int, List[Dict[str, Union[str, int, bool, float, Decimal]]]]]],
+        ],
     ]:
         return dict(
             name=str(self),
@@ -530,12 +547,16 @@ class Energy:
 
     @property
     def is_recoverable_full(self):
-        warnings.warn("Deprecated since auto auto-eat! Will be removed soon. Use Energy.is_energy_full", DeprecationWarning)
+        warnings.warn(
+            "Deprecated since auto auto-eat! Will be removed soon. Use Energy.is_energy_full", DeprecationWarning
+        )
         return self.is_energy_full
 
     @property
     def is_recovered_full(self):
-        warnings.warn("Deprecated since auto auto-eat! Will be removed soon. Use Energy.is_energy_full", DeprecationWarning)
+        warnings.warn(
+            "Deprecated since auto auto-eat! Will be removed soon. Use Energy.is_energy_full", DeprecationWarning
+        )
         return self.is_energy_full
 
     @property
@@ -691,7 +712,12 @@ class Reporter:
     @property
     def as_dict(self) -> Dict[str, Union[bool, int, str, List[Dict[Any, Any]]]]:
         return dict(
-            name=self.name, email=self.email, citizen_id=self.citizen_id, key=self.key, allowed=self.allowed, queue=self.__to_update
+            name=self.name,
+            email=self.email,
+            citizen_id=self.citizen_id,
+            key=self.key,
+            allowed=self.allowed,
+            queue=self.__to_update,
         )
 
     def __init__(self, citizen):
@@ -751,7 +777,10 @@ class Reporter:
             r = self.__bot_update(dict(key=self.key, check=True, player_id=self.citizen_id))
             if r:
                 if not r.json().get("status"):
-                    self._req.post(f"{self.url}/bot/register", json=dict(name=self.name, email=self.email, player_id=self.citizen_id))
+                    self._req.post(
+                        f"{self.url}/bot/register",
+                        json=dict(name=self.name, email=self.email, player_id=self.citizen_id),
+                    )
                 self.__registered = True
                 self.allowed = True
                 self.report_action("STARTED", value=utils.now().strftime("%F %T"))
@@ -790,7 +819,9 @@ class Reporter:
         self._bot_update(data)
 
     def report_action(self, action: str, json_val: Dict[Any, Any] = None, value: str = None):
-        json_data = dict(player_id=getattr(self, "citizen_id", None), log={"action": action}, key=getattr(self, "key", None))
+        json_data = dict(
+            player_id=getattr(self, "citizen_id", None), log={"action": action}, key=getattr(self, "key", None)
+        )
         if json_val:
             json_data["log"].update(dict(json=json_val))
         if value:
@@ -836,14 +867,18 @@ class Reporter:
         try:
             battle_response = self._req.get(f"{self.url}/api/v1/battles/{country.id}")
             return [
-                self.citizen.all_battles[bid] for bid in battle_response.json().get("battle_ids", []) if bid in self.citizen.all_battles
+                self.citizen.all_battles[bid]
+                for bid in battle_response.json().get("battle_ids", [])
+                if bid in self.citizen.all_battles
             ]
         except:  # noqa
             return []
 
     def fetch_tasks(self) -> List[Dict[str, Any]]:
         try:
-            task_response = self._req.post(f"{self.url}/api/v1/command", data=dict(citizen=self.citizen_id, key=self.key)).json()
+            task_response = self._req.post(
+                f"{self.url}/api/v1/command", data=dict(citizen=self.citizen_id, key=self.key)
+            ).json()
             if task_response.get("status"):
                 return task_response.get("data")
             else:
@@ -894,7 +929,13 @@ class BattleSide:
 
     @property
     def as_dict(self) -> Dict[str, Union[int, constants.Country, bool, List[constants.Country]]]:
-        return dict(points=self.points, country=self.country, is_defender=self.is_defender, allies=self.allies, deployed=self.deployed)
+        return dict(
+            points=self.points,
+            country=self.country,
+            is_defender=self.is_defender,
+            allies=self.allies,
+            deployed=self.deployed,
+        )
 
     @property
     def battle(self):
@@ -917,7 +958,12 @@ class BattleDivision:
     @property
     def as_dict(self):
         return dict(
-            id=self.id, division=self.div, terrain=(self.terrain, self.terrain_display), wall=self.wall, epic=self.epic, end=self.div_end
+            id=self.id,
+            division=self.div,
+            terrain=(self.terrain, self.terrain_display),
+            wall=self.wall,
+            epic=self.epic,
+            end=self.div_end,
         )
 
     @property
@@ -1210,7 +1256,8 @@ class TelegramReporter:
 
     def report_item_donation(self, citizen_id: int, amount: float, product: str):
         self.send_message(
-            f"*Donation*: {amount} x {product} to citizen " f"[{citizen_id}](https://www.erepublik.com/en/citizen/profile/{citizen_id})"
+            f"*Donation*: {amount} x {product} to citizen "
+            f"[{citizen_id}](https://www.erepublik.com/en/citizen/profile/{citizen_id})"
         )
 
     def report_money_donation(self, citizen_id: int, amount: float, is_currency: bool = True):
@@ -1228,7 +1275,9 @@ class TelegramReporter:
         message = "\n\n".join(self.__queue)
         if self.player_name:
             message = f"Player *{self.player_name}*\n\n" + message
-        response = post(f"{self.api_url}/sendMessage", json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+        response = post(
+            f"{self.api_url}/sendMessage", json=dict(chat_id=self.chat_id, text=message, parse_mode="Markdown")
+        )
         self._last_time = utils.now()
         if response.json().get("ok"):
             self.__queue.clear()
@@ -1275,5 +1324,11 @@ class Inventory:
     @property
     def as_dict(self) -> Dict[str, Union[types.InvFinal, types.InvRaw, int]]:
         return dict(
-            active=self.active, final=self.final, boosters=self.boosters, raw=self.raw, offers=self.offers, total=self.total, used=self.used
+            active=self.active,
+            final=self.final,
+            boosters=self.boosters,
+            raw=self.raw,
+            offers=self.offers,
+            total=self.total,
+            used=self.used,
         )

@@ -19,7 +19,9 @@ setup_requirements = []
 
 with open("requirements-tests.txt") as test_req_file:
     test_requirements = test_req_file.read()
-    test_requirements = [line.strip() for line in test_requirements.split() if line.strip()[:2].strip() not in ("#", "-r")]
+    test_requirements = [
+        line.strip() for line in test_requirements.split() if line.strip()[:2].strip() not in ("#", "-r")
+    ]
 
 setup(
     author="Eriks Karls",

@@ -115,7 +115,9 @@ class SlowRequests(Session):
         firefox_template = "Mozilla/5.0 ({osystem}; rv:{version}.0) Gecko/20100101 Firefox/{version}.0"
         firefox_versions = range(85, 92)
 
-        chrome_template = "Mozilla/5.0 ({osystem}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
+        chrome_template = (
+            "Mozilla/5.0 ({osystem}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
+        )
         chrome_versions = [
             "85.0.4183.121",
             "86.0.4240.183",
@@ -192,7 +194,11 @@ class CitizenBaseAPI:
         cookies_hash = hashlib.sha256(",".join(env["c"]).encode("utf8")).hexdigest()
 
         cookie_kwargs = dict(
-            expires=int(time.time()) + 120, path="/en/main/sessionUnlock", domain=".www.erepublik.com", secure=True, rest={"HttpOnly": True}
+            expires=int(time.time()) + 120,
+            path="/en/main/sessionUnlock",
+            domain=".www.erepublik.com",
+            secure=True,
+            rest={"HttpOnly": True},
         )
         self._req.cookies.set("sh", session_hash, **cookie_kwargs)
         self._req.cookies.set("ch", cookies_hash, **cookie_kwargs)
@@ -271,7 +277,13 @@ class ErepublikArticleAPI(CitizenBaseAPI):
         return self.post(f"{self.url}/main/donate-article", data=data)
 
     def _post_main_write_article(self, title: str, content: str, country_id: int, kind_id: int) -> Response:
-        data = dict(_token=self.token, article_name=title, article_body=content, article_location=country_id, article_category=kind_id)
+        data = dict(
+            _token=self.token,
+            article_name=title,
+            article_body=content,
+            article_location=country_id,
+            article_category=kind_id,
+        )
         return self.post(f"{self.url}/main/write-article", data=data)
 
     def _post_main_vote_article(self, article_id: int) -> Response:
@@ -286,7 +298,9 @@ class ErepublikCompanyAPI(CitizenBaseAPI):
 
     def _post_economy_create_company(self, industry_id: int, building_type: int = 1) -> Response:
         data = {"_token": self.token, "company[industry_id]": industry_id, "company[building_type]": building_type}
-        return self.post(f"{self.url}/economy/create-company", data=data, headers={"Referer": f"{self.url}/economy/create-company"})
+        return self.post(
+            f"{self.url}/economy/create-company", data=data, headers={"Referer": f"{self.url}/economy/create-company"}
+        )
 
     def _get_economy_inventory_items(self) -> Response:
         return self.get(f"{self.url}/economy/inventory-items/")
@@ -366,9 +380,13 @@ class ErepublikCountryAPI(CitizenBaseAPI):
     def _get_country_military(self, country_name: str) -> Response:
         return self.get(f"{self.url}/country/military/{country_name}")
 
-    def _post_main_country_donate(self, country_id: int, action: str, value: Union[int, float], quality: int = None) -> Response:
+    def _post_main_country_donate(
+        self, country_id: int, action: str, value: Union[int, float], quality: int = None
+    ) -> Response:
         data = dict(countryId=country_id, action=action, _token=self.token, value=value, quality=quality)
-        return self.post(f"{self.url}/main/country-donate", data=data, headers={"Referer": f"{self.url}/country/economy/Latvia"})
+        return self.post(
+            f"{self.url}/main/country-donate", data=data, headers={"Referer": f"{self.url}/country/economy/Latvia"}
+        )
 
 
 class ErepublikEconomyAPI(CitizenBaseAPI):
@@ -396,13 +414,17 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
     def _post_economy_donate_items_action(self, citizen_id: int, amount: int, industry: int, quality: int) -> Response:
         data = dict(citizen_id=citizen_id, amount=amount, industry_id=industry, quality=quality, _token=self.token)
         return self.post(
-            f"{self.url}/economy/donate-items-action", data=data, headers={"Referer": f"{self.url}/economy/donate-items/{citizen_id}"}
+            f"{self.url}/economy/donate-items-action",
+            data=data,
+            headers={"Referer": f"{self.url}/economy/donate-items/{citizen_id}"},
         )
 
     def _post_economy_donate_money_action(self, citizen_id: int, amount: float = 0.0, currency: int = 62) -> Response:
         data = dict(citizen_id=citizen_id, _token=self.token, currency_id=currency, amount=amount)
         return self.post(
-            f"{self.url}/economy/donate-money-action", data=data, headers={"Referer": f"{self.url}/economy/donate-money/{citizen_id}"}
+            f"{self.url}/economy/donate-money-action",
+            data=data,
+            headers={"Referer": f"{self.url}/economy/donate-money/{citizen_id}"},
         )
 
     def _post_economy_exchange_purchase(self, amount: float, currency: int, offer: int) -> Response:
@@ -434,7 +456,12 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
     def _post_economy_marketplace_actions(self, action: str, **kwargs) -> Response:
         if action == "buy":
             data = dict(
-                _token=self.token, offerId=kwargs["offer"], amount=kwargs["amount"], orderBy="price_asc", currentPage=1, buyAction=1
+                _token=self.token,
+                offerId=kwargs["offer"],
+                amount=kwargs["amount"],
+                orderBy="price_asc",
+                currentPage=1,
+                buyAction=1,
             )
         elif action == "sell":
             data = dict(
@@ -454,16 +481,24 @@ class ErepublikEconomyAPI(CitizenBaseAPI):
 
 
 class ErepublikLeaderBoardAPI(CitizenBaseAPI):
-    def _get_main_leaderboards_damage_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response:  # noqa
+    def _get_main_leaderboards_damage_aircraft_rankings(
+        self, country_id: int, weeks: int = 0, mu_id: int = 0
+    ) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-damage-aircraft-rankings/{country_id}/{weeks}/{mu_id}/0")
 
-    def _get_main_leaderboards_damage_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response:  # noqa
+    def _get_main_leaderboards_damage_rankings(
+        self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0
+    ) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-damage-rankings/{country_id}/{weeks}/{mu_id}/{div}")
 
-    def _get_main_leaderboards_kills_aircraft_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0) -> Response:  # noqa
+    def _get_main_leaderboards_kills_aircraft_rankings(
+        self, country_id: int, weeks: int = 0, mu_id: int = 0
+    ) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-kills-aircraft-rankings/{country_id}/{weeks}/{mu_id}/0")
 
-    def _get_main_leaderboards_kills_rankings(self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0) -> Response:  # noqa
+    def _get_main_leaderboards_kills_rankings(
+        self, country_id: int, weeks: int = 0, mu_id: int = 0, div: int = 0
+    ) -> Response:  # noqa
         return self.get(f"{self.url}/main/leaderboards-kills-rankings/{country_id}/{weeks}/{mu_id}/{div}")
 
 
@@ -543,7 +578,14 @@ class ErepublikMilitaryAPI(CitizenBaseAPI):
         return self.post(f"{self.url}/military/battle-console", data=data)
 
     def _post_military_deploy_bomb(self, battle_id: int, division_id: int, side_id: int, bomb_id: int) -> Response:
-        data = dict(battleId=battle_id, battleZoneId=division_id, sideId=side_id, sideCountryId=side_id, bombId=bomb_id, _token=self.token)
+        data = dict(
+            battleId=battle_id,
+            battleZoneId=division_id,
+            sideId=side_id,
+            sideCountryId=side_id,
+            bombId=bomb_id,
+            _token=self.token,
+        )
         return self.post(f"{self.url}/military/deploy-bomb", data=data)
 
     def _post_military_fight_air(self, battle_id: int, side_id: int, zone_id: int) -> Response:
@@ -599,7 +641,9 @@ class ErepublikPoliticsAPI(CitizenBaseAPI):
         return self.get(f"{self.url}/main/presidential-elections/{country_id}/{timestamp}")
 
     def _post_propose_president_candidate(self, party_slug: str, citizen_id: int) -> Response:
-        return self.post(f"{self.url}/propose-president-candidate/{party_slug}", data=dict(_token=self.token, citizen=citizen_id))
+        return self.post(
+            f"{self.url}/propose-president-candidate/{party_slug}", data=dict(_token=self.token, citizen=citizen_id)
+        )
 
     def _get_auto_propose_president_candidate(self, party_slug: str) -> Response:
         return self.get(f"{self.url}/auto-propose-president-candidate/{party_slug}")
@@ -611,11 +655,24 @@ class ErepublikPresidentAPI(CitizenBaseAPI):
         return self.post(f"{self.url}/wars/attack-region/{war_id}/{region_id}", data=data)
 
     def _post_new_war(self, self_country_id: int, attack_country_id: int, debate: str = "") -> Response:
-        data = dict(requirments=1, _token=self.token, debate=debate, countryNameConfirm=constants.COUNTRIES[attack_country_id].link)
+        data = dict(
+            requirments=1,
+            _token=self.token,
+            debate=debate,
+            countryNameConfirm=constants.COUNTRIES[attack_country_id].link,
+        )
         return self.post(f"{self.url}/{constants.COUNTRIES[self_country_id].link}/new-war", data=data)
 
     def _post_new_donation(self, country_id: int, amount: int, org_name: str, debate: str = "") -> Response:
-        data = dict(requirments=1, _token=self.token, debate=debate, currency=1, value=amount, commit="Propose", type_name=org_name)
+        data = dict(
+            requirments=1,
+            _token=self.token,
+            debate=debate,
+            currency=1,
+            value=amount,
+            commit="Propose",
+            type_name=org_name,
+        )
         return self.post(f"{self.url}/{constants.COUNTRIES[country_id].link}/new-donation", data=data)
 
 
@@ -705,7 +762,12 @@ class ErepublikProfileAPI(CitizenBaseAPI):
 
     def _post_main_messages_compose(self, subject: str, body: str, citizens: List[int]) -> Response:
         url_pk = 0 if len(citizens) > 1 else str(citizens[0])
-        data = dict(citizen_name=",".join([str(x) for x in citizens]), citizen_subject=subject, _token=self.token, citizen_message=body)
+        data = dict(
+            citizen_name=",".join([str(x) for x in citizens]),
+            citizen_subject=subject,
+            _token=self.token,
+            citizen_message=body,
+        )
         return self.post(f"{self.url}/main/messages-compose/{url_pk}", data=data)
 
     def _post_military_group_missions(self) -> Response:
@@ -810,7 +872,8 @@ class ErepublikWallPostAPI(CitizenBaseAPI):
     # ## Medal posting
     def _post_main_wall_post_automatic(self, message: str, achievement_id: int) -> Response:
         return self.post(
-            f"{self.url}/main/wall-post/automatic", data=dict(_token=self.token, message=message, achievementId=achievement_id)
+            f"{self.url}/main/wall-post/automatic",
+            data=dict(_token=self.token, message=message, achievementId=achievement_id),
         )
 
 
