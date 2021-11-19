@@ -2345,7 +2345,7 @@ class _Citizen(
         self.update_citizen_info()
         self.update_companies()
         # Prevent messing up levelup with wam
-        if not (self.is_levelup_close and self.config.fight) or self.config.force_wam:
+        if True:
             regions: Dict[int, classes.Holding] = {}
             for holding in self.my_companies.holdings.values():
                 if holding.wam_count:
