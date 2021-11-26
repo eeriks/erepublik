@@ -724,22 +724,17 @@ class Reporter:
         self._citizen = weakref.ref(citizen)
         self._req = Session()
         self.url = "https://erep.lv"
-        self._req.headers.update(
-            {
-                "user-agent": "eRepublik Script Reporter v3",
-                "erep-version": utils.__version__,
-                "erep-user-id": str(self.citizen_id),
-                "erep-user-name": self.citizen.name,
-            }
-        )
+        self._req.headers.update({"user-agent": "eRepublik Script Reporter v3", "erep-version": utils.__version__})
         self.__to_update = []
         self.__registered: bool = False
 
     def do_init(self):
         self.key: str = ""
         self.__update_key()
+        self._req.headers.update({"erep-user-id": str(self.citizen_id), "erep-user-name": self.name})
         self.register_account()
         self.allowed = True
+
 
     @property
     def citizen(self):
