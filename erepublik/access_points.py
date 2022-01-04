@@ -110,24 +110,15 @@ class SlowRequests(Session):
     def get_random_user_agent() -> str:
         windows_x64 = "Windows NT 10.0; Win64; x64"
         linux_x64 = "X11; Linux x86_64"
-        android = [f"Android {version}; Mobile" for version in range(8, 12)]
+        android = []  # [f"Android {version}; Mobile" for version in range(10, 13)]
 
         firefox_template = "Mozilla/5.0 ({osystem}; rv:{version}.0) Gecko/20100101 Firefox/{version}.0"
-        firefox_versions = range(85, 92)
+        firefox_versions = range(92, 97)
 
         chrome_template = (
             "Mozilla/5.0 ({osystem}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
         )
-        chrome_versions = [
-            "85.0.4183.121",
-            "86.0.4240.183",
-            "87.0.4280.141",
-            "88.0.4324.182",
-            "89.0.4389.128",
-            "90.0.4430.18",
-            "91.0.4472.73",
-            "92.0.4515.159",
-        ]
+        chrome_versions = ["92.0.4515.159", "93.0.4577.82", "94.0.4606.81", "95.0.4638.54", "96.0.4664.110"]
         uas = []
 
         for osystem in [windows_x64, linux_x64, *android]:

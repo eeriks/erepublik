@@ -735,7 +735,6 @@ class Reporter:
         self.register_account()
         self.allowed = True
 
-
     @property
     def citizen(self):
         return self._citizen()
