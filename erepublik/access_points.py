@@ -23,7 +23,7 @@ class SlowRequests(Session):
         if proxies:
             self.proxies = proxies
         if user_agent is None:
-            user_agent = random.choice(self.get_random_user_agent())
+            user_agent = self.get_random_user_agent()
         self.request_log_name = utils.get_file(utils.now().strftime("debug/requests_%Y-%m-%d.log"))
         self.last_time = utils.now()
         self.headers.update({"User-Agent": user_agent})
