@@ -388,11 +388,11 @@ class MyCompanies:
                     if raw > 0:
                         to_remove = sorted(raw_factories, key=lambda c: (c.industry not in ids, c.raw_usage))
                         if to_remove:
-                            return raw_factories.pop(raw_factories.idex(to_remove[0]))
+                            return raw_factories.pop(raw_factories.index(to_remove[0]))
                     else:
                         to_remove = sorted(final_factories, key=lambda c: (c.industry != ids[0], c.raw_usage))
                         if to_remove:
-                            return final_factories.pop(final_factories.idex(to_remove[0]))
+                            return final_factories.pop(final_factories.index(to_remove[0]))
 
     def get_raw_usage_for_companies(self, *companies: Company) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
         frm = wrm = hrm = arm = Decimal("0.00")
