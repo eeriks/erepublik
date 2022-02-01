@@ -22,6 +22,8 @@ __all__ = [
     "Energy",
     "ErepublikException",
     "ErepublikNetworkException",
+    "CloudFlareSessionError",
+    "CaptchaSessionError",
     "EnergyToFight",
     "Holding",
     "Inventory",
@@ -296,6 +298,10 @@ class MyCompanies:
     _companies: weakref.WeakSet
     _citizen: weakref.ReferenceType
     companies: Generator[Company, None, None]
+    _frm_fab_ids = (1, 7, 8, 9, 10, 11)
+    _wrm_fab_ids = (2, 12, 13, 14, 15, 16)
+    _hrm_fab_ids = (4, 18, 19, 20, 21, 22)
+    _arm_fab_ids = (23, 24, 25, 26, 27, 28)
 
     def __init__(self, citizen):
         self._citizen = weakref.ref(citizen)
@@ -359,9 +365,45 @@ class MyCompanies:
     @staticmethod
     def get_needed_inventory_usage(companies: Union[Company, Iterable[Company]]) -> Decimal:
         if isinstance(companies, list):
-            return sum(company.products_made * 100 if company.is_raw else 1 for company in companies)
+            return sum(company.products_made * (100 if company.is_raw else 1) for company in companies)
         else:
             return companies.products_made
+
+    def remove_factory_from_wam_list(self, raw_factories, final_factories):
+        frm, wrm, *_ = self.get_raw_usage_for_companies(*final_factories, *raw_factories)
+        inv_raw = self.citizen.inventory.raw
+        for raw, ids, exc in [(frm, self._frm_fab_ids, False), (wrm, self._wrm_fab_ids, False), (None, None, True)]:
+            if exc:
+                if final_factories:
+                    final_factories.sort(key=lambda c: c.raw_usage)
+                    return final_factories.pop(-1)
+                elif raw_factories:
+                    raw_factories.sort(key=lambda c: c.raw_usage)
+                    return raw_factories.pop(-1)
+            else:
+                if raw:
+                    raw += inv_raw.get(constants.INDUSTRIES[ids[1]], {}).get(0, {}).get("amount", 0.0)
+                    if raw > 0:
+                        to_remove = sorted(raw_factories, key=lambda c: (c.industry not in ids, c.raw_usage))
+                        if to_remove:
+                            return raw_factories.remove(to_remove[0])
+                    else:
+                        to_remove = sorted(final_factories, key=lambda c: (c.industry != ids[0], c.raw_usage))
+                        if to_remove:
+                            return final_factories.remove(to_remove[0])
+
+    def get_raw_usage_for_companies(self, *companies: Company) -> Tuple[float, float, float, float]:
+        frm = wrm = hrm = arm = 0.0
+        for company in companies:
+            if company.industry in self._frm_fab_ids:
+                frm += company.raw_usage
+            elif company.industry in self._wrm_fab_ids:
+                wrm += company.raw_usage
+            elif company.industry in self._hrm_fab_ids:
+                hrm += company.raw_usage
+            elif company.industry in self._arm_fab_ids:
+                arm += company.raw_usage
+        return frm, wrm, hrm, arm
 
     @property
     def companies(self) -> Generator[Company, None, None]:

@@ -8,12 +8,15 @@ __all__ = [
     "min_datetime",
     "max_datetime",
     "Country",
+    "Industries",
     "Rank",
     "AIR_RANKS",
+    "AIR_RANK_NAMES",
     "AIR_RANK_POINTS",
     "COUNTRIES",
     "FOOD_ENERGY",
     "GROUND_RANKS",
+    "GROUND_RANK_NAMES",
     "GROUND_RANK_POINTS",
     "INDUSTRIES",
     "TERRAINS",
@@ -131,7 +134,7 @@ class Industries:
         28: "ARM q5",
     }
 
-    def __getitem__(self, item) -> Optional[Union[int, str]]:
+    def __getitem__(self, item: Union[int, str]) -> Optional[Union[int, str]]:
         if isinstance(item, int):
             return self.__by_id.get(item, None)
         elif isinstance(item, str):

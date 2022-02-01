@@ -1172,23 +1172,27 @@ class CitizenCompanies(BaseCitizen):
         if self.restricted_ip:
             return None
         self.update_companies()
+        self.update_inventory()
         data = {"action_type": "production"}
         extra = {}
         raw_factories = wam_holding.get_wam_companies(raw_factory=True)
         fin_factories = wam_holding.get_wam_companies(raw_factory=False)
 
         free_inventory = self.inventory.total - self.inventory.used
-        wam_list = raw_factories + fin_factories
-        wam_list = wam_list[: self.energy.food_fights]
+        for _ in range(len(fin_factories + raw_factories) - self.energy.food_fights):
+            if not self.my_companies.remove_factory_from_wam_list(raw_factories, fin_factories):
+                raise classes.ErepublikException("Nothing removed from WAM list!")
 
-        if int(free_inventory * 0.75) < self.my_companies.get_needed_inventory_usage(wam_list):
-            self.update_inventory()
+        if int(free_inventory * 0.75) < self.my_companies.get_needed_inventory_usage(fin_factories + raw_factories):
             free_inventory = self.inventory.total - self.inventory.used
 
-        while wam_list and free_inventory < self.my_companies.get_needed_inventory_usage(wam_list):
-            wam_list.pop(-1)
+        while (fin_factories + raw_factories) and free_inventory < self.my_companies.get_needed_inventory_usage(
+            fin_factories + raw_factories
+        ):
+            if not self.my_companies.remove_factory_from_wam_list(raw_factories, fin_factories):
+                raise classes.ErepublikException("Nothing removed from WAM list!")
 
-        if wam_list:
+        if fin_factories + raw_factories:
             data.update(extra)
             if not self.details.current_region == wam_holding.region:
                 self.write_warning("Unable to work as manager because of location - please travel!")
@@ -1199,7 +1203,7 @@ class CitizenCompanies(BaseCitizen):
                 employ_factories = {}
 
             response = self._post_economy_work(
-                "production", wam=[c.id for c in wam_list], employ=employ_factories
+                "production", wam=[c.id for c in (fin_factories + raw_factories)], employ=employ_factories
             ).json()
             return response
 
@@ -2344,46 +2348,38 @@ class _Citizen(
             return False
         self.update_citizen_info()
         self.update_companies()
-        # Prevent messing up levelup with wam
-        if True:
-            regions: Dict[int, classes.Holding] = {}
-            for holding in self.my_companies.holdings.values():
-                if holding.wam_count:
-                    regions.update({holding.region: holding})
+        regions: Dict[int, classes.Holding] = {}
+        for holding in self.my_companies.holdings.values():
+            if holding.wam_count:
+                regions.update({holding.region: holding})
 
-            # Check for current region
-            if self.details.current_region in regions:
-                self._wam(regions.pop(self.details.current_region))
-                self.update_companies()
+        # Check for current region
+        if self.details.current_region in regions:
+            self._wam(regions.pop(self.details.current_region))
+            self.update_companies()
 
-            for holding in regions.values():
-                raw_usage = holding.get_wam_raw_usage()
-                free_storage = self.inventory.total - self.inventory.used
-                if (raw_usage["frm"] + raw_usage["wrm"]) * 100 > free_storage:
-                    self._report_action("WAM_UNAVAILABLE", "Not enough storage!")
-                    continue
-                self.travel_to_holding(holding)
-                self._wam(holding)
-                self.update_companies()
+        for holding in regions.values():
+            raw_usage = holding.get_wam_raw_usage()
+            free_storage = self.inventory.total - self.inventory.used
+            if (raw_usage["frm"] + raw_usage["wrm"]) * 100 > free_storage:
+                self._report_action("WAM_UNAVAILABLE", "Not enough storage!")
+                continue
+            self.travel_to_holding(holding)
+            self._wam(holding)
+            self.update_companies()
 
-            wam_count = self.my_companies.get_total_wam_count()
-            if wam_count:
-                self.logger.debug(f"Wam ff lockdown is now {wam_count}, was {self.my_companies.ff_lockdown}")
-            self.my_companies.ff_lockdown = wam_count
-            self.travel_to_residence()
-            return bool(wam_count)
-        else:
-            self.write_warning("Did not WAM because I would mess up levelup!")
-            self.my_companies.ff_lockdown = 0
-
-        self.update_companies()
-        return bool(self.my_companies.get_total_wam_count())
+        wam_count = self.my_companies.get_total_wam_count()
+        # if wam_count:
+        #     self.logger.debug(f"Wam ff lockdown is now {wam_count}, was {self.my_companies.ff_lockdown}")
+        # self.my_companies.ff_lockdown = wam_count
+        self.travel_to_residence()
+        return bool(wam_count)
 
 
 class Citizen(_Citizen):
     _concurrency_lock: Event
     _update_lock: Event
-    _update_timeout: int = 10
+    _update_timeout: int = 30
     _concurrency_timeout: int = 600
 
     def __init__(self, *args, **kwargs):
