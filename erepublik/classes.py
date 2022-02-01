@@ -393,7 +393,7 @@ class MyCompanies:
                             return final_factories.remove(to_remove[0])
 
     def get_raw_usage_for_companies(self, *companies: Company) -> Tuple[float, float, float, float]:
-        frm = wrm = hrm = arm = 0.0
+        frm = wrm = hrm = arm = Decimal("0.00")
         for company in companies:
             if company.industry in self._frm_fab_ids:
                 frm += company.raw_usage
