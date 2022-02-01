@@ -382,18 +382,20 @@ class MyCompanies:
                     return raw_factories.pop(-1)
             else:
                 if raw:
-                    raw += inv_raw.get(constants.INDUSTRIES[ids[1]], {}).get(0, {}).get("amount", 0.0)
+                    raw += Decimal(
+                        inv_raw.get(constants.INDUSTRIES[ids[1]], {}).get(0, {}).get("amount", Decimal("0.0"))
+                    )
                     if raw > 0:
                         to_remove = sorted(raw_factories, key=lambda c: (c.industry not in ids, c.raw_usage))
                         if to_remove:
-                            return raw_factories.remove(to_remove[0])
+                            return raw_factories.pop(raw_factories.idex(to_remove[0]))
                     else:
                         to_remove = sorted(final_factories, key=lambda c: (c.industry != ids[0], c.raw_usage))
                         if to_remove:
-                            return final_factories.remove(to_remove[0])
+                            return final_factories.pop(final_factories.idex(to_remove[0]))
 
-    def get_raw_usage_for_companies(self, *companies: Company) -> Tuple[float, float, float, float]:
-        frm = wrm = hrm = arm = 0.0
+    def get_raw_usage_for_companies(self, *companies: Company) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
+        frm = wrm = hrm = arm = Decimal("0.00")
         for company in companies:
             if company.industry in self._frm_fab_ids:
                 frm += company.raw_usage

@@ -102,7 +102,8 @@ class TestErepublik(unittest.TestCase):
     #         self.citizen.my_companies.ff_lockdown = 160
     #         self.assertEqual(
     #             self.citizen.should_fight(),
-    #             (435, "Fight count modified (old count: 595 | FF: 595 | WAM ff_lockdown: 160 | New count: 435)", False),
+    #             (435, "Fight count modified (old count: 595 | FF: 595
+    #             | WAM ff_lockdown: 160 | New count: 435)", False),
     #         )
     #         self.citizen.my_companies.ff_lockdown = 0
     #
@@ -112,7 +113,8 @@ class TestErepublik(unittest.TestCase):
     #         self.citizen.my_companies.ff_lockdown = 160
     #         self.assertEqual(
     #             self.citizen.should_fight(),
-    #             (240, "Fight count modified (old count: 400 | FF: 400 | WAM ff_lockdown: 160 | New count: 240)", False),
+    #             (240, "Fight count modified (old count: 400 | FF: 400
+    #             | WAM ff_lockdown: 160 | New count: 240)", False),
     #         )
     #         self.citizen.my_companies.ff_lockdown = 0
     #         self.citizen.config.all_in = False
@@ -124,7 +126,8 @@ class TestErepublik(unittest.TestCase):
     #         self.citizen.my_companies.ff_lockdown = 160
     #         self.assertEqual(
     #             self.citizen.should_fight(),
-    #             (160, "Fight count modified (old count: 320 | FF: 400 | WAM ff_lockdown: 160 | New count: 160)", False),
+    #             (160, "Fight count modified (old count: 320 | FF: 400
+    #             | WAM ff_lockdown: 160 | New count: 160)", False),
     #         )
     #         self.citizen.my_companies.ff_lockdown = 0
     #         self.citizen.energy.limit = 3000
