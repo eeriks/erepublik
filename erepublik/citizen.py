@@ -2281,9 +2281,9 @@ class _Citizen(
                     if data and kind in self.config.auto_sell:
                         if kind in ["food", "weapon", "house", "airplane"]:
                             for quality, amount in data.items():
-                                self.sell_produced_product(kind, quality)
+                                self.sell_produced_product(kind, quality, int(data))
                         elif kind.endswith("Raw"):
-                            self.sell_produced_product(kind, 1)
+                            self.sell_produced_product(kind, 1, int(data))
                         else:
                             raise classes.ErepublikException(f"Unknown kind produced '{kind}'")
         elif self.config.auto_buy_raw and re.search(r"not_enough_[^_]*_raw", response.get("message")):
