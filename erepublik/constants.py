@@ -121,7 +121,6 @@ class Industries:
         14: "WRM q3",
         15: "WRM q4",
         16: "WRM q5",
-        17: "houseRaw",
         18: "houseRaw",
         19: "HRM q2",
         20: "HRM q3",

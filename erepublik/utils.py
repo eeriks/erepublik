@@ -93,7 +93,7 @@ def eday_from_date(date: Union[datetime.date, datetime.datetime] = None) -> int:
     return (date - datetime.datetime(2007, 11, 20, 0, 0, 0)).days
 
 
-def date_from_eday(eday: int) -> datetime.date:
+def date_from_eday(eday: int) -> datetime.datetime:
     return localize_dt(datetime.date(2007, 11, 20)) + datetime.timedelta(days=eday)
 
 

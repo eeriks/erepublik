@@ -327,7 +327,7 @@ class BaseCitizen(access_points.CitizenAPI):
                 r"((?P<amount>\d+) item\(s\) )?[eE]xpires? on Day (?P<eday>\d,\d{3}), (?P<time>\d\d:\d\d)",
                 _expire_value,
             ).groupdict()
-            eday = utils.date_from_eday(int(_data["eday"].replace(",", "")))
+            eday = utils.date_from_eday(int(_data["eday"].replace(",", ""))).date()
             dt = constants.erep_tz.localize(datetime.combine(eday, time(*[int(_) for _ in _data["time"].split(":")])))
             return {"amount": _data.get("amount"), "expiration": dt}
 
