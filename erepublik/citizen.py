@@ -2340,7 +2340,7 @@ class _Citizen(
     def work_as_manager(self) -> bool:
         """Does Work as Manager in all holdings with wam. If employees assigned - work them also
 
-        :return: if has more wam work to do
+        :return: if there is more wam work to do
         :rtype: bool
         """
         if self.restricted_ip:
@@ -2348,17 +2348,24 @@ class _Citizen(
             return False
         self.update_citizen_info()
         self.update_companies()
-        regions: Dict[int, classes.Holding] = {}
-        for holding in self.my_companies.holdings.values():
-            if holding.wam_count:
-                regions.update({holding.region: holding})
+        wam_holdings: List[classes.Holding] = [
+            holding for holding in self.my_companies.holdings.values() if holding.wam_count
+        ]
 
         # Check for current region
-        if self.details.current_region in regions:
-            self._wam(regions.pop(self.details.current_region))
-            self.update_companies()
+        for holding in wam_holdings:
+            if holding.region == self.details.current_region:
+                self._wam(holding)
+                self.update_companies()
+        wam_holdings: List[classes.Holding] = [
+            holding for holding in wam_holdings if not holding.region == self.details.current_region
+        ]
 
-        for holding in regions.values():
+        wam_holdings.sort(key=lambda h: -len(h.get_wam_companies(False)))
+        for holding in wam_holdings:
+            # Don't travel if not enough energy
+            if self.energy.energy < 2 * self.energy.interval * 10 < holding.wam_count:
+                break
             raw_usage = holding.get_wam_raw_usage()
             free_storage = self.inventory.total - self.inventory.used
             if (raw_usage["frm"] + raw_usage["wrm"]) * 100 > free_storage:
