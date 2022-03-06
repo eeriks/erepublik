@@ -1961,7 +1961,7 @@ class CitizenTasks(CitizenEconomy):
             else:
                 self.reporter.report_action("WORK", json_val=js)
         else:
-            seconds = self.now.timestamp() % 360
+            seconds = 360 - self.now.timestamp() % 360
             self.write_warning(f"I don't have energy to work. Will sleep for {seconds}s")
             self.sleep(seconds)
             self.work()
@@ -2007,7 +2007,7 @@ class CitizenTasks(CitizenEconomy):
                     self.buy_food(120)
                 self.reporter.report_action("WORK_OT", r.json())
         elif self.energy.food_fights < 1 and self.ot_points >= 24:
-            seconds = self.now.timestamp() % 360
+            seconds = 360 - self.now.timestamp() % 360
             self.write_warning(f"I don't have energy to work OT. Will sleep for {seconds}s")
             self.sleep(seconds)
             self.work_ot()
