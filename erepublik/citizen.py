@@ -2349,7 +2349,7 @@ class _Citizen(
         self.update_citizen_info()
         self.update_companies()
         wam_holdings: List[classes.Holding] = [
-            holding for holding in self.my_companies.holdings.values() if holding.wam_count
+            holding for holding in self.my_companies.get_wam_holdings() if holding.wam_count
         ]
 
         # Check for current region
@@ -2361,10 +2361,9 @@ class _Citizen(
             holding for holding in wam_holdings if not holding.region == self.details.current_region
         ]
 
-        wam_holdings.sort(key=lambda h: -len(h.get_wam_companies(False)))
         for holding in wam_holdings:
-            # Don't travel if not enough energy
-            if self.energy.energy < 2 * self.energy.interval * 10 < holding.wam_count:
+            # Don't travel if not enough energy (either work in all holding factories or 2h energy worth)
+            if self.energy.energy < 2 * self.energy.interval * 10 < holding.wam_count * 10:
                 break
             raw_usage = holding.get_wam_raw_usage()
             free_storage = self.inventory.total - self.inventory.used
@@ -2376,9 +2375,6 @@ class _Citizen(
             self.update_companies()
 
         wam_count = self.my_companies.get_total_wam_count()
-        # if wam_count:
-        #     self.logger.debug(f"Wam ff lockdown is now {wam_count}, was {self.my_companies.ff_lockdown}")
-        # self.my_companies.ff_lockdown = wam_count
         self.travel_to_residence()
         return bool(wam_count)
 
