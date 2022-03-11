@@ -413,7 +413,7 @@ class MyCompanies:
 
     def get_wam_holdings(self) -> Generator[Holding, None, None]:
         for holding in sorted(self.holdings.values(), key=lambda h: (-len(h.get_wam_companies(False)), -len(h.get_wam_companies()))):
-
+            yield holding
 
     def __str__(self):
         return f"MyCompanies: {sum(1 for _ in self.companies)} companies in {len(self.holdings)} holdings"
