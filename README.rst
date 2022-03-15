@@ -10,6 +10,13 @@ eRepublik script
         :target: https://erepublik.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://github.com/eeriks/erepublik/actions/workflows/codeql-analysis.yml/badge.svg?branch=master
+        :target: //github.com/eeriks/erepublik/actions/workflows/codeql-analysis.yml
+        :alt: CodeQL
+
+.. image:: https://github.com/eeriks/erepublik/actions/workflows/pythonpackage.yml/badge.svg
+        :target: https://github.com/eeriks/erepublik/actions/workflows/pythonpackage.yml
+        :alt: Python package
 
 Python package for automated eRepublik playing
 
