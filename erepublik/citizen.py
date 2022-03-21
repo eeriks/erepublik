@@ -9,7 +9,7 @@ from threading import Event
 from time import sleep
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, TypedDict, Union
 
-from requests import RequestException, Response
+from httpx import RequestException, Response
 
 from erepublik import _types as types
 from erepublik import access_points, classes, constants, utils
