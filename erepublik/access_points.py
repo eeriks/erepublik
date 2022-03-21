@@ -4,8 +4,7 @@ import random
 import time
 from typing import Any, Dict, List, Mapping, Union
 
-from requests import Response, Session
-from requests.exceptions import ConnectionError
+from httpx import Response, Client as Session, RequestError
 from requests_toolbelt.utils import dump
 
 from erepublik import constants, utils
@@ -15,11 +14,12 @@ __all__ = ["SlowRequests", "CitizenAPI"]
 
 class SlowRequests(Session):
     last_time: datetime.datetime
-    timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)
+    __timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)
     debug: bool = False
+    http2 = True
 
     def __init__(self, proxies: Dict[str, str] = None, user_agent: str = None):
-        super().__init__()
+        super().__init__(http2=True, follow_redirects=True)
         if proxies:
             self.proxies = proxies
         if user_agent is None:
@@ -27,13 +27,13 @@ class SlowRequests(Session):
         self.request_log_name = utils.get_file(utils.now().strftime("debug/requests_%Y-%m-%d.log"))
         self.last_time = utils.now()
         self.headers.update({"User-Agent": user_agent})
-        self.hooks["response"] = [self._log_response]
+        self.event_hooks["response"] = [self._log_response]
 
     @property
     def as_dict(self):
         return dict(
             last_time=self.last_time,
-            timeout=self.timeout,
+            __timeout=self.__timeout,
             cookies=self.cookies.get_dict(),
             debug=self.debug,
             user_agent=self.headers["User-Agent"],
@@ -46,14 +46,14 @@ class SlowRequests(Session):
         self._log_request(url, method, **kwargs)
         try:
             resp = super().request(method, url, *args, **kwargs)
-        except ConnectionError:
+        except RequestError:
             time.sleep(1)
             return self.request(method, url, *args, **kwargs)
         # self._log_response(resp)
         return resp
 
     def _slow_down_requests(self):
-        ltt = utils.good_timedelta(self.last_time, self.timeout)
+        ltt = utils.good_timedelta(self.last_time, self.__timeout)
         if ltt > utils.now():
             seconds = (ltt - utils.now()).total_seconds()
             time.sleep(seconds if seconds > 0 else 0)
@@ -81,7 +81,7 @@ class SlowRequests(Session):
 
     def _log_response(self, response: Response, *args, **kwargs):
         redirect = kwargs.get("redirect")
-        url = response.request.url
+        url = str(response.request.url)
         if self.debug:
             if response.history and not redirect:
                 for hist_resp in response.history:
@@ -92,7 +92,7 @@ class SlowRequests(Session):
             fd_time = self.last_time.strftime("%Y/%m/%d/%H-%M-%S")
             fd_name = utils.slugify(url[len(CitizenBaseAPI.url) :])
             fd_extra = "_REDIRECT" if redirect else ""
-
+            response.read()
             try:
                 utils.json.loads(response.text)
                 fd_ext = "json"
@@ -102,9 +102,9 @@ class SlowRequests(Session):
             filename = f"{fd_path}/{fd_time}_{fd_name}{fd_extra}.{fd_ext}"
             utils.write_file(filename, response.text)
 
-            if not redirect:
-                data = dump.dump_all(response)
-                utils.write_file(f"debug/dumps/{fd_time}_{fd_name}{fd_extra}.{fd_ext}.dump", data.decode("utf8"))
+            #if not redirect:
+            #    data = dump.dump_all(response)
+            #    utils.write_file(f"debug/dumps/{fd_time}_{fd_name}{fd_extra}.{fd_ext}.dump", data.decode("utf8"))
 
     @staticmethod
     def get_random_user_agent() -> str:
@@ -145,7 +145,7 @@ class CitizenBaseAPI:
         return dict(url=self.url, request=self._req.as_dict, token=self.token)
 
     def post(self, url: str, data=None, json=None, **kwargs) -> Response:
-        return self._req.post(url, data, json, **kwargs)
+        return self._req.post(url, data=data, json=json, **kwargs)
 
     def get(self, url: str, **kwargs) -> Response:
         return self._req.get(url, **kwargs)
