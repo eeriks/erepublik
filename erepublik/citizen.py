@@ -613,7 +613,10 @@ class BaseCitizen(access_points.CitizenAPI):
             "comment_url",
             "rfc2109",
         ]
-        cookies = [{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in self._req.cookies]
+        cookies = []
+        for cookie in self._req.cookies.jar:
+            cookies.append({attr: getattr(cookie, attr, None) for attr in cookie_attrs if hasattr(cookie, attr)})
+        #cookies = [{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in self._req.cookies]
 
         with open(filename, "w") as f:
             utils.json_dump(

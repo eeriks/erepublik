@@ -112,7 +112,7 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
 
     def _get_last_response(self) -> Dict[str, str]:
         response = self.reporter.citizen.r
-        url = response.url
+        url = str(response.url)
         last_index = url.index("?") if "?" in url else len(response.url)
 
         name = slugify(response.url[len(self.reporter.citizen.url) : last_index])
