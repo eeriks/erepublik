@@ -9,7 +9,7 @@ from logging import LogRecord, handlers
 from pathlib import Path
 from typing import Any, Dict, Union
 
-import requests
+from httpx import post
 
 from erepublik.classes import Reporter
 from erepublik.constants import erep_tz
@@ -209,6 +209,6 @@ class ErepublikErrorHTTTPHandler(handlers.HTTPHandler):
             headers = {"Authorization": s}
             data = self.mapLogRecord(record)
             files = data.pop("files") if "files" in data else None
-            requests.post(f"{proto}://{self.host}{self.url}", headers=headers, data=data, files=files)
+            post(f"{proto}://{self.host}{self.url}", headers=headers, data=data, files=files)
         except Exception:
             self.handleError(record)

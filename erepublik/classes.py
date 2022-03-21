@@ -7,7 +7,7 @@ from decimal import Decimal
 from io import BytesIO
 from typing import Any, Dict, Generator, Iterable, List, NamedTuple, NoReturn, Optional, Tuple, Union
 
-from requests import HTTPError, Response, Session, post
+from httpx import HTTPError, Response, Client as Session, post
 
 from erepublik import _types as types
 from erepublik import constants, utils
@@ -772,7 +772,7 @@ class Reporter:
 
     def __init__(self, citizen):
         self._citizen = weakref.ref(citizen)
-        self._req = Session()
+        self._req = Session(follow_redirects=True)
         self.url = "https://erep.lv"
         self._req.headers.update({"user-agent": "eRepublik Script Reporter v3", "erep-version": utils.__version__})
         self.__to_update = []

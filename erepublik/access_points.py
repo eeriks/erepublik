@@ -5,7 +5,7 @@ import time
 from typing import Any, Dict, List, Mapping, Union
 
 from httpx import Response, Client as Session, RequestError
-from requests_toolbelt.utils import dump
+#from requests_toolbelt.utils import dump
 
 from erepublik import constants, utils
 

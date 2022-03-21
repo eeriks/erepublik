@@ -9,7 +9,7 @@ from threading import Event
 from time import sleep
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, TypedDict, Union
 
-from httpx import RequestException, Response
+from httpx import RequestError, Response
 
 from erepublik import _types as types
 from erepublik import access_points, classes, constants, utils
@@ -118,7 +118,7 @@ class BaseCitizen(access_points.CitizenAPI):
         else:
             try:
                 response = super().get(url, **kwargs)
-            except RequestException:
+            except RequestError:
                 self.report_error("Network error while issuing GET request")
                 self.sleep(60)
                 return self.get(url, **kwargs)
@@ -151,7 +151,7 @@ class BaseCitizen(access_points.CitizenAPI):
 
         try:
             response = super().post(url, data=data, json=json, **kwargs)
-        except RequestException:
+        except RequestError:
             self.report_error("Network error while issuing POST request")
             self.sleep(60)
             return self.post(url, data=data, json=json, **kwargs)
